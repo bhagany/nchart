@@ -618,16 +618,18 @@ $(function() {
     var reflexive_edges = {}
     var last_nodes = {};
     var flat_nodes = [];
+    var node_len = node_groups.length;
     var i, j, k, x, nodes, start_y, node, node_id, name;
-    for(i in node_groups) {
-        x = x_space * (parseInt(i) + 1);
+    for(i=0; i<node_len; i++) {
+        x = x_space * (i + 1);
         nodes = node_groups[i].nodes;
         start_y = Math.ceil(nodes.length / 2) - nodes.length + mid_y;
-        for(j in nodes) {
+        var n_len = nodes.length;
+        for(j=0; j<n_len; j++) {
             node = {'vertex': nodes[j]};
             node_id = flat_nodes.length;
             flat_nodes.push(node);
-            node.position = [x, start_y + parseInt(j)];
+            node.position = [x, start_y + j];
             node.velocity = 0;
             node.net_force = 0;
             for(k in node.vertex) {
@@ -666,12 +668,13 @@ $(function() {
     var step = 1;
     var energy = Math.Infinity;
     var tolerance = .01;
+    var flat_len = flat_nodes.length;
     var total_movement, energy_0, i, node, f, node_id, edge_node, weight, j, other_node, movement;
     while(converged == false) {
         total_movement = 0;
         energy_0 = energy;
         energy = 0;
-        for(i in flat_nodes) {
+        for(i=0; i<flat_len; i++) {
             node = flat_nodes[i];
             f = 0;
             for(node_id in reflexive_edges[i]) {
@@ -681,12 +684,13 @@ $(function() {
                     f += attract(node, edge_node, weight);
                 }
             }
-            for(j in flat_nodes) {
+            for(j=0; j<flat_len; j++) {
                 other_node = flat_nodes[j];
-                if(i != j
-                   && node.position[0] == other_node.position[0]
-                   && other_node.position[1] - node.position[1] != 0) {
-                    f += repulse(node, other_node);
+                if(i != j) {
+                    if(node.position[0] == other_node.position[0]
+                       && other_node.position[1] - node.position[1] != 0) {
+                        f += repulse(node, other_node);
+                    }
                 }
             }
             if(f != 0) {
