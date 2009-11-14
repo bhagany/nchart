@@ -592,6 +592,28 @@ $(function() {
     //         * Math.sqrt(Math.pow(delta[0], 2) + Math.pow(delta[1], 2));
     // }
 
+    function edge_repulse(node, edge) {
+        var edge1 = edge[0];
+        var edge2 = edge[1];
+        var u = ((node.position[0] - edge1.position[0]) * (edge2.position[0] - edge1.position[0])
+                 + (node.position[1] - edge1.position[1]) * (edge2.position[1] - edge1.position[1]))
+            / (Math.pow(edge1.position[0] - edge2.position[0], 2)
+               + Math.pow(edge1.position[1] - edge2.position[1], 2));
+
+        var intersection = [edge1.position[0] + u * (edge2.position[0] - edge1.position[0]),
+                            edge1.position[1] + u * (edge2.position[1] - edge1.position[1])];
+        var delta = [node.position[0] - intersection[0],
+                     node.position[1] - intersection[1]];
+        if(delta[1] == 0) {
+            return 0;
+        }
+        return -C
+            * Math.pow(K, 1 + p)
+            / Math.pow(delta[1], p)
+            / delta[1]
+            * Math.sqrt(Math.pow(delta[0], 2) + Math.pow(delta[1], 2));
+    }
+
     function attract(node, edge_node, weight) {
         // Only gets called for things in different columns
         var delta = [edge_node.position[0] - node.position[0],
@@ -618,6 +640,7 @@ $(function() {
     var reflexive_edges = {}
     var last_nodes = {};
     var flat_nodes = [];
+    var flat_edges = [];
     var node_len = node_groups.length;
     var i, j, k, x, nodes, start_y, node, node_id, name;
     for(i=0; i<node_len; i++) {
@@ -638,6 +661,7 @@ $(function() {
                     add_edge(edges, last_nodes[name], node_id);
                     add_edge(reflexive_edges, last_nodes[name], node_id);
                     add_edge(reflexive_edges, node_id, last_nodes[name]);
+                    flat_edges.push([flat_nodes[last_nodes[name]], flat_nodes[node_id]]);
                 }
                 if(!node_groups[i].deaths || $.inArray(name, node_groups[i].deaths) == -1) {
                     last_nodes[name] = node_id;
@@ -645,6 +669,34 @@ $(function() {
             }
         }
     }
+
+    var cross_edges = {};
+    for(var node_id in edges) {
+        var node2_ids = edges[node_id]
+        for(var node2_id in edges[node_id]) {
+            var i = parseInt(node_id);
+            var j = parseInt(node2_id);
+            var node1 = flat_nodes[node_id];
+            var node2 = flat_nodes[node2_id];
+            for(var k=i + 1; k<j; k++) {
+                k_node = flat_nodes[k];
+                if(!cross_edges[k]) {
+                    cross_edges[k] = [];
+                }
+                if(node1.position[0] < k_node.position[0] && k_node.position[0] < node2.position[0]) {
+                    cross_edges[k].push([flat_nodes[node_id], flat_nodes[node2_id]]);
+                }
+            }
+        }
+    }
+
+    // var count = 0;
+    // for(var i in edges) {
+    //     count++;
+    // }
+
+    // console.log(count);
+    // console.log(flat_nodes.length);
 
     var progress = 0;
     var t = .9;
@@ -669,7 +721,7 @@ $(function() {
     var energy = Math.Infinity;
     var tolerance = .01;
     var flat_len = flat_nodes.length;
-    var total_movement, energy_0, i, node, f, node_id, edge_node, weight, j, other_node, movement;
+    var total_movement, energy_0, i, node, f, node_id, edge_node, weight, j, other_node, k, movement;
     while(converged == false) {
         total_movement = 0;
         energy_0 = energy;
@@ -686,11 +738,17 @@ $(function() {
             }
             for(j=0; j<flat_len; j++) {
                 other_node = flat_nodes[j];
-                if(i != j) {
-                    if(node.position[0] == other_node.position[0]
-                       && other_node.position[1] - node.position[1] != 0) {
-                        f += repulse(node, other_node);
-                    }
+                if(i != j
+                   && node.position[0] == other_node.position[0]
+                   && other_node.position[1] - node.position[1] != 0) {
+                    f += repulse(node, other_node);
+                }
+            }
+            if(cross_edges[i]) {
+                var cross_len = cross_edges[i].length;
+                for(k=0; k<cross_len; k++) {
+                    edge = cross_edges[i][k];
+                    f += edge_repulse(node, edge);
                 }
             }
             if(f != 0) {
