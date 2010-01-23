@@ -76,6 +76,9 @@ $(function() {
         'renly': {'name': 'Renly Baratheon',
                   'pov': false,
                   'group': 'baratheon'},
+        'davos': {'name': 'Davos Seaworth',
+                  'pov': true,
+                  'group': 'baratheon'},
 
         'tywin': {'name': 'Tywin Lannister',
                   'pov': false,
@@ -131,6 +134,15 @@ $(function() {
         'theon': {'name': 'Theon Greyjoy',
                   'pov': true,
                   'group': 'greyjoy'},
+        'asha': {'name': 'Asha Greyjoy',
+                 'pov': true,
+                 'group': 'greyjoy'},
+        'aeron': {'name': 'Aeron Greyjoy',
+                  'pov': true,
+                  'group': 'greyjoy'},
+        'victarion': {'name': 'Victarion Greyjoy',
+                      'pov': true,
+                      'group': 'greyjoy'},
 
         'barristan': {'name': 'Barristan Selmy',
                       'pov': false,
@@ -157,6 +169,15 @@ $(function() {
         'mirri': {'name': 'Mirri Maz Duur',
                   'pov': false,
                   'group': 'other'},
+        'melisandre': {'Melisandre',
+                  'pov': false,
+                  'group': 'other'},
+        'gendry': {'Gendry',
+                   'pov': false,
+                   'group': 'other'},
+        'jaqen': {'Jaqen H\'ghar',
+                  'pov': false,
+                  'group': 'other'},
 
         'loras': {'name': 'Loras Tyrell',
                   'pov': false,
@@ -177,7 +198,6 @@ $(function() {
     };
 
     var layers = [
-        // 0
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['will', 'waymar', 'gared']}
@@ -191,7 +211,6 @@ $(function() {
          'wights': ['waymar'],
          'event': 'Encounter with Others'
         },
-        // 1
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['ned', 'robb', 'bran', 'jon', 'theon', 'gared']},
@@ -199,7 +218,11 @@ $(function() {
          'deaths': ['gared'],
          'event': 'Execution of Gared'
         },
-        // 2
+        {'duration': 10,
+         'nodes': [
+             {'sub_nodes': ['grey wind','lady', 'nymeria', 'summer', 'shaggydog', 'ghost']},
+         ],
+        },
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['ned', 'robb', 'bran', 'jon', 'theon', 'grey wind',
@@ -207,7 +230,11 @@ $(function() {
          ],
          'event': 'Finding the Wolves'
         },
-        // 3
+        {'duration': 10,
+         'nodes': [
+             {'sub_nodes': ['cat', 'sansa', 'arya', 'rickon']},
+         ]
+        },
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['ned', 'cat', 'robb', 'sansa', 'arya', 'bran', 'rickon', 'jon',
@@ -215,7 +242,6 @@ $(function() {
                             'shaggydog', 'ghost']},
          ]
         },
-        // 4
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['daenerys', 'viserys', 'illyrio']},
@@ -237,7 +263,6 @@ $(function() {
                             'sandor']},
          ],
         },
-        // 6
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['ned', 'cat', 'robb', 'sansa', 'arya', 'bran', 'rickon', 'jon',
@@ -247,41 +272,23 @@ $(function() {
          ],
          'event': 'Robert Visits Winterfell'
         },
-        // 7
-        {'duration': 10,
-         'nodes': [
-             {'sub_nodes': ['benjen', 'jon', 'ghost', 'tyrion']},
-             {'sub_nodes': ['robb', 'bran', 'rickon', 'theon', 'grey wind', 'summer', 'shaggydog', 'cat']},
-             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'jaime', 'joffrey', 'myrcella',
-                            'tommen', 'sandor', 'lady', 'nymeria']}
-         ]
-        },
-        // 8
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['daenerys', 'viserys', 'illyrio', 'jorah', 'drogo']}
          ],
          'event': 'Drogo and Daenerys Married'
         },
-        // 9
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['robb', 'bran', 'rickon', 'theon', 'grey wind', 'summer', 'shaggydog', 'cat']}
          ],
          'event': 'Assassination attempt on Bran'
         },
-        // 10
-        {'duration': 10,
-         'nodes': [
-             {'sub_nodes': ['cat']}
-         ],
-        },
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['renly', 'barristan', 'ilyn']}
          ]
         },
-        // 11
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'jaime', 'joffrey', 'myrcella',
@@ -290,12 +297,11 @@ $(function() {
          'deaths': ['lady'],
          'event': 'Children Fight Near the Trident'
         },
-        // 12
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'jaime', 'joffrey', 'myrcella',
                             'tommen', 'sandor', 'renly', 'barristan', 'ilyn']},
-             {'sub_nodes': ['nymeria']}
+             {'sub_nodes': ['nymeria']} //***
          ]
         },
         {'duration': 10,
@@ -303,24 +309,15 @@ $(function() {
              {'sub_nodes': ['jeor', 'aemon']}
          ]
         },
-        // 13
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['benjen', 'jon', 'ghost', 'tyrion', 'jeor', 'aemon']}
          ]
         },
-        // 14
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['jon', 'ghost', 'tyrion', 'jeor', 'aemon']},
-             {'sub_nodes': ['benjen']}
-         ]
-        },
-        // 15
-        {'duration': 10,
-         'nodes': [
-             {'sub_nodes': ['jon', 'ghost', 'jeor', 'aemon']},
-             {'sub_nodes': ['tyrion']}
+             {'sub_nodes': ['benjen']} //***
          ]
         },
         {'duration': 10,
@@ -328,13 +325,11 @@ $(function() {
              {'sub_nodes': ['petyr', 'varys', 'pycelle']}
          ]
         },
-        // 16
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['cat', 'petyr', 'varys', 'pycelle']}
          ]
         },
-        // 17
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'jaime', 'joffrey', 'myrcella',
@@ -342,32 +337,21 @@ $(function() {
                             'pycelle']}
          ]
         },
-        // 18
-        {'duration': 10,
-         'nodes': [
-             {'sub_nodes': ['cat']}
-         ]
-        },
-        // 19
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['robb', 'bran', 'rickon', 'theon', 'grey wind', 'summer', 'shaggydog', 'tyrion']},
          ],
         },
-        // 20
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['robb', 'bran', 'rickon', 'theon', 'grey wind', 'summer', 'shaggydog']},
-             {'sub_nodes': ['tyrion']}
-         ],
+             {'sub_nodes': ['sam']}
+         ]
         },
-        // 21
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['jon', 'ghost', 'jeor', 'aemon', 'sam']}
          ]
         },
-        // 22
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['cat', 'tyrion']}
@@ -380,7 +364,6 @@ $(function() {
              {'sub_nodes': ['loras']}
          ]
         },
-        // 23
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'jaime', 'joffrey', 'myrcella',
@@ -389,15 +372,6 @@ $(function() {
          ],
          'event': 'Hand\'s Tourney'
         },
-        // 24
-        {'duration': 10,
-         'nodes': [
-             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'jaime', 'joffrey', 'myrcella',
-                            'tommen', 'sandor', 'renly', 'barristan', 'ilyn', 'petyr', 'varys',
-                            'pycelle', 'beric', 'loras']},
-             {'sub_nodes': ['gregor']}
-         ],
-        },
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'jaime', 'joffrey', 'myrcella',
@@ -405,22 +379,12 @@ $(function() {
                             'pycelle', 'beric', 'loras', 'illyrio']},
          ],
         },
-        // 28
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'jaime', 'joffrey', 'myrcella',
                             'tommen', 'sandor', 'renly', 'barristan', 'ilyn', 'petyr', 'varys',
                             'pycelle', 'beric', 'loras']},
-             {'sub_nodes': ['illyrio']}
-         ],
-        },
-        // 29
-        {'duration': 10,
-         'nodes': [
-             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'joffrey', 'myrcella',
-                            'tommen', 'sandor', 'renly', 'barristan', 'ilyn', 'petyr', 'varys',
-                            'pycelle', 'beric', 'loras']},
-             {'sub_nodes': ['jaime']}
+             {'sub_nodes': ['illyrio']} //***
          ],
         },
         {'duration': 10,
@@ -429,38 +393,24 @@ $(function() {
              {'sub_nodes': ['brynden']}
          ]
         },
-        // 34
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['cat', 'lysa', 'robert a', 'brynden', 'tyrion']}
          ]
         },
-        // 35
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['cat', 'brynden']},
-             {'sub_nodes': ['tyrion']},
-             {'sub_nodes': ['lysa', 'robert a']}
+             {'sub_nodes': ['lysa', 'robert a']} //***
          ]
         },
-        // 36
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'joffrey', 'myrcella',
                             'tommen', 'sandor', 'renly', 'barristan', 'ilyn', 'petyr', 'varys',
-                            'pycelle', 'beric', 'loras']}
+                            'pycelle', 'loras']}, //***
+             {'sub_nodes': ['beric']} //***
          ]
         },
-        // 37
-        {'duration': 10,
-         'nodes': [
-             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'joffrey', 'myrcella',
-                            'tommen', 'sandor', 'renly', 'barristan', 'ilyn', 'petyr', 'varys',
-                            'pycelle', 'loras']},
-             {'sub_nodes': ['beric']}
-         ]
-        },
-        // 38
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['daenerys', 'viserys', 'jorah', 'drogo']}
@@ -468,23 +418,13 @@ $(function() {
          'deaths': ['viserys'],
          'event': 'Viserys Crowned'
         },
-        // 39
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'joffrey', 'myrcella',
-                            'tommen', 'sandor', 'renly', 'barristan', 'ilyn', 'petyr', 'varys',
-                            'pycelle', 'loras']}
-         ]
-        },
-        // 40
-        {'duration': 10,
-         'nodes': [
-             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'joffrey', 'myrcella',
-                            'tommen', 'sandor', 'barristan', 'ilyn', 'petyr', 'varys', 'pycelle']},
-             {'sub_nodes': ['renly', 'loras']}
+                            'tommen', 'sandor', 'barristan', 'ilyn', 'petyr', 'varys', 'pycelle']}, //***
+             {'sub_nodes': ['renly', 'loras']} //***
          ],
         },
-        // 41
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'joffrey', 'myrcella',
@@ -493,28 +433,24 @@ $(function() {
          'deaths': ['robert b'],
          'event': 'King Robert Gored and Killed'
         },
-        // 42
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['jon', 'ghost', 'jeor', 'aemon', 'sam']}
          ],
          'event': 'Wight Attack at Castle Black'
         },
-        // 43
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['robb', 'bran', 'rickon', 'theon', 'grey wind', 'summer', 'shaggydog']},
          ],
          'event': 'Robb calls his banners'
         },
-        // 44
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['bran', 'rickon', 'summer', 'shaggydog']},
-             {'sub_nodes': ['robb', 'grey wind', 'theon']}
+             {'sub_nodes': ['bran', 'rickon', 'summer', 'shaggydog']}, //***
+             {'sub_nodes': ['robb', 'grey wind', 'theon']} //***
          ],
         },
-        // 45
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['robb', 'grey wind', 'theon', 'cat', 'brynden']}
@@ -525,48 +461,40 @@ $(function() {
              {'sub_nodes': ['tywin']}
          ]
         },
-        // 46
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['tyrion', 'tywin', 'gregor']}
          ],
         },
-        // 47
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['daenerys', 'jorah', 'drogo']},
              {'sub_nodes': ['mirri']}
          ],
         },
-        // 48
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['daenerys', 'jorah', 'drogo', 'mirri']}
          ],
          'event': 'Sack of the Lhazareen town'
         },
-        // 49
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['tyrion', 'tywin', 'gregor']}
          ],
          'event': 'Battle of the Green Fork'
         },
-        // 50
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['robb', 'grey wind', 'theon', 'cat', 'brynden', 'jaime']}
          ],
          'event': 'Battle of the Whispering Wood'
         },
-        // 51
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['daenerys', 'jorah', 'drogo', 'mirri']}
          ],
          'event': 'Drogo falls off his horse, Dany goes into labor'
         },
-        // 52
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['ned', 'sansa', 'arya', 'cersei', 'joffrey', 'myrcella',
@@ -575,7 +503,6 @@ $(function() {
          'deaths': ['ned'],
          'event': 'Ned beheaded at the Great Sept of Baelor'
         },
-        // 53
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['daenerys', 'jorah', 'drogo', 'mirri']}
@@ -583,28 +510,23 @@ $(function() {
          'deaths': ['drogo'],
          'event': 'The breaking of Drogo\'s khalasar'
         },
-        // 54
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['robb', 'grey wind', 'theon', 'cat', 'brynden', 'jaime']}
          ],
          'event': 'Seige of Riverrun broken, Robb proclaimed King in the North'
         },
-        // 55
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['tyrion', 'tywin', 'gregor']}
          ],
         },
-        // 56
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['tyrion']},
-             {'sub_nodes': ['tywin']},
-             {'sub_nodes': ['gregor']}
+             {'sub_nodes': ['tywin']}, //***
+             {'sub_nodes': ['gregor']} //***
          ],
         },
-        // 57
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['daenerys', 'jorah', 'mirri']}
@@ -612,6 +534,52 @@ $(function() {
          'deaths': ['mirri'],
          'event': 'Mother of Dragons'
         },
+
+        // Clash of Kings
+        {'duration': 10,
+         'nodes': [
+             {'sub_nodes': ['stannis', 'davos', 'melisandre']}
+         ],
+        },
+        {'duration': 10,
+         'nodes': [
+             {'sub_nodes': ['gendry']}, //*** Should probably have gendry in earlier
+             {'sub_nodes': ['jaqen']}
+         ],
+        },
+        {'duration': 10,
+         'nodes': [
+             {'sub_nodes': ['arya', 'gendry', 'jaqen']}
+         ],
+        },
+        {'duration': 10,
+         'nodes': [
+             {'sub_nodes': ['sansa', 'cersei', 'joffrey', 'myrcella', 'tommen', 'sandor',
+                            'barristan', 'ilyn', 'petyr', 'varys', 'pycelle', 'tyrion']}
+         ],
+        },
+        {'duration': 10,
+         'nodes': [
+             {'sub_nodes': ['asha', 'aeron', 'victarion']}
+         ],
+        },
+        {'duration': 10,
+         'nodes': [
+             {'sub_nodes': ['asha', 'aeron', 'victarion', 'theon']}
+         ],
+        },
+        {'duration': 10,
+         'nodes': [
+             {'sub_nodes': ['jon', 'ghost', 'jeor', 'sam']}
+         ],
+        },
+        {'duration': 10,
+         'nodes': [
+             {'sub_nodes': ['arya', 'gendry']},
+             {'sub_nodes': ['jaqen']}
+         ],
+        },
+
     ];
 
     function intersection(array1, array2) {
@@ -763,12 +731,14 @@ $(function() {
                             var p_node = {'id': (last_layer_num + 1) + '-' + p_layer.nodes.length,
                                           'sub_nodes': seg_sub_nodes,
                                           'x': p_layer.nodes[0].x,
+                                          'duration': 0,
                                           'p': true,
                                           'prev_neighbors': [],
                                           'next_neighbors': []};
                             var q_node = {'id': (i - 1) + '-' + q_layer.nodes.length,
                                           'sub_nodes': seg_sub_nodes.slice(0),
                                           'x': q_layer.nodes[0].x,
+                                          'duration': 0,
                                           'q': true,
                                           'prev_neighbors': [],
                                           'next_neighbors': []};
@@ -813,6 +783,7 @@ $(function() {
                             var r_node = {'id': (i - 1) + '-' + r_layer.nodes.length,
                                           'sub_nodes': intersection(node.sub_nodes, last_node.sub_nodes),
                                           'x': r_layer.nodes[0].x,
+                                          'duration': 0,
                                           'r': true,
                                           'prev_neighbors': [],
                                           'next_neighbors': []};
@@ -851,7 +822,9 @@ $(function() {
 
         var char_nodes = [];
         $.each(c_nodes, function(name, nodes) {
-            char_nodes.push({'character': characters[name], 'nodes': nodes});
+            var character = characters[name];
+            character.short_name = name;
+            char_nodes.push({'character': character, 'nodes': nodes});
         });
 
         return {'layers': layers, 'pq_segs': pq_segs, 'edges': edges, 'flat_nodes': flat_nodes, 'q_nodes': q_nodes,
@@ -1639,6 +1612,7 @@ $(function() {
         paper_jq.children().remove();
         var body = $('body');
         var original_scale = Math.min(paper_jq.width() / graph.max_x, paper_jq.height() / graph.max_y);
+        var scale = original_scale;
         paper_jq.svg({
             'onLoad': function(svg) {
                 var g = svg.group('graph');
@@ -1646,33 +1620,73 @@ $(function() {
                 var non_pov = svg.group(g, 'non_pov', {'stroke-width': 1});
                 for(var i=0; i<graph.char_nodes.length; i++) {
                     var c_nodes = graph.char_nodes[i];
-                    var edge_arr = [];
+                    var edge_arr = ['M'];
+                    var box_arr = ['M'];
+                    var back_box_arr = ['z'];
                     for(var j=0; j<c_nodes.nodes.length; j++) {
                         var node = c_nodes.nodes[j];
                         if(j) {
                             edge_arr.push('L');
-                        } else {
-                            edge_arr.push('M');
+                            box_arr.push('L');
                         }
-                        edge_arr.push(node.x + ' ' + (node.y + node.y_delta));
+                        var edge_y = node.y + node.y_delta;
+                        var box_y = edge_y - 4;
+                        var back_box_y = edge_y + 4;
+                        edge_arr.push(node.x + ' ' + edge_y);
+                        box_arr.push(node.x + ' ' + box_y);
                         if(node.duration) {
-                            edge_arr.push('l' + node.duration + ' 0');
+                            edge_arr.push('h' + node.duration);
+                            box_arr.push('h' + node.duration);
+                            back_box_arr.push('h-' + node.duration);
+                        }
+
+                        if(j < c_nodes.nodes.length - 1) {
+                            var dur = node.x + node.duration;
+                            back_box_arr.push('L' + dur + ' ' + back_box_y);
                         }
                         node.y_delta += 10;
                     }
                     var group = c_nodes.character.pov ? pov : non_pov;
-                    svg.path(group, edge_arr.join(''), {'stroke': group_colors[c_nodes.character.group],
-                                                        'stroke-width': 'inherit',
-                                                        'fill': 'none'});
+                    box_arr.push('v8');
+                    back_box_arr.reverse();
+                    
+                    var char_group = svg.group(group,
+                                               c_nodes.character.short_name + '_group',
+                                               {'stroke-width': 'inherit'});
+                    var box = svg.path(char_group,
+                                       box_arr.concat(back_box_arr).join(''),
+                                       {'id': c_nodes.character.short_name + '_box',
+                                        'class': 'box',
+                                        'fill': 'white'});
+                    var p = svg.path(char_group,
+                                     edge_arr.join(''),
+                                     {'id': c_nodes.character.short_name,
+                                      'stroke': group_colors[c_nodes.character.group],
+                                      'stroke-width': 'inherit',
+                                      'fill': 'none'});
                 }
                 svg.change(g, {'transform': 'scale(' + original_scale + ')'});
+                $(g).mouseenter(function(e) {
+                    if(e.target.className.baseVal == 'box') {
+                        var parent_stroke = e.target.parentNode.parentNode.getAttribute('stroke-width');
+                        var corrected_scale = scale > 1 ? 4 / scale : 4;
+                        svg.change(e.target.nextElementSibling, {'stroke-width': parent_stroke});
+                        $(e.target.nextElementSibling).animate({'svgStrokeWidth': corrected_scale}, 200);
+                    }
+                });
+                $(g).mouseout(function(e) {
+                    if(e.target.className.baseVal == 'box') {
+                        var parent_stroke = e.target.parentNode.parentNode.getAttribute('stroke-width');
+                        $(e.target.nextElementSibling).animate({'svgStrokeWidth': parent_stroke}, 200);
+                        svg.change(e.target.nextElementSibling, {'stroke-width': 'inherit'});
+                    }
+                });
             },
             'settings': {'width': body.width(),
                          'height': body.height() - 15}
             }
         );
 
-        var scale = original_scale;
         var translate = {'x': 0, 'y': 0};
         var svg = paper_jq.svg('get');
         var g = svg.getElementById('graph');
@@ -1776,7 +1790,7 @@ $(function() {
     $('#paper').height(height);
     $('#paper').width(width);
 
-    var graph = make_edges(layers, 50);
+    var graph = make_edges(layers, 100);
     var ordered_graph = order(graph);
     place_nodes(ordered_graph, 20);
     draw_graph('paper', ordered_graph);
