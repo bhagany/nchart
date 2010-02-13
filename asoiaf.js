@@ -1,16 +1,12 @@
 // TODO:
 // Hinting for where you'd like to see nodes sorted
 // Show events
-// Force new nodes to be at a similar measure to their next neighbors after 1st crossing iteration
 // Cross count subnodes
 // Better sorting of subnodes
-// Deaths, etc
 // More intelligent insertion of p,q,r nodes?
-// Underscorize
 // Optimize?
 // Curves
-// Something's still wrong with node placement
-// Resurrection still needs to be refined WRT node durations and bounding boxes
+// Remove the fucking seg_hash
 
 // Sorting in Step 2
 $(function() {
@@ -1140,6 +1136,7 @@ $(function() {
     function copy_segment(segment, layer) {
         return {'id': segment.id,
                 'nodes': segment.nodes.slice(0),
+                'sub_nodes': segment.sub_nodes.slice(0),
                 'draw': segment.draw,
                 'layer': layer,
                 'edges': {},
@@ -1293,12 +1290,6 @@ $(function() {
                             p_layer.nodes.push(p_node);
                             q_layer.nodes.push(q_node);
 
-                            //Add the segment between p_node and q_node to each of the layers it crosses
-                            //*** put subnodes in here?
-                            var segment = {'id': p_node.id + '-' + q_node.id,
-                                           'nodes': [p_node, q_node],
-                                           'draw': last_node.draw};
-
                             //Add two new edges last_node.layer -> p_layer, p_layer -> q_layer
                             //for each name in this node
                             for(var n=0; n<seg_sub_nodes.length; n++) {
@@ -1317,6 +1308,13 @@ $(function() {
                                     n--;
                                 }
                             }
+                            //Add the segment between p_node and q_node to each of the layers it crosses
+                            //*** put subnodes in here?
+                            var segment = {'id': p_node.id + '-' + q_node.id,
+                                           'nodes': [p_node, q_node],
+                                           'sub_nodes': seg_sub_nodes.slice(0),
+                                           'draw': last_node.draw};
+
                             add_layer_edges(layers, last_node.layer.num, last_node.layer.num + 1, last_node, p_node, seg_sub_nodes.length);
                             var new_pqs = add_layer_edges(layers, last_node.layer.num + 1, i - 1, p_node, q_node, seg_sub_nodes.length, segment);
                             pq_segs = $.extend(new_pqs, pq_segs);
@@ -1384,11 +1382,10 @@ $(function() {
         var new_L = [];
         for(var i=0; i<L.length; i++) {
             var item = L[i];
-            if(item.sub_nodes) {
-                new_L.push(item);
-            }
             if(item.segs) {
                 new_L.push({'segs': item.segs.slice(0)});
+            } else {
+                new_L.push(item);
             }
         }
         return new_L;
@@ -1396,16 +1393,13 @@ $(function() {
 
     function count_crossings(q, layer_edges, L1_positions, L1_weights) {
         // Build the accumulator tree
-        //*** define this function elsewhere, or make it not a function
-        var first_index = (function (x) {
-            x--;
-            x |= x >> 1;
-            x |= x >> 2;
-            x |= x >> 4;
-            x |= x >> 8;
-            x |= x >> 16;
-            return x + 1;
-        })(q);
+        var first_index = q - 1;
+        first_index |= first_index >> 1;
+        first_index |= first_index >> 2;
+        first_index |= first_index >> 4;
+        first_index |= first_index >> 8;
+        first_index |= first_index >> 16;
+        first_index++;
         var tree_size = 2 * first_index - 1; /* number of tree nodes */
         first_index -= 1; /* index of leftmost leaf */
         var tree = [];
@@ -1523,14 +1517,14 @@ $(function() {
             used_measures.push(node.measure);
         }
 
-        //*** Move out, yo
-        function measure_sort(a, b) {
-            return a.measure - b.measure;
-        }
         LV.sort(measure_sort);
         LS.sort(measure_sort);
 
         return [LS, LV];
+    }
+
+    function measure_sort(a, b) {
+        return a.measure - b.measure;
     }
 
     function step3(LS, LV) {
@@ -2154,7 +2148,7 @@ $(function() {
                 v.align = v;
                 v.sink = v;
                 v.shift = left_right ? -Infinity : Infinity;
-                v.size = v.sub_nodes ? v.sub_nodes.length : v.nodes[0].sub_nodes.length;
+                v.size = v.sub_nodes.length;
                 v.y = null;
             }
         }
