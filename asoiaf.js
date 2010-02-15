@@ -1,14 +1,13 @@
 // TODO:
 // Hinting for where you'd like to see nodes sorted
 // Show events
-// Cross count subnodes
-// Better sorting of subnodes
 // More intelligent insertion of p,q,r nodes?
 // Optimize?
 // Curves
-// Remove the fucking seg_hash
+// minimum slope
+// Sorting in Step 2, a better measure
 
-// Sorting in Step 2
+
 $(function() {
     var group_colors = {
         'stark': '#7c7c7c',
@@ -1111,17 +1110,6 @@ $(function() {
     //*** When is Petyr sent to the Vale?
     //*** Guess at all of Beric's deaths?
 
-    function add_edge(edge_group, node1, node2, weight) {
-        if(!edge_group[node1.id]) {
-            edge_group[node1.id] = {};
-        }
-        if(!edge_group[node1.id][node2.id]) {
-            edge_group[node1.id][node2.id] = {'edge': [node1, node2], 'weight': weight};
-        } else {
-            edge_group[node1.id][node2.id].weight++;
-        }
-    }
-
     function copy_node(node, layer) {
         return {'id': layer.num + '-' + layer.nodes.length,
                 'sub_nodes': node.sub_nodes.slice(0),
@@ -1144,14 +1132,14 @@ $(function() {
                 'children': []};
     }
 
-    function add_layer_edges(layers, layer_num1, layer_num2, node1, node2, weight, segment) {
+    function add_layer_edges(layers, layer_num1, layer_num2, node1, node2, sub_nodes, segment) {
         var v_1 = node1;
         var v_2 = !segment ? node2 : copy_segment(segment, layers[layer_num1 + 1]);
         var pq_segs = {};
 
         if(node1.p) {
-            if(!layers[layer_num1].seg_hash[v_2.id]) {
-                layers[layer_num1].seg_hash[v_2.id] = v_2;
+            if(!layers[layer_num1].segs[v_2.id]) {
+                layers[layer_num1].segs[v_2.id] = v_2;
                 pq_segs[node1.id] = v_2;
             }
         }
@@ -1161,29 +1149,35 @@ $(function() {
         for(var i=layer_num1; i<layer_num2; i++) {
             var layer1 = layers[i];
             var layer2 = layers[i + 1];
-            add_edge(layer1.next_edges, v_1, v_2, weight);
-            add_edge(layer2.prev_edges, v_2, v_1, weight);
             v_1.children.push(v_2);
             v_2.parents.push(v_1);
 
             is_seg = !!(v_1.nodes || v_2.nodes);
 
-            v_1.edges[v_2.id] = {'source': v_1, 'target': v_2, 'is_seg': is_seg, 'weight': weight};
-            v_2.edges[v_1.id] = {'source': v_2, 'target': v_1, 'is_seg': is_seg, 'weight': weight};
+            v_1.edges[v_2.id] = {'source': v_1,
+                                 'target': v_2,
+                                 'is_seg': is_seg,
+                                 'sub_nodes': sub_nodes,
+                                 'weight': sub_nodes.length};
+            v_2.edges[v_1.id] = {'source': v_2,
+                                 'target': v_1,
+                                 'is_seg': is_seg,
+                                 'sub_nodes': sub_nodes,
+                                 'weight': sub_nodes.length};
 
-            if(v_1.nodes && !layer1.seg_hash[v_1.id]) {
-                layer1.seg_hash[v_1.id] = v_1;
+            if(v_1.nodes && !layer1.segs[v_1.id]) {
+                layer1.segs[v_1.id] = v_1;
             }
-            if(v_2.nodes && !layer2.seg_hash[v_2.id]) {
-                layer2.seg_hash[v_2.id] = v_2;
+            if(v_2.nodes && !layer2.segs[v_2.id]) {
+                layer2.segs[v_2.id] = v_2;
             }
 
             v_1 = v_2;
             if(i >= layer_num2 - 2) {
                 if(node2.q) {
                     var seg = v_2.nodes ? v_2 : copy_segment(segment, layers[layer_num2]);
-                    if(!layers[layer_num2].seg_hash[seg.id]) {
-                        layers[layer_num2].seg_hash[seg.id] = seg;
+                    if(!layers[layer_num2].segs[seg.id]) {
+                        layers[layer_num2].segs[seg.id] = seg;
                         pq_segs[node2.id] = seg
                     }
                 }
@@ -1200,7 +1194,7 @@ $(function() {
         var new_c = {'segs': []};
         for(var i=0; i<container.segs.length; i++) {
             var seg = container.segs[i];
-            new_c.segs.push(layer.seg_hash[seg.id]);
+            new_c.segs.push(layer.segs[seg.id]);
         }
         return new_c;
     }
@@ -1229,9 +1223,7 @@ $(function() {
         for(var i=0; i<layers.length; i++) {
             var layer = layers[i];
             x += x_space;
-            layer.prev_edges = {};
-            layer.next_edges = {};
-            layer.seg_hash = {};
+            layer.segs = {};
             layer.num = i;
             for(var j=0; j<layer.nodes.length; j++) {
                 var node = layer.nodes[j];
@@ -1250,13 +1242,23 @@ $(function() {
                         c_nodes[name] = [];
                     }
                     var last_node = last_nodes[name];
-                    if(i && last_node != node) {
-                        if(!last_node) {
+                    if(!last_node && i) {
+                        var all_new = true;
+                        for(var l=0; l<node.sub_nodes.length; l++) {
+                            if(last_nodes[node.sub_nodes[l]]) {
+                                all_new = false;
+                            }
+                        }
+                        if(!all_new) {
+                            last_node = node;
+                        } else {
                             last_node = copy_node(node, layers[0]);
                             last_node.draw = false;
-                            layers[0].nodes.push(last_node);
+                            layers[0].nodes.unshift(last_node);
                             update_last_nodes_group(node.sub_nodes, last_node, last_nodes);
                         }
+                    }
+                    if(i && last_node != node) {
                         var span = i - last_node.layer.num;
                         var seg_sub_nodes = _.intersect(node.sub_nodes, last_node.sub_nodes);
                         if(span > 2) {
@@ -1315,8 +1317,8 @@ $(function() {
                                            'sub_nodes': seg_sub_nodes.slice(0),
                                            'draw': last_node.draw};
 
-                            add_layer_edges(layers, last_node.layer.num, last_node.layer.num + 1, last_node, p_node, seg_sub_nodes.length);
-                            var new_pqs = add_layer_edges(layers, last_node.layer.num + 1, i - 1, p_node, q_node, seg_sub_nodes.length, segment);
+                            add_layer_edges(layers, last_node.layer.num, last_node.layer.num + 1, last_node, p_node, seg_sub_nodes);
+                            var new_pqs = add_layer_edges(layers, last_node.layer.num + 1, i - 1, p_node, q_node, seg_sub_nodes, segment);
                             pq_segs = $.extend(new_pqs, pq_segs);
 
                             last_node = q_node;
@@ -1353,13 +1355,13 @@ $(function() {
                                     n--;
                                 }
                             }
-                            add_layer_edges(layers, last_node.layer.num, i - 1, last_node, r_node, seg_sub_nodes.length);
+                            add_layer_edges(layers, last_node.layer.num, i - 1, last_node, r_node, seg_sub_nodes);
                             update_last_nodes_group(r_node.sub_nodes, r_node, last_nodes);
                             last_node = r_node;
                         }
 
                         //Add one edge normally
-                        add_layer_edges(layers, last_node.layer.num, i, last_node, node, seg_sub_nodes.length);
+                        add_layer_edges(layers, last_node.layer.num, i, last_node, node, seg_sub_nodes);
                         update_last_nodes_group(seg_sub_nodes, node, last_nodes);
                     }
                     c_nodes[name].push(node);
@@ -1391,17 +1393,21 @@ $(function() {
         return new_L;
     }
 
-    function count_crossings(q, layer_edges, L1_positions, L1_weights) {
+    function next2power(x) {
+        x--;
+        x |= x >> 1;
+        x |= x >> 2;
+        x |= x >> 4;
+        x |= x >> 8;
+        x |= x >> 16;
+        return x + 1;
+    }
+
+    function count_crossings(q, layer_edges, lower_positions, lower_weights) {
         // Build the accumulator tree
-        var first_index = q - 1;
-        first_index |= first_index >> 1;
-        first_index |= first_index >> 2;
-        first_index |= first_index >> 4;
-        first_index |= first_index >> 8;
-        first_index |= first_index >> 16;
-        first_index++;
+        var first_index = next2power(q);
         var tree_size = 2 * first_index - 1; /* number of tree nodes */
-        first_index -= 1; /* index of leftmost leaf */
+        first_index--;
         var tree = [];
         var seg_tree = [];
         for(var t=0; t<tree_size; t++) {
@@ -1410,10 +1416,10 @@ $(function() {
         }
         
         var cross_count = 0; /* number of crossings */
-        for(var k=0; k<L1_positions.length; k++) { /* insert edge k */
-            var index = L1_positions[k] + first_index;
+        for(var k=0; k<lower_positions.length; k++) { /* insert edge k */
+            var index = lower_positions[k] + first_index;
             var edge = layer_edges[k];
-            tree[index] += L1_weights[k];
+            tree[index] += lower_weights[k];
             if(edge.is_seg) {
                 seg_tree[index] += 1;
             }
@@ -1425,12 +1431,12 @@ $(function() {
                     seg_sum += seg_tree[index+1];
                 }
                 index = Math.floor((index - 1) / 2);
-                tree[index] += L1_weights[k];
+                tree[index] += lower_weights[k];
                 if(edge.is_seg) {
                     seg_tree[index] += 1;
                 }
             }
-            cross_count += (L1_weights[k] * weight_sum);
+            cross_count += (lower_weights[k] * weight_sum);
             if(seg_sum > 0) {
                 edge.marked = true;
                 edge.target.edges[edge.source.id].marked = true;
@@ -1441,9 +1447,9 @@ $(function() {
 
             // If we're adding a segment, mark any edges it crosses
             if(edge.is_seg) {
-                var pos = L1_positions[k];
+                var pos = lower_positions[k];
                 for(var l=0; l<k; l++) {
-                    if(pos < L1_positions[l]) {
+                    if(pos < lower_positions[l]) {
                         var added_edge = layer_edges[l];
                         added_edge.marked = true;
                         added_edge.target.edges[added_edge.source.id].marked = true;
@@ -1452,6 +1458,32 @@ $(function() {
             }
         }
 
+        return cross_count;
+    }
+
+    function count_sub_crossings(q, lower_positions) {
+        var first_index = next2power(q);
+        var tree_size = 2 * first_index - 1; /* number of tree nodes */
+        first_index--; /* index of leftmost leaf */
+
+        var tree = [];
+        for(var t=0; t<tree_size; t++) {
+            tree[t] = 0;
+        }
+        
+        var cross_count = 0;
+        for(var k=0; k<lower_positions.length; k++) {
+            var index = lower_positions[k] + first_index;
+            tree[index]++;
+
+            while(index > 0) {
+                if(index % 2) {
+                    cross_count += tree[index + 1];
+                }
+                index = Math.floor((index - 1) / 2);
+                tree[index]++;
+            }
+        }
         return cross_count;
     }
 
@@ -1470,7 +1502,7 @@ $(function() {
         }
     }
 
-    function step2(Li, layer, next_layer, seg_end, parents) {
+    function step2(Li, next_layer, seg_end, parents, last_pos) {
         // Step 2
         // Assign pos to layer
         var LS = [];
@@ -1500,6 +1532,7 @@ $(function() {
 
        // Make Chrome do it right - permutes the order of same-valued array elements when sorting
         var used_measures = [];
+        var same_measures = {};
         for(var j=0; j<LV.length; j++) {
             var node = LV[j];
             var num_parents = 0;
@@ -1507,15 +1540,49 @@ $(function() {
             var ps = node[parents];
             for(var k=0; k<ps.length; k++) {
                 var parent = ps[k];
-                total_pos += parent.sub_nodes.length * parent.pos;
-                num_parents += parent.sub_nodes.length;
+                var edge_weight = node.edges[parent.id].weight;
+                total_pos += edge_weight * parent.pos;
+                num_parents += edge_weight;
             }
-            node.measure = num_parents > 0 ? total_pos / num_parents : node.measure || node.measure ? node.measure : 0;
+            node.measure = num_parents > 0 ? total_pos / num_parents : node.measure ? node.measure : 0;
             while($.inArray(node.measure, used_measures) != -1) {
                 node.measure += .000001;
             }
-            used_measures.push(node.measure);
+            used_measures.push(node.sub_measure);
+            // if(!same_measures[node.measure]) {
+            //     same_measures[node.measure] = [];
+            // }
+            // same_measures[node.measure].push(node);
         }
+
+        // for(var j in same_measures) {
+        //     var nodes = same_measures[j];
+        //     if(nodes.length > 1) {
+        //         var used_measures = [];
+        //         for(var k=0; k<nodes.length; k++) {
+        //             var node = nodes[k];
+        //             var sub_pos = 0;
+        //             var subs = 0;
+        //             for(var l=0; l<node.sub_nodes.length; l++) {
+        //                 var last = last_pos[node.sub_nodes[l]];
+        //                 if(last) {
+        //                     sub_pos += last[1];
+        //                     subs++;
+        //                 }
+        //             }
+        //             node.sub_measure = sub_pos / subs;
+        //             while($.inArray(node.sub_measure, used_measures) != -1) {
+        //                 node.sub_measure += .000001;
+        //             }
+        //             used_measures.push(node.sub_measure);
+        //         }
+
+        //         nodes.sort(sub_measure_sort);
+        //         for(var k=1; k<nodes.length; k++) {
+        //             node.measure += .000001 * k;
+        //         }
+        //     }
+        // }
 
         LV.sort(measure_sort);
         LS.sort(measure_sort);
@@ -1525,6 +1592,10 @@ $(function() {
 
     function measure_sort(a, b) {
         return a.measure - b.measure;
+    }
+
+    function sub_measure_sort(a, b) {
+        return a.sub_measure - b.sub_measure;
     }
 
     function step3(LS, LV) {
@@ -1594,11 +1665,9 @@ $(function() {
         }
     }
 
-    function step5(L, prev_L, layer, next_layer, last_pos, children, parents) {
+    function step5(L, prev_L, last_pos, children, parents) {
         // Step 5
         // Need to find edges between L - 1 and L
-
-        // Same for L
         var L_map = {};
         var L_sub_map = {};
         var sub_node_map = {};
@@ -1606,7 +1675,7 @@ $(function() {
         for(var j=0; j<L.length; j++) {
             var node = L[j];
             if(node.sub_nodes) {
-                if(node[parents]) {
+                if(node[parents] && node.draw) {
                     node.sub_node_pos = {};
                     for(var k=0; k<node.sub_nodes.length; k++) {
                         var sub_node = node.sub_nodes[k];
@@ -1631,23 +1700,30 @@ $(function() {
                     position++;
                 }
             } else {
-                for(var k in node.segs) {
+                var drew_one = false;
+                for(var k=0; k<node.segs.length; k++) {
                     var seg = node.segs[k];
-                    for(var l=0; l<seg.nodes[0].sub_nodes.length; l++) {
-                        var sub_node = seg.nodes[0].sub_nodes[l];
-                        last_pos[sub_node][0] = j;
-                        sub_node_map[sub_node] = seg;
-                        L_sub_map[sub_node] = position;
+                    if(seg.draw) {
+                        drew_one = true;
+                        for(var l=0; l<seg.sub_nodes.length; l++) {
+                            var sub_node = seg.sub_nodes[l];
+                            last_pos[sub_node][0] = j;
+                            sub_node_map[sub_node] = seg;
+                            L_sub_map[sub_node] = position;
+                        }
+                        L_map[seg.id] = position;
                     }
-                    L_map[seg.id] = position;
                 }
-                position++;
+                if(drew_one) {
+                    position++;
+                }
             }
         }
 
-        var node_edges = [];
+        var layer_edges = [];
         var lower_positions = [];
         var edge_weights = [];
+        var crossings = 0;
         for(var j=0; j<prev_L.length; j++) {
             var proto_node = prev_L[j];
             var nodes;
@@ -1658,19 +1734,44 @@ $(function() {
             }
             for(var k=0; k<nodes.length; k++) {
                 var node = nodes[k];
-                node[children].sort(function (a, b) {
-                    return L_map[a.id] - L_map[b.id];
-                });
-                for(var l=0; l<node[children].length; l++) {
-                    var edge = node.edges[node[children][l].id];
-                    node_edges.push(edge);
+                var count_subs = false;
+
+                // do this above?
+                var cs = node[children];
+                if(cs.length > 1) {
+                    //*** sort function out
+                    cs.sort(function (a, b) {
+                        return L_map[a.id] - L_map[b.id];
+                    });
+                    count_subs = true;
+                }
+
+                var sub_position = 0;
+                var L_sub_map = {};
+                for(var l=0; l<cs.length; l++) {
+                    var L_node = cs[l];
+                    var edge = node.edges[L_node.id];
+                    layer_edges.push(edge);
                     lower_positions.push(L_map[edge.target.id]);
                     edge_weights.push(edge.weight);
+                    if(count_subs) {
+                        for(var m=0; m<edge.sub_nodes.length; m++) {
+                            L_sub_map[edge.sub_nodes[m]] = sub_position;
+                        }
+                        sub_position++;
+                    }
+                }
+                if(count_subs) {
+                    var lower_sub_positions = [];
+                    for(var l=0; l<node.sub_nodes.length; l++) {
+                        lower_sub_positions.push(L_sub_map[node.sub_nodes[l]]);
+                    }
+                    crossings += count_sub_crossings(sub_position, lower_sub_positions);
                 }
             }
         }
         // position just happens to be the number of nodes in L that have edges back to prev_L
-        var crossings = count_crossings(position, node_edges, lower_positions, edge_weights);
+        crossings += count_crossings(position, layer_edges, lower_positions, edge_weights);
         return crossings;
     }
 
@@ -1727,12 +1828,12 @@ $(function() {
         var prev_L = compaction[i];
 
         step1(graph, Li, seg_begin);
-        var ls = step2(Li, layer, next_layer, seg_end, parents);
+        var ls = step2(Li, next_layer, seg_end, parents, last_pos);
         var LS = ls[0];
         var LV = ls[1];
         var L = step3(LS, LV);
         step4(L, layer, next_layer, reverse);
-        var crossings = step5(L, prev_L, layer, next_layer, last_pos, children, parents);
+        var crossings = step5(L, prev_L, last_pos, children, parents);
         var alternating_L = step6(L, next_layer);
         return [crossings, compaction.concat([L]), alternating_L];
     }
@@ -1937,29 +2038,10 @@ $(function() {
                 }
             }
             a++;
-        } while(a < 20);
+        } while(a < 21);
 
         if(a % 2) {
             graph.layers.reverse();
-        }
-
-        for(var i=0; i<graph.layers.length; i++) {
-            var layer = graph.layers[i];
-            // Reset the best sub node order
-            for(var j=0; j<layer.nodes.length; j++) {
-                var node = layer.nodes[j];
-                node.sub_node_order = {};
-                var sub_nodes = best.sub_nodes[node.id];
-                for(var k=0; k<sub_nodes.length; k++) {
-                    node.sub_node_order[sub_nodes[k]] = k;
-                }
-                
-                // Reset markedness
-                for(var target_id in node.edges) {
-                    var edge = node.edges[target_id];
-                    edge.marked = best.marked[node.id][target_id];
-                }
-            }
         }
 
         //Un-segmentify the compaction
@@ -1969,15 +2051,65 @@ $(function() {
             for(var j=0; j<L.length; j++) {
                 var v = L[j];
                 if(v.segs) {
-                    segs = v.segs.slice(0);
+                    var segs = v.segs.slice(0);
                     // Remove v from L and put the segs from v directly into L
                     L.splice(j, 1);
                     while(segs.length) {
-                        L.splice(j, 0, segs.pop());
+                        var seg = segs.shift();
+                        if(seg.draw) {
+                            L.splice(j, 0, seg);
+                            j++;
+                        }
                     }
+                    j--;
+                } else if(!v.draw) {
+                    L.splice(j, 1);
+                    v.children[0].parents = [];
+                    j--;
                 }
             }
             best.e_compaction.push(L);
+        }
+
+        var last_pos = {};
+        for(var i=0; i<best.e_compaction.length; i++) {
+            var L = best.e_compaction[i];
+            // Reset the best sub node order
+            for(var j=0; j<L.length; j++) {
+                var node = L[j];
+                if(node.draw) {
+                    if(node.nodes) {
+                        for(var k=0; k<node.sub_nodes.length; k++) {
+                            var sub_node = node.sub_nodes[k];
+                            last_pos[sub_node][0] = j;
+                        }
+                    } else {
+                        node.sub_node_order = {};
+                        for(var k=0; k<node.sub_nodes.length; k++) {
+                            var sub_node = node.sub_nodes[k];
+                            node.sub_node_pos[sub_node] = last_pos[sub_node] ? last_pos[sub_node] : [j,k];
+                        }
+                        node.sub_nodes.sort(function(a, b) {
+                            if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
+                                return node.sub_node_pos[a][0] - node.sub_node_pos[b][0];
+                            } else {
+                                return node.sub_node_pos[a][1] - node.sub_node_pos[b][1];
+                            }
+                        });
+                        for(var k=0; k<node.sub_nodes.length; k++) {
+                            var sub_node = node.sub_nodes[k];
+                            node.sub_node_order[sub_node] = k;
+                            last_pos[sub_node] = [j,k];
+                        }
+                        
+                        // Reset markedness
+                        for(var target_id in node.edges) {
+                            var edge = node.edges[target_id];
+                            edge.marked = best.marked[node.id][target_id];
+                        }
+                    }
+                }
+            }
         }
 
         best.layers = graph.layers;
@@ -1994,9 +2126,8 @@ $(function() {
             return order[a.id] - order[b.id];
         }
 
-        for(var i=0; i<graph.layers.length; i++) {
+        for(var i=0; i<graph.e_compaction.length; i++) {
             var L = graph.e_compaction[i];
-            var layer = graph.layers[i];
             
             var l_order = {};
             var last_childrens = childrens;
@@ -2104,7 +2235,7 @@ $(function() {
                 v_coords.sort(function(a, b) { return a - b; });
                 // Set the y coordinate to be the average median (rounded) of the four alignments
                 v.y = Math.round((v_coords[1] + v_coords[2]) / 2);
-                // v.y = alignments[0].y_coords[i][j];
+                // v.y = alignments[2].y_coords[i][j];
                 min_y = Math.min(v.y, min_y);
                 max_y = Math.max(v.y + (v.size * 10), max_y);
             }
@@ -2398,7 +2529,6 @@ $(function() {
 
     var graph = make_edges(layers, 100);
     var ordered_graph = order(graph);
-    place_nodes(ordered_graph, 30);
+    place_nodes(ordered_graph, 50);
     draw_graph('paper', ordered_graph);
-
 });
