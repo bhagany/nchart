@@ -2237,7 +2237,7 @@ $(function() {
                 v.y = Math.round((v_coords[1] + v_coords[2]) / 2);
                 // v.y = alignments[2].y_coords[i][j];
                 min_y = Math.min(v.y, min_y);
-                max_y = Math.max(v.y + (v.size * 10), max_y);
+                max_y = Math.max(v.y + ((v.size - 1) * 15), max_y); //*** 15 spacing
             }
         }
 
@@ -2247,14 +2247,13 @@ $(function() {
         if(min_y != 20) {
             var shift = -min_y + 20;
             max_y += shift;
-            for(var i=0; i<graph.layers.length; i++) {
-                var layer = graph.layers[i];
-                for(var j=0; j<layer.nodes.length; j++) {
-                    layer.nodes[j].y += shift;
+            for(var i=0; i<graph.e_compaction.length; i++) {
+                var L = graph.e_compaction[i];
+                for(var j=0; j<L.length; j++) {
+                    L[j].y += shift;
                 }
             }
         }
-        graph.max_x = graph.e_compaction[graph.e_compaction.length - 1][0].x
         graph.max_y = max_y;
 
         for(var i=0; i<graph.char_nodes.length; i++) {
@@ -2265,10 +2264,39 @@ $(function() {
             }
             c_nodes.avg_pos = posen / j;
         }
-        graph.char_nodes.sort(function(a, b) {
-            return a.avg_pos - b.avg_pos;
-        });
+
+        place_x(graph);
+        graph.max_x = graph.e_compaction[graph.e_compaction.length - 1][0].x
     }
+
+    function place_x(graph) {
+        var last_x = 100; //*** start x
+        for(var i=0; i<graph.e_compaction.length; i++) {
+            var L = graph.e_compaction[i];
+            var max_y_diff = 0;
+            var use_slope = Infinity;
+            for(var j=0; j<L.length; j++) {
+                var v = L[j];
+                v.x = last_x;
+                for(var k=0; k<v.children.length; k++) {
+                    var c = v.children[k];
+                    if(v.y != c.y) {
+                        var edge = v.edges[c.id];
+                        var slope = Math.max(1.5, 3.5 - (edge.weight / 7));  //*** slope
+                        var y_diff = Math.abs(v.y - c.y) + v.layer.duration * slope;
+                        if(y_diff > max_y_diff) {
+                            max_y_diff = y_diff;
+                        }
+                        if(slope < use_slope) {
+                            use_slope = slope;
+                        }
+                    }
+                }
+            }
+            last_x += Math.floor(Math.max(max_y_diff / use_slope, 100));
+        }
+    }
+
 
     function initialize_nodes(graph, left_right) {
         for(var i=0; i<graph.e_compaction.length; i++) {
@@ -2285,6 +2313,240 @@ $(function() {
         }
     }
 
+    function draw_straight(svg, original_scale) {
+        var g = svg.group('graph');
+        var pov = svg.group(g, 'pov', {'stroke-width': 2});
+        var non_pov = svg.group(g, 'non_pov', {'stroke-width': 1});
+        var death_icon_settings = {'fill': 'black'};
+        var undeath_icon_settings = {'stroke': 'black', 'fill': 'white'};
+        for(var i=0; i<graph.char_nodes.length; i++) {
+            var c_nodes = graph.char_nodes[i];
+            var edge_arr = ['M'];
+            var box_arr = ['M'];
+            var dead_arr = [];
+            var back_box_arr = ['z'];
+            var short_name = c_nodes.character.short_name;
+            var deaths = [];
+            var undeaths = [];
+            var dead = false;
+            for(var j=0; j<c_nodes.nodes.length; j++) {
+                var node = c_nodes.nodes[j];
+                if(j) {
+                    if(dead) {
+                        edge_arr.push('M');
+                        box_arr.push('M');
+                        dead_arr.push('L');
+                    } else {
+                        edge_arr.push('L');
+                        box_arr.push('L');
+                    }
+                }
+                var edge_y = node.y + (node.sub_node_order[short_name] * 15);
+                var box_y = edge_y - 4;
+                var back_box_y = edge_y + 4;
+                edge_arr.push(node.x + ' ' + edge_y);
+                box_arr.push(node.x + ' ' + box_y);
+                if(dead) {
+                    dead_arr.push(node.x + ' ' + edge_y);
+                }
+                if(node.duration) {
+                    if(dead) {
+                        dead_arr.push('h' + node.duration);
+                    } else {
+                        edge_arr.push('h' + node.duration);
+                    }
+                    box_arr.push('h' + node.duration);
+                    back_box_arr.push('h-' + node.duration);
+                }
+
+                var dur = node.x + node.duration;
+                if(j < c_nodes.nodes.length - 1) {
+                    back_box_arr.push('L' + dur + ' ' + back_box_y);
+                }
+                if(node.deaths && _.include(node.deaths, short_name)) {
+                    deaths.push([dur, edge_y, 5]);
+                    if(!dead) {
+                        dead_arr.push('M' + dur + ' ' + edge_y);
+                        dead = true;
+                    }
+                }
+                if(node.undeaths && _.include(node.undeaths, short_name)) {
+                    undeaths.push([dur, edge_y, 5]);
+                    dead = false;
+                }
+            }
+            var group = c_nodes.character.pov ? pov : non_pov;
+            box_arr.push('v8');
+            back_box_arr.reverse();
+            
+            var char_group = svg.group(group,
+                                       short_name + '_group',
+                                       {'stroke-width': 'inherit'});
+            var box = svg.path(char_group,
+                               box_arr.concat(back_box_arr).join(''),
+                               {'id': short_name + '_box',
+                                'class': 'box',
+                                'fill': 'none'});
+            var p = svg.path(char_group,
+                             edge_arr.join(''),
+                             {'id': short_name,
+                              'stroke': group_colors[c_nodes.character.group],
+                              'stroke-width': 'inherit',
+                              'stroke-linecap': 'round',
+                              'stroke-linejoin': 'round',
+                              'fill': 'none'});
+            if(dead_arr.length > 1) {
+                svg.path(char_group,
+                         dead_arr.join(''),
+                         {'id': short_name + '_dead',
+                          'stroke': group_colors[c_nodes.character.group],
+                          'stroke-width': 'inherit',
+                          'stroke-linecap': 'round',
+                          'stroke-linejoin': 'round',
+                          'stroke-dasharray': '10',
+                          'fill': 'none'});
+            }
+            for(var j=0; j<deaths.length; j++) {
+                var death = deaths[j];
+                svg.circle(char_group, death[0], death[1], death[2], death_icon_settings);
+            }
+            for(var j=0; j<undeaths.length; j++) {
+                var undeath = undeaths[j];
+                svg.circle(char_group, undeath[0], undeath[1], undeath[2], undeath_icon_settings);
+            }
+        }
+        svg.change(g, {'transform': 'scale(' + original_scale + ')'});
+        $(g).mouseover(function(e) {
+            if(e.target.className.baseVal == 'box') {
+                var parent_stroke = e.target.parentNode.parentNode.getAttribute('stroke-width');
+                var corrected_scale = scale > 1 ? 4 / scale : 4;
+                svg.change(e.target.nextElementSibling, {'stroke-width': parent_stroke});
+                $(e.target.nextElementSibling).animate({'svgStrokeWidth': corrected_scale}, 200);
+            }
+        });
+        $(g).mouseout(function(e) {
+            if(e.target.className.baseVal == 'box') {
+                var parent_stroke = e.target.parentNode.parentNode.getAttribute('stroke-width');
+                $(e.target.nextElementSibling).animate({'svgStrokeWidth': parent_stroke}, 200);
+                svg.change(e.target.nextElementSibling, {'stroke-width': 'inherit'});
+            }
+        });
+    }
+
+    function draw_curvy(svg, original_scale) {
+        var g = svg.group('graph');
+        var pov = svg.group(g, 'pov', {'stroke-width': 2});
+        var non_pov = svg.group(g, 'non_pov', {'stroke-width': 1});
+        var death_icon_settings = {'fill': 'black'};
+        var undeath_icon_settings = {'stroke': 'black', 'fill': 'white'};
+        for(var i=0; i<graph.char_nodes.length; i++) {
+            var c_nodes = graph.char_nodes[i];
+            var dead_arr = [];
+            var short_name = c_nodes.character.short_name;
+            var last = {'x': c_nodes.nodes[0].x, 'y': c_nodes.nodes[0].y + c_nodes.nodes[0].sub_node_order[short_name] * 15};
+            var edge_arr = ['M' + last.x + ' ' + last.y];
+            var deaths = [];
+            var undeaths = [];
+            var dead = false;
+            for(var j=0; j<c_nodes.nodes.length; j++) {
+                var node = c_nodes.nodes[j];
+                var edge_y = node.y + (node.sub_node_order[short_name] * 15); //*** 15 size here
+                if(j) {
+                    var bend = Math.min(node.x - last.x - 50, Math.floor(.375 * Math.abs(last.y - edge_y)));
+                    if(dead) {
+                        edge_arr.push('M');
+                        if(last.y != edge_y) {
+                            dead_arr.push('C' + (last.x + bend) + ' ' + last.y + ' ' + (node.x - bend) + ' ' + edge_y);
+                            // dead_arr.push('L');
+                        } else {
+                            dead_arr.push('L');
+                        }                        
+                    } else {
+                        if(last.y != edge_y) {
+                            edge_arr.push('C' + (last.x + bend) + ' ' + last.y + ' ' + (node.x - bend) + ' ' + edge_y);
+                        } else {
+                            edge_arr.push('L');
+                        }
+                    }
+                    edge_arr.push(' ' + node.x + ' ' + edge_y);
+                    if(dead) {
+                        dead_arr.push(' ' + node.x + ' ' + edge_y);
+                    }
+                }
+                if(node.duration) {
+                    if(dead) {
+                        dead_arr.push('h' + node.duration);
+                    } else {
+                        edge_arr.push('h' + node.duration);
+                    }
+                }
+                last = {'x': node.x + node.duration, 'y': edge_y};
+
+                var dur = node.x + node.duration;
+                if(node.deaths && _.include(node.deaths, short_name)) {
+                    deaths.push([dur, edge_y, 5]);
+                    if(!dead) {
+                        dead_arr.push('M' + dur + ' ' + edge_y);
+                        dead = true;
+                    }
+                }
+                if(node.undeaths && _.include(node.undeaths, short_name)) {
+                    undeaths.push([dur, edge_y, 5]);
+                    dead = false;
+                }
+            }
+            var group = c_nodes.character.pov ? pov : non_pov;
+            
+            var char_group = svg.group(group,
+                                       short_name + '_group',
+                                       {'stroke-width': 'inherit'});
+            // console.log(edge_arr);
+            var p = svg.path(char_group,
+                             edge_arr.join(''),
+                             {'id': short_name,
+                              'stroke': group_colors[c_nodes.character.group],
+                              'stroke-width': 'inherit',
+                              'stroke-linecap': 'round',
+                              'stroke-linejoin': 'round',
+                              'fill': 'none'});
+            if(dead_arr.length > 1) {
+                svg.path(char_group,
+                         dead_arr.join(''),
+                         {'id': short_name + '_dead',
+                          'stroke': group_colors[c_nodes.character.group],
+                          'stroke-width': 'inherit',
+                          'stroke-linecap': 'round',
+                          'stroke-linejoin': 'round',
+                          'stroke-dasharray': '10',
+                          'fill': 'none'});
+            }
+            for(var j=0; j<deaths.length; j++) {
+                var death = deaths[j];
+                svg.circle(char_group, death[0], death[1], death[2], death_icon_settings);
+            }
+            for(var j=0; j<undeaths.length; j++) {
+                var undeath = undeaths[j];
+                svg.circle(char_group, undeath[0], undeath[1], undeath[2], undeath_icon_settings);
+            }
+        }
+        svg.change(g, {'transform': 'scale(' + original_scale + ')'});
+        $(g).mouseover(function(e) {
+            if(e.target.className.baseVal == 'box') {
+                var parent_stroke = e.target.parentNode.parentNode.getAttribute('stroke-width');
+                var corrected_scale = scale > 1 ? 4 / scale : 4;
+                svg.change(e.target.nextElementSibling, {'stroke-width': parent_stroke});
+                $(e.target.nextElementSibling).animate({'svgStrokeWidth': corrected_scale}, 200);
+            }
+        });
+        $(g).mouseout(function(e) {
+            if(e.target.className.baseVal == 'box') {
+                var parent_stroke = e.target.parentNode.parentNode.getAttribute('stroke-width');
+                $(e.target.nextElementSibling).animate({'svgStrokeWidth': parent_stroke}, 200);
+                svg.change(e.target.nextElementSibling, {'stroke-width': 'inherit'});
+            }
+        });
+    }
+
     function draw_graph(paper_id, graph) {
         var paper_jq = $('#' + paper_id);
         paper_jq.children().remove();
@@ -2292,126 +2554,7 @@ $(function() {
         var original_scale = Math.min(paper_jq.width() / graph.max_x, paper_jq.height() / graph.max_y);
         var scale = original_scale;
         paper_jq.svg({
-            'onLoad': function(svg) {
-                var g = svg.group('graph');
-                var pov = svg.group(g, 'pov', {'stroke-width': 2});
-                var non_pov = svg.group(g, 'non_pov', {'stroke-width': 1});
-                var death_icon_settings = {'fill': 'black'};
-                var undeath_icon_settings = {'stroke': 'black', 'fill': 'white'};
-                for(var i=0; i<graph.char_nodes.length; i++) {
-                    var c_nodes = graph.char_nodes[i];
-                    var edge_arr = ['M'];
-                    var box_arr = ['M'];
-                    var box_arr = ['M'];
-                    var dead_arr = [];
-                    var back_box_arr = ['z'];
-                    var short_name = c_nodes.character.short_name;
-                    var deaths = [];
-                    var undeaths = [];
-                    var dead = false;
-                    for(var j=0; j<c_nodes.nodes.length; j++) {
-                        var node = c_nodes.nodes[j];
-                        if(j) {
-                            if(dead) {
-                                edge_arr.push('M');
-                                box_arr.push('M');
-                                dead_arr.push('L');
-                            } else {
-                                edge_arr.push('L');
-                                box_arr.push('L');
-                            }
-                        }
-                        var edge_y = node.y + (node.sub_node_order[short_name] * 15);
-                        var box_y = edge_y - 4;
-                        var back_box_y = edge_y + 4;
-                        edge_arr.push(node.x + ' ' + edge_y);
-                        box_arr.push(node.x + ' ' + box_y);
-                        if(dead) {
-                            dead_arr.push(node.x + ' ' + edge_y);
-                        }
-                        if(node.duration) {
-                            if(dead) {
-                                dead_arr.push('h' + node.duration);
-                            } else {
-                                edge_arr.push('h' + node.duration);
-                            }
-                            box_arr.push('h' + node.duration);
-                            back_box_arr.push('h-' + node.duration);
-                        }
-
-                        var dur = node.x + node.duration;
-                        if(j < c_nodes.nodes.length - 1) {
-                            back_box_arr.push('L' + dur + ' ' + back_box_y);
-                        }
-                        if(node.deaths && _.include(node.deaths, short_name)) {
-                            deaths.push([dur, edge_y, 5]);
-                            if(!dead) {
-                                dead_arr.push('M' + dur + ' ' + edge_y);
-                                dead = true;
-                            }
-                        }
-                        if(node.undeaths && _.include(node.undeaths, short_name)) {
-                            undeaths.push([dur, edge_y, 5]);
-                            dead = false;
-                        }
-                    }
-                    var group = c_nodes.character.pov ? pov : non_pov;
-                    box_arr.push('v8');
-                    back_box_arr.reverse();
-                    
-                    var char_group = svg.group(group,
-                                               short_name + '_group',
-                                               {'stroke-width': 'inherit'});
-                    var box = svg.path(char_group,
-                                       box_arr.concat(back_box_arr).join(''),
-                                       {'id': short_name + '_box',
-                                        'class': 'box',
-                                        'fill': 'none'});
-                    var p = svg.path(char_group,
-                                     edge_arr.join(''),
-                                     {'id': short_name,
-                                      'stroke': group_colors[c_nodes.character.group],
-                                      'stroke-width': 'inherit',
-                                      'stroke-linecap': 'round',
-                                      'stroke-linejoin': 'round',
-                                      'fill': 'none'});
-                    if(dead_arr.length > 1) {
-                        svg.path(char_group,
-                                 dead_arr.join(''),
-                                 {'id': short_name + '_dead',
-                                  'stroke': group_colors[c_nodes.character.group],
-                                  'stroke-width': 'inherit',
-                                  'stroke-linecap': 'round',
-                                  'stroke-linejoin': 'round',
-                                  'stroke-dasharray': '10',
-                                  'fill': 'none'});
-                    }
-                    for(var j=0; j<deaths.length; j++) {
-                        var death = deaths[j];
-                        svg.circle(char_group, death[0], death[1], death[2], death_icon_settings);
-                    }
-                    for(var j=0; j<undeaths.length; j++) {
-                        var undeath = undeaths[j];
-                        svg.circle(char_group, undeath[0], undeath[1], undeath[2], undeath_icon_settings);
-                    }
-                }
-                svg.change(g, {'transform': 'scale(' + original_scale + ')'});
-                $(g).mouseover(function(e) {
-                    if(e.target.className.baseVal == 'box') {
-                        var parent_stroke = e.target.parentNode.parentNode.getAttribute('stroke-width');
-                        var corrected_scale = scale > 1 ? 4 / scale : 4;
-                        svg.change(e.target.nextElementSibling, {'stroke-width': parent_stroke});
-                        $(e.target.nextElementSibling).animate({'svgStrokeWidth': corrected_scale}, 200);
-                    }
-                });
-                $(g).mouseout(function(e) {
-                    if(e.target.className.baseVal == 'box') {
-                        var parent_stroke = e.target.parentNode.parentNode.getAttribute('stroke-width');
-                        $(e.target.nextElementSibling).animate({'svgStrokeWidth': parent_stroke}, 200);
-                        svg.change(e.target.nextElementSibling, {'stroke-width': 'inherit'});
-                    }
-                });
-            },
+            'onLoad': function(svg) { draw_curvy(svg, original_scale); },
             'settings': {'width': body.width(),
                          'height': body.height() - 15}
             }
