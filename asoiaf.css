@@ -3,3 +3,8 @@ body {
   padding: 0;
   border: 0;
 }
+
+#paper {
+  width: 99%;
+  height: 745px;
+}

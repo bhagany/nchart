@@ -85,7 +85,7 @@ $(function() {
                   'pov': false,
                   'group': 'wolf'},
 
-        'robert b': {'name': 'Robert Baratheon',
+        'robert_b': {'name': 'Robert Baratheon',
                      'pov': false,
                      'group': 'baratheon'},
         'joffrey': {'name': 'Joffrey Baratheon',
@@ -184,7 +184,7 @@ $(function() {
         'varys': {'name': 'Varys',
                   'pov': false,
                   'group': 'other'},
-        'pycelle': {'name': 'Maester Pycelle',
+        'pycelle': {'name': 'Pycelle',
                     'pov': false,
                     'group': 'other'},
         'illyrio': {'name': 'Illyrio Mopatis',
@@ -193,7 +193,7 @@ $(function() {
         'jorah': {'name': 'Jorah Mormont',
                   'pov': false,
                   'group': 'other'},
-        'drogo': {'name': 'Khal Drogo',
+        'drogo': {'name': 'Drogo',
                   'pov': false,
                   'group': 'other'},
         'mirri': {'name': 'Mirri Maz Duur',
@@ -228,7 +228,7 @@ $(function() {
         'lysa': {'name': 'Lysa Arryn',
                  'pov': false,
                  'group': 'arryn'},
-        'robert a': {'name': 'Robert Arryn',
+        'robert_a': {'name': 'Robert Arryn',
                      'pov': false,
                      'group': 'arryn'},
 
@@ -246,6 +246,11 @@ $(function() {
     var layers = [
         // A Game of Thrones
         // 1. Prologue - Will I
+        {'duration': 10,
+         'nodes': [
+             {'sub_nodes': ['will', 'waymar', 'gared']}
+         ]
+        },
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['will', 'waymar', 'gared'],
@@ -290,7 +295,7 @@ $(function() {
              },
              // Characters Intros
              {'sub_nodes': ['benjen']},
-             {'sub_nodes': ['robert b', 'cersei', 'jaime', 'tyrion', 'joffrey', 'myrcella', 'tommen',
+             {'sub_nodes': ['robert_b', 'cersei', 'jaime', 'tyrion', 'joffrey', 'myrcella', 'tommen',
                             'sandor']}
          ],
         },
@@ -299,7 +304,7 @@ $(function() {
          'nodes': [
              {'sub_nodes': ['ned', 'cat', 'robb', 'sansa', 'arya', 'bran', 'rickon', 'jon',
                             'theon', 'grey wind', 'lady', 'nymeria', 'summer',
-                            'shaggydog', 'ghost', 'benjen', 'robert b', 'cersei',
+                            'shaggydog', 'ghost', 'benjen', 'robert_b', 'cersei',
                             'jaime', 'tyrion', 'joffrey', 'myrcella', 'tommen', 'sandor'],
               'event': 'Robert visits Winterfell'
              },
@@ -310,7 +315,7 @@ $(function() {
          'nodes': [
              {'sub_nodes': ['ned', 'cat', 'robb', 'sansa', 'arya', 'bran', 'rickon', 'jon',
                             'theon', 'grey wind', 'lady', 'nymeria', 'summer',
-                            'shaggydog', 'ghost', 'benjen', 'robert b', 'cersei',
+                            'shaggydog', 'ghost', 'benjen', 'robert_b', 'cersei',
                             'jaime', 'tyrion', 'joffrey', 'myrcella', 'tommen', 'sandor'],
               'event': 'Bran falls'
              },
@@ -328,7 +333,7 @@ $(function() {
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['cat', 'robb', 'bran', 'rickon', 'theon', 'grey wind', 'summer', 'shaggydog'],
-              'event': 'Assassination attempt on Bran'
+              'event': '"The things I do for love"'
              },
              // Character Intros
              {'sub_nodes': ['renly', 'barristan', 'ilyn']}
@@ -337,7 +342,7 @@ $(function() {
         // 16-17. Sansa I, Eddard III
         {'duration': 20,
          'nodes': [
-             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'jaime', 'joffrey', 'myrcella',
+             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert_b', 'cersei', 'jaime', 'joffrey', 'myrcella',
                             'tommen', 'sandor', 'renly', 'barristan', 'ilyn', 'lady', 'nymeria'],
               'deaths': ['lady'],
               'event': 'Children Fight Near the Trident'
@@ -363,7 +368,7 @@ $(function() {
         // 21. Eddard IV
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'jaime', 'joffrey', 'myrcella',
+             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert_b', 'cersei', 'jaime', 'joffrey', 'myrcella',
                             'tommen', 'sandor', 'renly', 'barristan', 'ilyn', 'cat', 'petyr', 'varys',
                             'pycelle']}
          ]
@@ -387,7 +392,7 @@ $(function() {
         // 28. Eddard VI
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'jaime', 'joffrey', 'myrcella',
+             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert_b', 'cersei', 'jaime', 'joffrey', 'myrcella',
                             'tommen', 'sandor', 'renly', 'barristan', 'ilyn', 'petyr', 'varys',
                             'pycelle', 'gendry'],
               'event': 'Hand\'s Tourney'
@@ -407,7 +412,7 @@ $(function() {
         // 30. Sansa II
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'jaime', 'joffrey', 'myrcella',
+             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert_b', 'cersei', 'jaime', 'joffrey', 'myrcella',
                             'tommen', 'sandor', 'renly', 'barristan', 'ilyn', 'petyr', 'varys',
                             'pycelle', 'gendry', 'gregor', 'beric', 'loras'],
               'event': 'Hand\'s Tourney'
@@ -417,25 +422,25 @@ $(function() {
         // 33. Arya III
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'jaime', 'joffrey', 'myrcella',
+             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert_b', 'cersei', 'jaime', 'joffrey', 'myrcella',
                             'tommen', 'sandor', 'renly', 'barristan', 'ilyn', 'petyr', 'varys',
                             'pycelle', 'gendry', 'beric', 'loras', 'illyrio']},
              // Character Intros
-             {'sub_nodes': ['lysa', 'robert a']},
+             {'sub_nodes': ['lysa', 'robert_a']},
              {'sub_nodes': ['brynden']}
          ],
         },
         // 35. Catelyn IV
         {'duration': 30,
          'nodes': [
-             {'sub_nodes': ['cat', 'lysa', 'robert a', 'brynden', 'tyrion']}
+             {'sub_nodes': ['cat', 'lysa', 'robert_a', 'brynden', 'tyrion']}
          ]
         },
         //*** 36. Eddard IX Jaime attacks Eddard?
         // 45. Sansa II
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'jaime', 'joffrey', 'myrcella',
+             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert_b', 'cersei', 'jaime', 'joffrey', 'myrcella',
                             'tommen', 'sandor', 'renly', 'barristan', 'ilyn', 'petyr', 'varys',
                             'pycelle', 'gendry', 'beric', 'loras'],
               'event': 'Beric sent out to bring justice to Gregor'}
@@ -453,10 +458,10 @@ $(function() {
         // 48, 50-52. Eddard XIII, Eddard XIV, Arya IV, Sansa IV
         {'duration': 40,
          'nodes': [
-             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert b', 'cersei', 'joffrey', 'myrcella',
+             {'sub_nodes': ['ned', 'sansa', 'arya', 'robert_b', 'cersei', 'joffrey', 'myrcella',
                             'tommen', 'sandor', 'barristan', 'ilyn', 'petyr', 'varys', 'pycelle',
                             'gendry', 'renly', 'loras'],
-              'deaths': ['robert b'],
+              'deaths': ['robert_b'],
               'event': 'King Robert gored and killed, Starks betrayed'
              }
          ],
@@ -633,6 +638,7 @@ $(function() {
              {'sub_nodes': ['arya', 'gendry', 'gregor']},
              // Character Intros
              {'sub_nodes': ['meera', 'jojen']},
+             {'sub_nodes': ['margaery', 'brienne']},
          ],
         },
         // 22. Bran III
@@ -982,7 +988,7 @@ $(function() {
               'deaths': ['beric'],
               'undeaths': ['cat']},
              // Establish togetherness
-             {'sub_nodes': ['lysa', 'robert a']}
+             {'sub_nodes': ['lysa', 'robert_a']}
          ],
         },
         // 69. Sansa VI
@@ -1067,7 +1073,7 @@ $(function() {
         // 81. Sansa VII
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['sansa', 'petyr', 'lysa', 'robert a'],
+             {'sub_nodes': ['sansa', 'petyr', 'lysa', 'robert_a'],
               'event': 'Petyr throws Lysa out the Moon Door',
               'deaths': ['lysa']
              }
@@ -1078,7 +1084,7 @@ $(function() {
          'nodes': [
              {'sub_nodes': ['cat']},
              // Wrap 'em all up
-             {'sub_nodes': ['sansa', 'petyr', 'robert a']},
+             {'sub_nodes': ['sansa', 'petyr', 'robert_a']},
              {'sub_nodes': ['jon', 'ghost', 'aemon', 'stannis', 'melisandre', 'sam']},
              {'sub_nodes': ['cersei', 'ilyn', 'pycelle', 'loras', 'tommen', 'margaery', 'jaime', 'gregor']},
              {'sub_nodes': ['myrcella']},
@@ -2235,7 +2241,7 @@ $(function() {
                 v_coords.sort(function(a, b) { return a - b; });
                 // Set the y coordinate to be the average median (rounded) of the four alignments
                 v.y = Math.round((v_coords[1] + v_coords[2]) / 2);
-                // v.y = alignments[2].y_coords[i][j];
+                // v.y = alignments[0].y_coords[i][j];
                 min_y = Math.min(v.y, min_y);
                 max_y = Math.max(v.y + ((v.size - 1) * 15), max_y); //*** 15 spacing
             }
@@ -2457,7 +2463,6 @@ $(function() {
                         edge_arr.push('M');
                         if(last.y != edge_y) {
                             dead_arr.push('C' + (last.x + bend) + ' ' + last.y + ' ' + (node.x - bend) + ' ' + edge_y);
-                            // dead_arr.push('L');
                         } else {
                             dead_arr.push('L');
                         }                        
@@ -2500,7 +2505,6 @@ $(function() {
             var char_group = svg.group(group,
                                        short_name + '_group',
                                        {'stroke-width': 'inherit'});
-            // console.log(edge_arr);
             var p = svg.path(char_group,
                              edge_arr.join(''),
                              {'id': short_name,
@@ -2528,23 +2532,27 @@ $(function() {
                 var undeath = undeaths[j];
                 svg.circle(char_group, undeath[0], undeath[1], undeath[2], undeath_icon_settings);
             }
+
+            var path_len = p.getTotalLength();
+            var name_text = svg.text(char_group, null, null, '', {'fill': 'black',
+                                                                  'font-family': 'fantasy',
+                                                                  'font-size': '9',
+                                                                  'dy': '-2'});
+            // var text_len = name.getComputedTextLength();
+            // if(text_len > path_len) {
+            //     //do voodoo here
+            //     svg.remove(name_text);
+            // } else {
+                //do a use
+            //for(var j=0; j<path_len; j+=2000) {
+                    svg.textpath(name_text,
+                                 '#' + short_name,
+                                 c_nodes.character.name,
+                                 {'startOffset': 0});
+            //}
+            // }
         }
         svg.change(g, {'transform': 'scale(' + original_scale + ')'});
-        $(g).mouseover(function(e) {
-            if(e.target.className.baseVal == 'box') {
-                var parent_stroke = e.target.parentNode.parentNode.getAttribute('stroke-width');
-                var corrected_scale = scale > 1 ? 4 / scale : 4;
-                svg.change(e.target.nextElementSibling, {'stroke-width': parent_stroke});
-                $(e.target.nextElementSibling).animate({'svgStrokeWidth': corrected_scale}, 200);
-            }
-        });
-        $(g).mouseout(function(e) {
-            if(e.target.className.baseVal == 'box') {
-                var parent_stroke = e.target.parentNode.parentNode.getAttribute('stroke-width');
-                $(e.target.nextElementSibling).animate({'svgStrokeWidth': parent_stroke}, 200);
-                svg.change(e.target.nextElementSibling, {'stroke-width': 'inherit'});
-            }
-        });
     }
 
     function draw_graph(paper_id, graph) {
@@ -2664,14 +2672,147 @@ $(function() {
         }
     }
 
+    function post_process(graph) {
+        var grouped_already = [];
+        var current_groups = [];
+        var group_hash = {};
+        for(var i=0; i<graph.e_compaction.length; i++) {
+            var L = graph.e_compaction[i];
+            for(var j=0; j<L.length; j++) {
+                var node = L[j];
+
+                for(var k=0; k<current_groups.length; k++) {
+                    var groups = current_groups[k].groups;
+                    for(var l=0; l<groups.length; l++) {
+                        var group = groups[l];
+                        if(group.length == 1) {
+                            continue;
+                        }
+                        var intersection = [];
+                        for(var m=0; m<group.length; m++) {
+                            var sub_node = group[m];
+                            var pos = $.inArray(sub_node, node.sub_nodes);
+                            if(pos != -1) {
+                                intersection.push(sub_node);
+                            }
+                        }
+                        if(intersection.length && intersection.length != group.length) {
+                            for(var m=0; m<intersection.length; m++) {
+                                var pos = $.inArray(intersection[m], group);
+                                group.splice(pos, 1);
+                            }
+                            groups.splice(l, 0, intersection);
+                            l++;
+                        }
+                    }
+                }
+
+                var initials = [];
+                var node_groups = {'node': node, 'groups': [node.sub_nodes.slice(0)]};
+                for(var k=0; k<node.sub_nodes.length; k++) {
+                    var sub_node = node.sub_nodes[k];
+                    if($.inArray(sub_node, grouped_already) == -1) {
+                        initials.push(sub_node);
+                        group_hash[sub_node] = node_groups;
+                    }
+                }
+
+                if(initials.length) {
+                    current_groups.push(node_groups);
+                    grouped_already = grouped_already.concat(initials);
+                }
+            }
+        }
+
+        for(var i=0; i<current_groups.length; i++) {
+            current_groups[i].node.initial_ordering = current_groups[i].groups;
+            current_groups[i].node.sub_nodes = _.flatten(current_groups[i].groups);
+        }
+
+        var last_pos = {};
+        for(var i=0; i<graph.e_compaction.length; i++) {
+            var L = graph.e_compaction[i];
+            // Reset the graph sub node order
+            for(var j=0; j<L.length; j++) {
+                var node = L[j];
+                if(node.draw) {
+                    if(node.nodes) {
+                        // If this is a segment, just reset the node position for all sub nodes;
+                        // sub node position is guaranteed to remain the same
+                        for(var k=0; k<node.sub_nodes.length; k++) {
+                            var sub_node = node.sub_nodes[k];
+                            last_pos[sub_node][0] = j;
+                        }
+                    } else {
+                        node.sub_node_order = {};
+
+                        var initials = [];
+                        for(var k=0; k<node.sub_nodes.length; k++) {
+                            var sub_node = node.sub_nodes[k];
+                            if(last_pos[sub_node]) {
+                                node.sub_node_pos[sub_node] = last_pos[sub_node];
+                            } else {
+                                node.sub_node_pos[sub_node] = [j,k,0];
+                                initials.push(sub_node);
+                            }
+                        }
+                        if(initials.length && initials.length != node.sub_nodes.length) {
+                            for(var k=0; k<node.initial_ordering.length; k++) {
+                                var group = node.initial_ordering[k];
+                                var initials_in_group = _.intersect(group, initials);
+                                if(initials_in_group.length && initials_in_group.length < group.length) {
+                                    var non_initials_in_group = _.filter(group, function(sub_node) {
+                                        return $.inArray(sub_node, initials_in_group) == -1
+                                    });
+                                    non_initials_in_group.sort(function(a, b) {
+                                        if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
+                                            return node.sub_node_pos[b][0]- node.sub_node_pos[a][0];
+                                        } else {
+                                            return node.sub_node_pos[b][1] - node.sub_node_pos[a][1];
+                                        }
+                                    });
+                                    var lowest_pos = node.sub_node_pos[non_initials_in_group[0]];
+                                    for(var l=0; l<initials_in_group.length; l++) {
+                                        var initial = initials_in_group[l];
+                                        node.sub_node_pos[initial] = lowest_pos.slice(0);
+                                        node.sub_node_pos[initial][2] = l + 1;
+                                    }
+                                }
+                            }
+                        }
+                                    
+                        node.sub_nodes.sort(function(a, b) {
+                            if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
+                                return node.sub_node_pos[a][0] - node.sub_node_pos[b][0];
+                            } else {
+                                return node.sub_node_pos[a][1] - node.sub_node_pos[b][1];
+                            }
+                        });
+                        for(var k=0; k<node.sub_nodes.length; k++) {
+                            var sub_node = node.sub_nodes[k];
+                            node.sub_node_order[sub_node] = k;
+                            last_pos[sub_node] = [j,k,0];
+                        }
+                        
+                        // Reset markedness
+                        for(var target_id in node.edges) {
+                            var edge = node.edges[target_id];
+                            edge.marked = graph.marked[node.id][target_id];
+                        }
+                    }
+                }
+            }
+        }
+
+        return graph;
+    }
+
     var height = $(window).height();
     var mid_y = Math.floor(height / 2);
-    var width = $(window).width();
-    $('#paper').height(height);
-    $('#paper').width(width);
 
     var graph = make_edges(layers, 100);
     var ordered_graph = order(graph);
+    post_process(ordered_graph);
     place_nodes(ordered_graph, 50);
     draw_graph('paper', ordered_graph);
 });
