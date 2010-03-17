@@ -3,12 +3,34 @@
 // Show events
 // More intelligent insertion of p,q,r nodes?
 // Optimize?
-// Curves
-// minimum slope
 // Sorting in Step 2, a better measure
+// Don't let names run into death or undeath circles
+// Do the y portion of name sliding
+// center in the smaller dimension
+// Test speed of alternate getting of segment lengths (not actually drawing, use tags, etc)
 
+goog.require('goog.array');
+goog.require('goog.math.Bezier');
 
 $(function() {
+    /* Modified from Raphael.js, by Dmitry Baranovskiy */
+    goog.math.Bezier.prototype.length = function() {
+        var old = {x: 0, y: 0},
+        len = 0;
+        for (var i = 0; i < 1.01; i+=.1) {
+            var dot = this.getPoint(i);
+            i && (len += Math.sqrt(Math.pow(old.x - dot.x, 2) + Math.pow(old.y - dot.y, 2)));
+            old = dot;
+        }
+        return len;
+    }
+
+    goog.math.Bezier.prototype.lengthAtPoint = function(t) {
+        var clone = this.clone();
+        clone.subdivideLeft(t);
+        return clone.length();
+    }
+
     var group_colors = {
         'stark': '#7c7c7c',
         'wolf': '#956b41',
@@ -1158,7 +1180,7 @@ $(function() {
             v_1.children.push(v_2);
             v_2.parents.push(v_1);
 
-            is_seg = !!(v_1.nodes || v_2.nodes);
+            is_seg = !!(v_1.nodes || v_2.nodes || v_1.p || v_2.q);
 
             v_1.edges[v_2.id] = {'source': v_1,
                                  'target': v_2,
@@ -1863,9 +1885,10 @@ $(function() {
                     }
                     var parent_arr = [];
                     for(var k=0; k<aligners.length; k++) {
-                        var p = aligners[k];
-                        for(var l=0; l<p.size; l++) {
-                            parent_arr.push(p);
+                        var aligner = aligners[k];
+                        var edge = v.edges[aligner.id];
+                        for(var l=0; l<edge.weight; l++) {
+                            parent_arr.push(aligner);
                         }
                     }
                     var proto_median = ((parent_arr.length + 1) / 2) - 1;
@@ -1930,7 +1953,7 @@ $(function() {
                     } else {
                         u_size = w[pred].size;
                     }
-                    var node_delta = left_right ? 15 * -w.size - delta : 15 * u_size + delta;
+                    var node_delta = left_right ? 15 * -w.size - delta : 15 * u_size + delta; //*** 15 spacing
                     if(v.sink != u.sink) {
                         u.sink.shift = shift_func(u.sink.shift, v.y - u.y - node_delta);
                     } else {
@@ -2077,46 +2100,46 @@ $(function() {
             best.e_compaction.push(L);
         }
 
-        var last_pos = {};
-        for(var i=0; i<best.e_compaction.length; i++) {
-            var L = best.e_compaction[i];
-            // Reset the best sub node order
-            for(var j=0; j<L.length; j++) {
-                var node = L[j];
-                if(node.draw) {
-                    if(node.nodes) {
-                        for(var k=0; k<node.sub_nodes.length; k++) {
-                            var sub_node = node.sub_nodes[k];
-                            last_pos[sub_node][0] = j;
-                        }
-                    } else {
-                        node.sub_node_order = {};
-                        for(var k=0; k<node.sub_nodes.length; k++) {
-                            var sub_node = node.sub_nodes[k];
-                            node.sub_node_pos[sub_node] = last_pos[sub_node] ? last_pos[sub_node] : [j,k];
-                        }
-                        node.sub_nodes.sort(function(a, b) {
-                            if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
-                                return node.sub_node_pos[a][0] - node.sub_node_pos[b][0];
-                            } else {
-                                return node.sub_node_pos[a][1] - node.sub_node_pos[b][1];
-                            }
-                        });
-                        for(var k=0; k<node.sub_nodes.length; k++) {
-                            var sub_node = node.sub_nodes[k];
-                            node.sub_node_order[sub_node] = k;
-                            last_pos[sub_node] = [j,k];
-                        }
+        // var last_pos = {};
+        // for(var i=0; i<best.e_compaction.length; i++) {
+        //     var L = best.e_compaction[i];
+        //     // Reset the best sub node order
+        //     for(var j=0; j<L.length; j++) {
+        //         var node = L[j];
+        //         if(node.draw) {
+        //             if(node.nodes) {
+        //                 for(var k=0; k<node.sub_nodes.length; k++) {
+        //                     var sub_node = node.sub_nodes[k];
+        //                     last_pos[sub_node][0] = j;
+        //                 }
+        //             } else {
+        //                 node.sub_node_order = {};
+        //                 for(var k=0; k<node.sub_nodes.length; k++) {
+        //                     var sub_node = node.sub_nodes[k];
+        //                     node.sub_node_pos[sub_node] = last_pos[sub_node] ? last_pos[sub_node] : [j,k];
+        //                 }
+        //                 node.sub_nodes.sort(function(a, b) {
+        //                     if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
+        //                         return node.sub_node_pos[a][0] - node.sub_node_pos[b][0];
+        //                     } else {
+        //                         return node.sub_node_pos[a][1] - node.sub_node_pos[b][1];
+        //                     }
+        //                 });
+        //                 for(var k=0; k<node.sub_nodes.length; k++) {
+        //                     var sub_node = node.sub_nodes[k];
+        //                     node.sub_node_order[sub_node] = k;
+        //                     last_pos[sub_node] = [j,k];
+        //                 }
                         
-                        // Reset markedness
-                        for(var target_id in node.edges) {
-                            var edge = node.edges[target_id];
-                            edge.marked = best.marked[node.id][target_id];
-                        }
-                    }
-                }
-            }
-        }
+        //                 // Reset markedness
+        //                 for(var target_id in node.edges) {
+        //                     var edge = node.edges[target_id];
+        //                     edge.marked = best.marked[node.id][target_id];
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
 
         best.layers = graph.layers;
         neighborify(best);
@@ -2347,7 +2370,7 @@ $(function() {
                         box_arr.push('L');
                     }
                 }
-                var edge_y = node.y + (node.sub_node_order[short_name] * 15);
+                var edge_y = node.y + (node.sub_node_order[short_name] * 15); //*** 15 spacing
                 var box_y = edge_y - 4;
                 var back_box_y = edge_y + 4;
                 edge_arr.push(node.x + ' ' + edge_y);
@@ -2441,62 +2464,83 @@ $(function() {
 
     function draw_curvy(svg, original_scale) {
         var g = svg.group('graph');
-        var pov = svg.group(g, 'pov', {'stroke-width': 2});
-        var non_pov = svg.group(g, 'non_pov', {'stroke-width': 1});
-        var death_icon_settings = {'fill': 'black'};
-        var undeath_icon_settings = {'stroke': 'black', 'fill': 'white'};
+        var pov = svg.group(g, 'pov', {'stroke-width': 3}); //***
+        var non_pov = svg.group(g, 'non_pov', {'stroke-width': 1}); //***
+        var death_icon_settings = {'fill': 'black'}; //***
+        var undeath_icon_settings = {'stroke': 'black', 'fill': 'white'}; //***
         for(var i=0; i<graph.char_nodes.length; i++) {
             var c_nodes = graph.char_nodes[i];
             var dead_arr = [];
             var short_name = c_nodes.character.short_name;
-            var last = {'x': c_nodes.nodes[0].x, 'y': c_nodes.nodes[0].y + c_nodes.nodes[0].sub_node_order[short_name] * 15};
-            var edge_arr = ['M' + last.x + ' ' + last.y];
+            var last = {'x': c_nodes.nodes[0].x, 'y': c_nodes.nodes[0].y + c_nodes.nodes[0].sub_node_order[short_name] * 15}; //*** 15 spacing
+            var edge_arr = ['M', last.x, last.y];
+            var start = 'M' + last.x + ' ' + last.y;
             var deaths = [];
             var undeaths = [];
             var dead = false;
+            var segments = [];
+            var horiz = false;
+            var last_horiz = false;
             for(var j=0; j<c_nodes.nodes.length; j++) {
                 var node = c_nodes.nodes[j];
+                if(node.r) continue;
                 var edge_y = node.y + (node.sub_node_order[short_name] * 15); //*** 15 size here
+                var end_x = node.x + node.duration;
+                var this_seg = [];
                 if(j) {
-                    var bend = Math.min(node.x - last.x - 50, Math.floor(.375 * Math.abs(last.y - edge_y)));
-                    if(dead) {
-                        edge_arr.push('M');
-                        if(last.y != edge_y) {
-                            dead_arr.push('C' + (last.x + bend) + ' ' + last.y + ' ' + (node.x - bend) + ' ' + edge_y);
+                    var bend = Math.min(node.x - last.x - 50, Math.floor(.375 * Math.abs(last.y - edge_y))); //*** bendiness
+                    last_horiz = horiz;
+                    horiz = last.y == edge_y;
+                    if(horiz) {
+                        if(last_horiz) {
+                            edge_arr[edge_arr.length - 1] = end_x;
+                            var last_segment = segments[segments.length - 1];
+                            last_segment.x_range[1] = end_x;
+                            last_segment.d[1] = end_x;
                         } else {
-                            dead_arr.push('L');
-                        }                        
+                            this_seg = ['H', end_x];
+                            segments.push({'x_range': [last.x, end_x], 'type': 'H', 'd': this_seg});
+                        }
                     } else {
-                        if(last.y != edge_y) {
-                            edge_arr.push('C' + (last.x + bend) + ' ' + last.y + ' ' + (node.x - bend) + ' ' + edge_y);
+                        this_seg = ['C', last.x + bend, last.y, node.x - bend, edge_y, node.x, edge_y];
+                        segments.push({'x_range': [last.x, node.x],
+                                       'y_range': [last.y, edge_y],
+                                       'type': 'C',
+                                       'd': this_seg,
+                                       'bezier': new goog.math.Bezier(last.x, last.y, last.x + bend, last.y, node.x - bend, edge_y, node.x, edge_y)});
+                        last_horiz = false;
+                    }
+                    if(this_seg.length) {
+                        edge_arr = edge_arr.concat(this_seg);
+                    }
+
+                    if(dead) {
+                        if(last_horiz) {
+                            dead_arr[dead_arr.length - 1] = end_x;
                         } else {
-                            edge_arr.push('L');
+                            dead_arr = dead_arr.concat(this_seg);
                         }
                     }
-                    edge_arr.push(' ' + node.x + ' ' + edge_y);
-                    if(dead) {
-                        dead_arr.push(' ' + node.x + ' ' + edge_y);
-                    }
                 }
-                if(node.duration) {
+                if(node.duration && !horiz) {
+                    edge_arr.push('H', end_x);
                     if(dead) {
-                        dead_arr.push('h' + node.duration);
-                    } else {
-                        edge_arr.push('h' + node.duration);
+                        dead_arr.push('H', end_x);
                     }
+                    segments.push({'x_range': [node.x, end_x], 'type': 'H', 'd': ['H', end_x]});
+                    horiz = true;
                 }
-                last = {'x': node.x + node.duration, 'y': edge_y};
+                last = {'x': end_x, 'y': edge_y};
 
-                var dur = node.x + node.duration;
                 if(node.deaths && _.include(node.deaths, short_name)) {
-                    deaths.push([dur, edge_y, 5]);
+                    deaths.push([end_x, edge_y, 5]); //*** 5?
                     if(!dead) {
-                        dead_arr.push('M' + dur + ' ' + edge_y);
+                        dead_arr.push('M', end_x, edge_y);
                         dead = true;
                     }
                 }
                 if(node.undeaths && _.include(node.undeaths, short_name)) {
-                    undeaths.push([dur, edge_y, 5]);
+                    undeaths.push([end_x, edge_y, 5]); //*** 5?
                     dead = false;
                 }
             }
@@ -2506,16 +2550,45 @@ $(function() {
                                        short_name + '_group',
                                        {'stroke-width': 'inherit'});
             var p = svg.path(char_group,
-                             edge_arr.join(''),
+                             start,
                              {'id': short_name,
+                              'class': 'character',
                               'stroke': group_colors[c_nodes.character.group],
                               'stroke-width': 'inherit',
                               'stroke-linecap': 'round',
                               'stroke-linejoin': 'round',
                               'fill': 'none'});
+
+            var last_len = 0;
+            for(var j=0; j<segments.length; j++) {
+                var seg = segments[j];
+                var d = $(p).attr('d') || '';
+                svg.change(p, {'d': d + seg.d.join(' ')});
+                if(seg.type == 'C') {
+                    var p_len = p.getTotalLength();
+                    seg.len_range = [last_len, p_len];
+                    last_len = p_len;
+                } else if(seg.type == 'H') {
+                    var p_len = last_len + seg.x_range[1] - seg.x_range[0];
+                    seg.len_range = [last_len, p_len];
+                    last_len = p_len;
+                }
+            }
+
+            var p_jq = $(p);
+            p_jq.data('segments', segments);
+            p_jq.data('length', last_len);
             if(dead_arr.length > 1) {
                 svg.path(char_group,
-                         dead_arr.join(''),
+                         dead_arr.join(' '),
+                         {'id': short_name + '_dead_background',
+                          'stroke': 'white', //*** Should match background color
+                          'stroke-width': '4', //*** really ought to be whatever plus 1
+                          'stroke-linecap': 'round',
+                          'stroke-linejoin': 'round',
+                          'fill': 'none'});
+                svg.path(char_group,
+                         dead_arr.join(' '),
                          {'id': short_name + '_dead',
                           'stroke': group_colors[c_nodes.character.group],
                           'stroke-width': 'inherit',
@@ -2533,24 +2606,20 @@ $(function() {
                 svg.circle(char_group, undeath[0], undeath[1], undeath[2], undeath_icon_settings);
             }
 
-            var path_len = p.getTotalLength();
             var name_text = svg.text(char_group, null, null, '', {'fill': 'black',
                                                                   'font-family': 'fantasy',
                                                                   'font-size': '9',
-                                                                  'dy': '-2'});
-            // var text_len = name.getComputedTextLength();
+                                                                  'dy': '-2'}); //**** all this stuff
             // if(text_len > path_len) {
             //     //do voodoo here
             //     svg.remove(name_text);
             // } else {
                 //do a use
-            //for(var j=0; j<path_len; j+=2000) {
-                    svg.textpath(name_text,
-                                 '#' + short_name,
-                                 c_nodes.character.name,
-                                 {'startOffset': 0});
-            //}
             // }
+            p_jq.data('name_path', svg.textpath(name_text,
+                                                '#' + short_name,
+                                                c_nodes.character.name));
+            p_jq.data('name_len', name_text.getComputedTextLength());
         }
         svg.change(g, {'transform': 'scale(' + original_scale + ')'});
     }
@@ -2574,18 +2643,80 @@ $(function() {
         var pov = svg.getElementById('pov');
         var non_pov = svg.getElementById('non_pov');
         var old_scale;
+
+        function segment_search(a, b) {
+            return a > b.x_range[1] ? 1 : a < b.x_range[0] ? -1 : 0;
+        }
+
+        function get_length_at_x(seg, x, tol) {
+            var mid_x = (seg.x_range[0] + seg.x_range[1]) / 2;
+            var mid_len = (seg.len_range[0] + seg.len_range[1]) / 2;
+            var left, right;
+
+            // Since we know the curve is symmetrical, we can do one iteration
+            // without going through the expensive math.
+            if(x < mid_x - tol) {
+                left = 0;
+                right = .5;
+            } else if(x > mid_x + tol) {
+                left = .5;
+                right = 1;
+            } else {
+                return mid_len;
+            }
+            
+            while(true) {
+                mid_len = (left + right) / 2;
+                var mid_result = seg.bezier.getPoint(mid_len);
+                if(x < mid_result.x - tol) {
+                    right = mid_len;
+                } else if(x > mid_result.x + tol) {
+                    left = mid_len;
+                } else {
+                    return seg.bezier.lengthAtPoint(mid_len) + seg.len_range[0];
+                    //return mid_len * (seg.len_range[1] - seg.len_range[0]) + seg.len_range[0];
+                }
+            }
+        }
+
+        function move_name(left_x) {
+            left_x += 20; //****
+            return function() {
+                var p = $(this);
+                var segments = p.data('segments');
+                var p_len = p.data('length');
+                var name_len = p.data('name_len');
+                var start_offset;
+                if(left_x < segments[0].x_range[0]) {
+                    start_offset = 0;
+                } else if(left_x > segments[segments.length - 1].x_range[1] - name_len) {
+                    start_offset = p_len - name_len;
+                } else {
+                    var index = goog.array.binarySearch(segments, left_x, segment_search);
+                    var seg = segments[index];
+                    if(seg.type == 'H') {
+                        start_offset = seg.len_range[0] + left_x - seg.x_range[0];
+                    } else if(seg.type == 'C') {
+                        start_offset = get_length_at_x(seg, left_x, .1);
+                    }
+                }
+                svg.change(p.data('name_path'), {'startOffset': start_offset});
+            };
+        }
+
         function zoom_graph(e, delta) {
             old_scale = scale;
-            scale = Math.min(10, Math.max(.05, scale * Math.pow(1.2, (delta / Math.abs(delta)))));
+            scale = Math.min(10, Math.max(.05, scale * Math.pow(1.2, (delta / Math.abs(delta))))); //*** min and max scales
             if(scale != old_scale) {
                 var k = scale / old_scale;
                 translate = {'x': e.pageX + (k * (translate.x - e.pageX)),
                              'y': e.pageY + (k * (translate.y - e.pageY))};
                 svg.change(g, {'transform': 'translate(' + translate.x + ',' + translate.y + '), scale(' + scale + ')'});
                 if(scale > 1) {
-                    svg.change(pov, {'stroke-width': 2 / scale});
-                    svg.change(non_pov, {'stroke-width': 1 / scale});
+                    svg.change(pov, {'stroke-width': 3 / scale}); //*** pov width
+                    svg.change(non_pov, {'stroke-width': 1 / scale}); //*** non-pov width
                 }
+                $('path.character').each(move_name(-translate.x / scale));
             }
             return false;
         }
@@ -2594,9 +2725,9 @@ $(function() {
         paper_jq.dblclick(function(e) {
             var in_out;
             if(e.which == 1) {
-                in_out = 1;
+                in_out = 2;
             } else if(e.which == 3) {
-                in_out = -1;
+                in_out = -2;
             }
             if(in_out) {
                 zoom_graph(e, in_out);
@@ -2612,6 +2743,7 @@ $(function() {
                              'y': original_translate.y + e.pageY - mouse_position.y};
 
                 svg.change(g, {'transform': 'translate(' + translate.x + ',' + translate.y + '), scale(' + scale + ')'});
+                $('path.character').each(move_name(-translate.x / scale));
             });
         });
 
@@ -2619,57 +2751,57 @@ $(function() {
             paper_jq.unbind('mousemove');
         });
 
-        for(var i in graph.flat_nodes) {
-            var node = graph.flat_nodes[i];
-            if(node.draw) {
-                var c = svg.circle(g, node.x, node.y, 10, {'fill': 'red'});
+        // for(var i in graph.flat_nodes) {
+        //     var node = graph.flat_nodes[i];
+        //     if(node.draw) {
+        //         var c = svg.circle(g, node.x, node.y, 10, {'fill': 'red'});
 
-                (function(node) {
-                    $(c).click(function() {
-                        console.log(node);
-                    });
-                })(node);
-            }
-        }
+        //         (function(node) {
+        //             $(c).click(function() {
+        //                 console.log(node);
+        //             });
+        //         })(node);
+        //     }
+        // }
 
-        for(var i in graph.p_nodes) {
-            var node = graph.p_nodes[i];
-            if(node.draw) {
-                var c = svg.circle(g, node.x, node.y, 10, {'fill': 'green'});
+        // for(var i in graph.p_nodes) {
+        //     var node = graph.p_nodes[i];
+        //     if(node.draw) {
+        //         var c = svg.circle(g, node.x, node.y, 10, {'fill': 'green'});
 
-                (function(node) {
-                    $(c).click(function() {
-                        console.log(node);
-                    });
-                })(node);
-            }
-        }
+        //         (function(node) {
+        //             $(c).click(function() {
+        //                 console.log(node);
+        //             });
+        //         })(node);
+        //     }
+        // }
 
-        for(var i in graph.q_nodes) {
-            var node = graph.q_nodes[i];
-            if(node.draw) {
-                var c = svg.circle(g, node.x, node.y, 10, {'fill': 'blue'});
+        // for(var i in graph.q_nodes) {
+        //     var node = graph.q_nodes[i];
+        //     if(node.draw) {
+        //         var c = svg.circle(g, node.x, node.y, 10, {'fill': 'blue'});
 
-                (function(node) {
-                    $(c).click(function() {
-                        console.log(node);
-                    });
-                })(node);
-            }
-        }
+        //         (function(node) {
+        //             $(c).click(function() {
+        //                 console.log(node);
+        //             });
+        //         })(node);
+        //     }
+        // }
 
-        for(var i in graph.r_nodes) {
-            var node = graph.r_nodes[i];
-            if(node.draw) {
-                var c = svg.circle(g, node.x, node.y, 10, {'fill': 'yellow'});
+        // for(var i in graph.r_nodes) {
+        //     var node = graph.r_nodes[i];
+        //     if(node.draw) {
+        //         var c = svg.circle(g, node.x, node.y, 10, {'fill': 'yellow'});
 
-                (function(node) {
-                    $(c).click(function() {
-                        console.log(node);
-                    });
-                })(node);
-            }
-        }
+        //         (function(node) {
+        //             $(c).click(function() {
+        //                 console.log(node);
+        //             });
+        //         })(node);
+        //     }
+        // }
     }
 
     function post_process(graph) {
