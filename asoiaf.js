@@ -4,10 +4,14 @@
 // More intelligent insertion of p,q,r nodes?
 // Optimize?
 // Sorting in Step 2, a better measure
-// Don't let names run into death or undeath circles
 // Do the y portion of name sliding
-// center in the smaller dimension
 // Test speed of alternate getting of segment lengths (not actually drawing, use tags, etc)
+// Support flipping x and y
+// Add name sliding to the straight line graph
+// Add centering to the straight line graph
+// Remove underscore.js in favor of closure
+// Deal with names that are too long for their paths
+// Figure out why Chrome is different
 
 goog.require('goog.array');
 goog.require('goog.math.Bezier');
@@ -2462,7 +2466,7 @@ $(function() {
         });
     }
 
-    function draw_curvy(svg, original_scale) {
+    function draw_curvy(svg, original_scale, x_offset, y_offset) {
         var g = svg.group('graph');
         var pov = svg.group(g, 'pov', {'stroke-width': 3}); //***
         var non_pov = svg.group(g, 'non_pov', {'stroke-width': 1}); //***
@@ -2489,17 +2493,20 @@ $(function() {
                 var this_seg = [];
                 if(j) {
                     var bend = Math.min(node.x - last.x - 50, Math.floor(.375 * Math.abs(last.y - edge_y))); //*** bendiness
+                    var last_segment = segments[segments.length - 1];
                     last_horiz = horiz;
                     horiz = last.y == edge_y;
                     if(horiz) {
                         if(last_horiz) {
                             edge_arr[edge_arr.length - 1] = end_x;
-                            var last_segment = segments[segments.length - 1];
                             last_segment.x_range[1] = end_x;
                             last_segment.d[1] = end_x;
                         } else {
                             this_seg = ['H', end_x];
-                            segments.push({'x_range': [last.x, end_x], 'type': 'H', 'd': this_seg});
+                            segments.push({'x_range': [last.x, end_x],
+                                           'y_range': [edge_y, edge_y],
+                                           'type': 'H',
+                                           'd': this_seg});
                         }
                     } else {
                         this_seg = ['C', last.x + bend, last.y, node.x - bend, edge_y, node.x, edge_y];
@@ -2527,7 +2534,10 @@ $(function() {
                     if(dead) {
                         dead_arr.push('H', end_x);
                     }
-                    segments.push({'x_range': [node.x, end_x], 'type': 'H', 'd': ['H', end_x]});
+                    segments.push({'x_range': [node.x, end_x],
+                                   'y_range': [edge_y, edge_y],
+                                   'type': 'H',
+                                   'd': ['H', end_x]});
                     horiz = true;
                 }
                 last = {'x': end_x, 'y': edge_y};
@@ -2578,6 +2588,8 @@ $(function() {
             var p_jq = $(p);
             p_jq.data('segments', segments);
             p_jq.data('length', last_len);
+            var skip_points = [];
+            p_jq.data('skip_points', skip_points);
             if(dead_arr.length > 1) {
                 svg.path(char_group,
                          dead_arr.join(' '),
@@ -2600,10 +2612,12 @@ $(function() {
             for(var j=0; j<deaths.length; j++) {
                 var death = deaths[j];
                 svg.circle(char_group, death[0], death[1], death[2], death_icon_settings);
+                skip_points.push(death);
             }
             for(var j=0; j<undeaths.length; j++) {
                 var undeath = undeaths[j];
                 svg.circle(char_group, undeath[0], undeath[1], undeath[2], undeath_icon_settings);
+                skip_points.push(undeath);
             }
 
             var name_text = svg.text(char_group, null, null, '', {'fill': 'black',
@@ -2621,23 +2635,35 @@ $(function() {
                                                 c_nodes.character.name));
             p_jq.data('name_len', name_text.getComputedTextLength());
         }
-        svg.change(g, {'transform': 'scale(' + original_scale + ')'});
+        svg.change(g, {'transform': 'translate(' + x_offset + ',' + y_offset + '), scale(' + original_scale + ')'});
     }
 
     function draw_graph(paper_id, graph) {
         var paper_jq = $('#' + paper_id);
         paper_jq.children().remove();
         var body = $('body');
-        var original_scale = Math.min(paper_jq.width() / graph.max_x, paper_jq.height() / graph.max_y);
+        var p_width = paper_jq.width();
+        var p_height = paper_jq.height();
+        var w_scale = p_width / graph.max_x;
+        var h_scale = p_height / graph.max_y;
+        if(w_scale < h_scale) {
+            var original_scale = w_scale;
+            var x_offset = 0;
+            var y_offset = (p_height / 2) - (w_scale * graph.max_y / 2);
+        } else {
+            var original_scale = h_scale;
+            var x_offset = (p_width / 2) - (h_scale * graph.max_x / 2);
+            var y_offset = 0;
+        }
         var scale = original_scale;
         paper_jq.svg({
-            'onLoad': function(svg) { draw_curvy(svg, original_scale); },
-            'settings': {'width': body.width(),
-                         'height': body.height() - 15}
+            'onLoad': function(svg) { draw_curvy(svg, original_scale, x_offset, y_offset); },
+            'settings': {'width': p_width,
+                         'height': p_height - 15}
             }
         );
 
-        var translate = {'x': 0, 'y': 0};
+        var translate = {'x': x_offset, 'y': y_offset};
         var svg = paper_jq.svg('get');
         var g = svg.getElementById('graph');
         var pov = svg.getElementById('pov');
@@ -2674,30 +2700,67 @@ $(function() {
                     left = mid_len;
                 } else {
                     return seg.bezier.lengthAtPoint(mid_len) + seg.len_range[0];
-                    //return mid_len * (seg.len_range[1] - seg.len_range[0]) + seg.len_range[0];
                 }
             }
         }
 
-        function move_name(left_x) {
+        function move_name(left_x, right_x, top_y, bottom_y) {
             left_x += 20; //****
             return function() {
                 var p = $(this);
                 var segments = p.data('segments');
                 var p_len = p.data('length');
                 var name_len = p.data('name_len');
-                var start_offset;
+                var skip_points = p.data('skip_points');
+                var max_offset = p_len - name_len;
+                var last_index = segments.length - 1;
+                var seg, start_offset, index;
                 if(left_x < segments[0].x_range[0]) {
+                    seg = segments[0];
+                    index = 0;
                     start_offset = 0;
-                } else if(left_x > segments[segments.length - 1].x_range[1] - name_len) {
-                    start_offset = p_len - name_len;
+                } else if(left_x > segments[last_index].x_range[1]) {
+                    // I don't think this is needed at all
+                    seg = segments[last_index];
+                    if(seg.y_range[0] > top_y && seg.y_range[0] < bottom_y) {
+                        index = last_index;
+                        start_offset = max_offset;
+                    }
                 } else {
-                    var index = goog.array.binarySearch(segments, left_x, segment_search);
-                    var seg = segments[index];
+                    index = goog.array.binarySearch(segments, left_x, segment_search);
+                    seg = segments[index];
                     if(seg.type == 'H') {
-                        start_offset = seg.len_range[0] + left_x - seg.x_range[0];
+                        start_offset = Math.min(seg.len_range[0] + left_x - seg.x_range[0], max_offset);
                     } else if(seg.type == 'C') {
-                        start_offset = get_length_at_x(seg, left_x, .1);
+                        start_offset = Math.min(get_length_at_x(seg, left_x, .1), max_offset); //*** .1 tolerance
+                    }
+                }
+
+                var len_right = seg.len_range[1];
+                var segs = [seg];
+                index++;
+                seg = segments[index];
+                while(seg && len_right < start_offset + name_len) {
+                    segs.push(seg);
+                    len_right = seg.len_range[1];
+                    index++;
+                    seg = segments[index];
+                }
+
+                for(var i=0; i<skip_points.length; i++) {
+                    var pt = skip_points[i];
+                    var pt_diam = pt[2];
+                    for(var j=0; j<segs.length; j++) {
+                        var s = segs[j];
+                        if(s.x_range[0] == pt[0]) {
+                            if(start_offset < s.len_range[0] + pt_diam) {
+                                start_offset = s.len_range[0] + pt_diam;
+                            }
+                        } else if(s.x_range[1] == pt[0]) {
+                            if(start_offset + name_len > s.len_range[1] - pt_diam) {
+                                start_offset = s.len_range[1] - name_len - pt_diam;
+                            }
+                        }
                     }
                 }
                 svg.change(p.data('name_path'), {'startOffset': start_offset});
@@ -2716,7 +2779,11 @@ $(function() {
                     svg.change(pov, {'stroke-width': 3 / scale}); //*** pov width
                     svg.change(non_pov, {'stroke-width': 1 / scale}); //*** non-pov width
                 }
-                $('path.character').each(move_name(-translate.x / scale));
+                var left_x = -translate.x / scale;
+                var right_x = left_x + (p_width / scale);
+                var top_y = -translate.y / scale;
+                var bottom_y = top_y + (p_height / scale);
+                $('path.character').each(move_name(left_x, right_x, top_y, bottom_y));
             }
             return false;
         }
@@ -2743,7 +2810,11 @@ $(function() {
                              'y': original_translate.y + e.pageY - mouse_position.y};
 
                 svg.change(g, {'transform': 'translate(' + translate.x + ',' + translate.y + '), scale(' + scale + ')'});
-                $('path.character').each(move_name(-translate.x / scale));
+                var left_x = -translate.x / scale;
+                var right_x = left_x + (p_width / scale);
+                var top_y = -translate.y / scale;
+                var bottom_y = top_y + (p_height / scale);
+                $('path.character').each(move_name(left_x, right_x, top_y, bottom_y));
             });
         });
 
