@@ -11,7 +11,6 @@
 // Add centering to the straight line graph
 // Remove underscore.js in favor of closure
 // Deal with names that are too long for their paths
-// Figure out why Chrome is different
 
 goog.require('goog.array');
 goog.require('goog.math.Bezier');
@@ -1562,9 +1561,7 @@ $(function() {
             }
         }
 
-       // Make Chrome do it right - permutes the order of same-valued array elements when sorting
-        var used_measures = [];
-        var same_measures = {};
+        // var same_measures = {};
         for(var j=0; j<LV.length; j++) {
             var node = LV[j];
             var num_parents = 0;
@@ -1577,10 +1574,6 @@ $(function() {
                 num_parents += edge_weight;
             }
             node.measure = num_parents > 0 ? total_pos / num_parents : node.measure ? node.measure : 0;
-            while($.inArray(node.measure, used_measures) != -1) {
-                node.measure += .000001;
-            }
-            used_measures.push(node.sub_measure);
             // if(!same_measures[node.measure]) {
             //     same_measures[node.measure] = [];
             // }
@@ -1616,8 +1609,8 @@ $(function() {
         //     }
         // }
 
-        LV.sort(measure_sort);
-        LS.sort(measure_sort);
+        goog.array.stableSort(LV, measure_sort);
+        goog.array.stableSort(LS, measure_sort);
 
         return [LS, LV];
     }
@@ -1716,7 +1709,7 @@ $(function() {
                     }
 
                     //*** Move this function out where it won't be defined a billion times
-                    node.sub_nodes.sort(function(a, b) {
+                    goog.array.stableSort(node.sub_nodes, function(a, b) {
                         if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
                             return node.sub_node_pos[a][0] - node.sub_node_pos[b][0];
                         } else {
@@ -1772,7 +1765,7 @@ $(function() {
                 var cs = node[children];
                 if(cs.length > 1) {
                     //*** sort function out
-                    cs.sort(function (a, b) {
+                    goog.array.stableSort(cs, function (a, b) {
                         return L_map[a.id] - L_map[b.id];
                     });
                     count_subs = true;
@@ -2170,7 +2163,7 @@ $(function() {
                 l_order[v.id] = j;
 
                 order = l_orders[i - 1];
-                v.parents.sort(node_sort);
+                goog.array.stableSort(v.parents, node_sort);
                 childrens.push(v.children);
 
                 if(j > 0) {
@@ -2189,7 +2182,7 @@ $(function() {
 
             for(var j=0; j<last_childrens.length; j++) {
                 order = l_order;
-                last_childrens[j].sort(node_sort);
+                goog.array.stableSort(last_childrens[j], node_sort);
             }
             l_orders.push(l_order);
         }
@@ -2674,7 +2667,7 @@ $(function() {
             return a > b.x_range[1] ? 1 : a < b.x_range[0] ? -1 : 0;
         }
 
-        function get_length_at_x(seg, x, tol) {
+        function point_and_length_at_x(seg, x, tol) {
             var mid_x = (seg.x_range[0] + seg.x_range[1]) / 2;
             var mid_len = (seg.len_range[0] + seg.len_range[1]) / 2;
             var left, right;
@@ -2699,41 +2692,135 @@ $(function() {
                 } else if(x > mid_result.x + tol) {
                     left = mid_len;
                 } else {
-                    return seg.bezier.lengthAtPoint(mid_len) + seg.len_range[0];
+                    return {'point': mid_result,
+                            'length': seg.bezier.lengthAtPoint(mid_len) + seg.len_range[0]};
+                }
+            }
+        }
+
+        function point_and_length_at_y(seg, y, tol) {
+            var mid_y = (seg.y_range[0] + seg.y_range[1]) / 2;
+            var mid_len = (seg.len_range[0] + seg.len_range[1]) / 2;
+            var left, right;
+
+            // Since we know the curve is symmetrical, we can do one iteration
+            // without going through the expensive math.
+            if(y < mid_y - tol) {
+                left = 0;
+                right = .5;
+            } else if(y > mid_y + tol) {
+                left = .5;
+                right = 1;
+            } else {
+                return mid_len;
+            }
+            
+            while(true) {
+                mid_len = (left + right) / 2;
+                var mid_result = seg.bezier.getPoint(mid_len);
+                if(y < mid_result.y - tol) {
+                    right = mid_len;
+                } else if(y > mid_result.y + tol) {
+                    left = mid_len;
+                } else {
+                    return {'point': mid_result,
+                            'length': seg.bezier.lengthAtPoint(mid_len) + seg.len_range[0]};
+                }
+            }
+        }
+
+        function point_and_length_at_y_neg(seg, y, tol) {
+            var mid_y = (seg.y_range[0] + seg.y_range[1]) / 2;
+            var mid_len = (seg.len_range[0] + seg.len_range[1]) / 2;
+            var left, right;
+
+            // Since we know the curve is symmetrical, we can do one iteration
+            // without going through the expensive math.
+            if(y > mid_y + tol) {
+                left = 0;
+                right = .5;
+            } else if(y < mid_y - tol) {
+                left = .5;
+                right = 1;
+            } else {
+                return mid_len;
+            }
+            
+            while(true) {
+                mid_len = (left + right) / 2;
+                var mid_result = seg.bezier.getPoint(mid_len);
+                if(y > mid_result.y + tol) {
+                    right = mid_len;
+                } else if(y < mid_result.y - tol) {
+                    left = mid_len;
+                } else {
+                    return {'point': mid_result,
+                            'length': seg.bezier.lengthAtPoint(mid_len) + seg.len_range[0]};
                 }
             }
         }
 
         function move_name(left_x, right_x, top_y, bottom_y) {
             left_x += 20; //****
+            top_y += 20; //***
+            bottom_y -= 20; //***
             return function() {
                 var p = $(this);
                 var segments = p.data('segments');
+                var last_index = segments.length - 1;
+
+                if(left_x > segments[last_index].x_range[1]) {
+                    return;
+                }
+
                 var p_len = p.data('length');
                 var name_len = p.data('name_len');
                 var skip_points = p.data('skip_points');
                 var max_offset = p_len - name_len;
-                var last_index = segments.length - 1;
                 var seg, start_offset, index;
+                var right_of_left = false;
+
                 if(left_x < segments[0].x_range[0]) {
                     seg = segments[0];
                     index = 0;
-                    start_offset = 0;
-                } else if(left_x > segments[last_index].x_range[1]) {
-                    // I don't think this is needed at all
-                    seg = segments[last_index];
-                    if(seg.y_range[0] > top_y && seg.y_range[0] < bottom_y) {
-                        index = last_index;
-                        start_offset = max_offset;
-                    }
-                } else {
+                    right_of_left = true;
+                } else if(left_x <= segments[last_index].x_range[1]) {
                     index = goog.array.binarySearch(segments, left_x, segment_search);
                     seg = segments[index];
-                    if(seg.type == 'H') {
-                        start_offset = Math.min(seg.len_range[0] + left_x - seg.x_range[0], max_offset);
-                    } else if(seg.type == 'C') {
-                        start_offset = Math.min(get_length_at_x(seg, left_x, .1), max_offset); //*** .1 tolerance
+                }
+
+                var crossing_y, p_and_l;
+                if(seg.type == 'H') {
+                    crossing_y = seg.y_range[0];
+                    p_and_l = {'point': {'x': left_x, 'y': crossing_y},
+                               'length': seg.len_range[0] + left_x - seg.x_range[0]};
+                } else if(seg.type == 'C') {
+                    p_and_l = point_and_length_at_x(seg, left_x, .1);  //*** .1 tolerance
+                    crossing_y = p_and_l.point.y;
+                }
+
+                if(crossing_y >= top_y && crossing_y <= bottom_y) {
+                    start_offset = right_of_left ? 0 : Math.min(p_and_l.length, max_offset);
+                } else {
+                    while(!start_offset && seg && seg.x_range[0] < right_x) {
+                        if(seg.type == 'C') {
+                            var y_p_and_l;
+                            if(crossing_y < top_y && seg.y_range[1] >= top_y) {
+                                y_p_and_l = point_and_length_at_y(seg, top_y, 1); //*** .1 tol
+                            } else if(crossing_y > bottom_y && seg.y_range[1] <= bottom_y) {
+                                y_p_and_l = point_and_length_at_y_neg(seg, bottom_y, 1); //*** .1 tol
+                            }
+                            if(y_p_and_l) {
+                                start_offset = Math.min(y_p_and_l.length, max_offset);
+                            }
+                        }
+                        index++;
+                        seg = segments[index];
                     }
+                }
+
+                if(!start_offset) {
+                    return;
                 }
 
                 var len_right = seg.len_range[1];
@@ -2967,7 +3054,7 @@ $(function() {
                                     var non_initials_in_group = _.filter(group, function(sub_node) {
                                         return $.inArray(sub_node, initials_in_group) == -1
                                     });
-                                    non_initials_in_group.sort(function(a, b) {
+                                    goog.array.stableSort(non_initials_in_group, function(a, b) { //*** sort out
                                         if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
                                             return node.sub_node_pos[b][0]- node.sub_node_pos[a][0];
                                         } else {
@@ -2984,7 +3071,8 @@ $(function() {
                             }
                         }
                                     
-                        node.sub_nodes.sort(function(a, b) {
+                        //*** sort out
+                        goog.array.stableSort(node.sub_nodes, function(a, b) {
                             if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
                                 return node.sub_node_pos[a][0] - node.sub_node_pos[b][0];
                             } else {
