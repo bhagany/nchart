@@ -79,11 +79,9 @@
         var v_2 = !segment ? node2 : copy_segment(segment, layers[layer_num1 + 1]);
         var pq_segs = {};
 
-        if(node1.p) {
-            if(!layers[layer_num1].segs[v_2.id]) {
-                layers[layer_num1].segs[v_2.id] = v_2;
-                pq_segs[node1.id] = v_2;
-            }
+        if(node1.p && !layers[layer_num1].segs[v_2.id]) {
+            layers[layer_num1].segs[v_2.id] = v_2;
+            pq_segs[node1.id] = v_2;
         }
         if(layer_num2 - layer_num1 == 1) {
             v_2 = node2;
@@ -173,10 +171,10 @@
                 flat_nodes[node.id] = node;
                 for(var k=0; k<node.sub_nodes.length; k++) {
                     var name = node.sub_nodes[k];
-                    if(!c_nodes[name]) {
-                        c_nodes[name] = [];
-                    }
                     var last_node = last_nodes[name];
+
+                    goog.object.setIfUndefined(c_nodes, name, []);
+
                     if(!last_node && i) {
                         var all_new = true;
                         for(var l=0; l<node.sub_nodes.length; l++) {
@@ -230,9 +228,7 @@
                             for(var n=0; n<seg_sub_nodes.length; n++) {
                                 var seg_name = seg_sub_nodes[n];
                                 if(last_node == last_nodes[seg_name]) {
-                                    if(!c_nodes[seg_name]) {
-                                        c_nodes[seg_name] = [];
-                                    }
+                                    goog.object.setIfUndefined(c_nodes, seg_name, []);
                                     if(last_node.draw) {
                                         c_nodes[seg_name].push(p_node);
                                         c_nodes[seg_name].push(q_node);
@@ -244,7 +240,6 @@
                                 }
                             }
                             //Add the segment between p_node and q_node to each of the layers it crosses
-                            //*** put subnodes in here?
                             var segment = {'id': p_node.id + '-' + q_node.id,
                                            'nodes': [p_node, q_node],
                                            'sub_nodes': seg_sub_nodes.slice(0),
@@ -277,9 +272,7 @@
                             for(var n=0; n<seg_sub_nodes.length; n++) {
                                 var seg_name = seg_sub_nodes[n];
                                 if(last_node == last_nodes[seg_name]) {
-                                    if(!c_nodes[seg_name]) {
-                                        c_nodes[seg_name] = [];
-                                    }
+                                    goog.object.setIfUndefined(c_nodes, seg_name, []);
                                     if(last_node.draw) {
                                         c_nodes[seg_name].push(r_node);
                                     }
@@ -477,9 +470,7 @@
                 num_parents += edge_weight;
             }
             node.measure = num_parents > 0 ? total_pos / num_parents : node.measure ? node.measure : 0;
-            // if(!same_measures[node.measure]) {
-            //     same_measures[node.measure] = [];
-            // }
+            // goog.object.setIfUndefined(same_measures, node.measure, []);
             // same_measures[node.measure].push(node);
         }
 
@@ -611,7 +602,6 @@
                         sub_node_map[sub_node] = node;
                     }
 
-                    //*** Move this function out where it won't be defined a billion times
                     goog.array.stableSort(node.sub_nodes, function(a, b) {
                         if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
                             return node.sub_node_pos[a][0] - node.sub_node_pos[b][0];
@@ -648,6 +638,10 @@
             }
         }
 
+        function children_sort(a, b) {
+            return L_map[a.id] - L_map[b.id];
+        }
+
         var layer_edges = [];
         var lower_positions = [];
         var edge_weights = [];
@@ -667,10 +661,7 @@
                 // do this above?
                 var cs = node[children];
                 if(cs.length > 1) {
-                    //*** sort function out
-                    goog.array.stableSort(cs, function (a, b) {
-                        return L_map[a.id] - L_map[b.id];
-                    });
+                    goog.array.stableSort(cs, children_sort);
                     count_subs = true;
                 }
 
@@ -1931,6 +1922,15 @@
                             last_pos[sub_node][0] = j;
                         }
                     } else {
+
+                        function sub_node_compare(a, b) {
+                            if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
+                                return node.sub_node_pos[b][0]- node.sub_node_pos[a][0];
+                            } else {
+                                return node.sub_node_pos[b][1] - node.sub_node_pos[a][1];
+                            }
+                        }
+
                         node.sub_node_order = {};
 
                         var initials = [];
@@ -1951,13 +1951,7 @@
                                     var non_initials_in_group = goog.array.filter(group, function(sub_node) {
                                         return !goog.array.contains(initials_in_group, sub_node);
                                     });
-                                    goog.array.stableSort(non_initials_in_group, function(a, b) { //*** sort out
-                                        if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
-                                            return node.sub_node_pos[b][0]- node.sub_node_pos[a][0];
-                                        } else {
-                                            return node.sub_node_pos[b][1] - node.sub_node_pos[a][1];
-                                        }
-                                    });
+                                    goog.array.stableSort(non_initials_in_group, sub_node_compare);
                                     var lowest_pos = node.sub_node_pos[non_initials_in_group[0]];
                                     for(var l=0; l<initials_in_group.length; l++) {
                                         var initial = initials_in_group[l];
@@ -1968,7 +1962,6 @@
                             }
                         }
                                     
-                        //*** sort out
                         goog.array.stableSort(node.sub_nodes, function(a, b) {
                             if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
                                 return node.sub_node_pos[a][0] - node.sub_node_pos[b][0];
@@ -1976,6 +1969,7 @@
                                 return node.sub_node_pos[a][1] - node.sub_node_pos[b][1];
                             }
                         });
+
                         for(var k=0; k<node.sub_nodes.length; k++) {
                             var sub_node = node.sub_nodes[k];
                             node.sub_node_order[sub_node] = k;
@@ -1999,7 +1993,7 @@
         this.paper_id = paper_id;
         this.character_info = character_info;
         this.layers = layers;
-    }
+    };
 
     NChart.prototype.draw = function() {
         var graph = parse_layers(this.layers, this.character_info.characters);
