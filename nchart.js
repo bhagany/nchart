@@ -20,7 +20,7 @@
     $(function() {
         /* Modified from Raphael.js, by Dmitry Baranovskiy */
         goog.math.Bezier.prototype.length = function() {
-            var old = { 'x': 0, 'y': 0 },
+            var old = {'x': 0, 'y': 0},
             len = 0;
             for (var i = 0; i < 1.01; i+=.1) {
                 var dot = this.getPoint(i);
