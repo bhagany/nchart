@@ -1,5 +1,5 @@
 window.asoiaf = {};
 
 $(function() {
-    var story_graph = new StoryGraph('paper', asoiaf.character_info, asoiaf.layers).draw();
+    var chart = new NChart('paper', asoiaf.character_info, asoiaf.layers).draw();
 });
