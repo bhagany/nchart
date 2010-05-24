@@ -74,62 +74,6 @@
                 'children': []};
     }
 
-    function add_layer_edges(layers, layer_num1, layer_num2, node1, node2, sub_nodes, segment) {
-        var v_1 = node1;
-        var v_2 = !segment ? node2 : copy_segment(segment, layers[layer_num1 + 1]);
-        var pq_segs = {};
-
-        if(node1.p && !layers[layer_num1].segs[v_2.id]) {
-            layers[layer_num1].segs[v_2.id] = v_2;
-            pq_segs[node1.id] = v_2;
-        }
-        if(layer_num2 - layer_num1 == 1) {
-            v_2 = node2;
-        }
-        for(var i=layer_num1; i<layer_num2; i++) {
-            var layer1 = layers[i];
-            var layer2 = layers[i + 1];
-            v_1.children.push(v_2);
-            v_2.parents.push(v_1);
-
-            is_seg = !!(v_1.nodes || v_2.nodes || v_1.p || v_2.q);
-
-            v_1.edges[v_2.id] = {'source': v_1,
-                                 'target': v_2,
-                                 'is_seg': is_seg,
-                                 'sub_nodes': sub_nodes,
-                                 'weight': sub_nodes.length};
-            v_2.edges[v_1.id] = {'source': v_2,
-                                 'target': v_1,
-                                 'is_seg': is_seg,
-                                 'sub_nodes': sub_nodes,
-                                 'weight': sub_nodes.length};
-
-            if(v_1.nodes && !layer1.segs[v_1.id]) {
-                layer1.segs[v_1.id] = v_1;
-            }
-            if(v_2.nodes && !layer2.segs[v_2.id]) {
-                layer2.segs[v_2.id] = v_2;
-            }
-
-            v_1 = v_2;
-            if(i >= layer_num2 - 2) {
-                if(node2.q) {
-                    var seg = v_2.nodes ? v_2 : copy_segment(segment, layers[layer_num2]);
-                    if(!layers[layer_num2].segs[seg.id]) {
-                        layers[layer_num2].segs[seg.id] = seg;
-                        pq_segs[node2.id] = seg
-                    }
-                }
-                v_2 = node2;
-            } else {
-                v_2 = copy_segment(segment, layers[i + 2]);
-            }
-        }
-
-        return pq_segs;
-    }
-
     function copy_segment_container(container, layer) {
         var new_c = {'segs': []};
         for(var i=0; i<container.segs.length; i++) {
@@ -146,19 +90,109 @@
         }
     }
 
+    function copy_L(L) {
+        var new_L = [];
+        for(var i=0; i<L.length; i++) {
+            var item = L[i];
+            if(item.segs) {
+                new_L.push({'segs': item.segs.slice(0)});
+            } else {
+                new_L.push(item);
+            }
+        }
+        return new_L;
+    }
+
+    function next2power(x) {
+        x--;
+        x |= x >> 1;
+        x |= x >> 2;
+        x |= x >> 4;
+        x |= x >> 8;
+        x |= x >> 16;
+        return x + 1;
+    }
+
+    function add_simple_edges(node1, node2, sub_nodes) {
+        node1.children.push(node2);
+        node2.parents.push(node1);
+
+        var is_seg = !!(node1.nodes || node2.nodes || node1.p || node2.q);
+
+        node1.edges[node2.id] = {'source': node1,
+                                 'target': node2,
+                                 'is_seg': is_seg,
+                                 'sub_nodes': sub_nodes,
+                                 'weight': sub_nodes.length};
+        node2.edges[node1.id] = {'source': node2,
+                                 'target': node1,
+                                 'is_seg': is_seg,
+                                 'sub_nodes': sub_nodes,
+                                 'weight': sub_nodes.length};
+    }
+
+    function add_pq_edges(last_node, p_node, q_node, node, sub_nodes) {
+        add_simple_edges(last_node, p_node, sub_nodes);
+        add_simple_edges(q_node, node, sub_nodes);
+
+        var segment = {'id': p_node.id + '-' + q_node.id,
+                       'nodes': [p_node, q_node],
+                       'sub_nodes': sub_nodes,
+                       'draw': last_node.draw,
+                       'layer': p_node.layer.next,
+                       'edges': {},
+                       'parents': [],
+                       'children': []};
+
+        p_node.layer.segs[segment.id] = p_node.pq_seg = copy_segment(segment, p_node.layer);
+        q_node.layer.segs[segment.id] = q_node.pq_seg = copy_segment(segment, q_node.layer);
+
+        var span = q_node.layer.num - p_node.layer.num;
+        if(span == 1) {
+            add_simple_edges(p_node, q_node, sub_nodes);
+        } else if(span == 2) {
+            add_simple_edges(p_node, segment, sub_nodes);
+            add_simple_edges(segment, q_node, sub_nodes);
+
+            segment.layer.segs[segment.id] = segment;
+        } else {
+            var v_1 = segment;
+            var v_2 = copy_segment(segment, p_node.layer.next.next);
+
+            for(var i=p_node.layer.num + 1; i<q_node.layer.num - 1; i++) {
+                add_simple_edges(v_1, v_2, sub_nodes);
+
+                v_1.layer.segs[v_1.id] = v_1;
+                v_2.layer.segs[v_2.id] = v_2;
+
+                v_1 = v_2;
+                v_2 = copy_segment(segment, v_2.layer.next);
+            }
+
+            add_simple_edges(p_node, segment, sub_nodes);
+            add_simple_edges(v_1, q_node, sub_nodes);
+        }
+    }
+
+    function add_r_edges(last_node, r_node, node, sub_nodes) {
+        add_simple_edges(last_node, r_node, sub_nodes);
+        add_simple_edges(r_node, node, sub_nodes);
+    }
+
     function parse_layers(layers, characters) {
         var edges = {};
         var last_nodes = {};
-        var pq_segs = {};
-        var flat_nodes = {};
-        var p_nodes = [];
-        var q_nodes = [];
-        var r_nodes = [];
         var c_nodes = {};
         for(var i=0; i<layers.length; i++) {
             var layer = layers[i];
             layer.segs = {};
             layer.num = i;
+            if(i) {
+                layer.prev = layers[i - 1];
+            }
+            if(i + 1 < layers.length) {
+                layer.next = layers[i + 1];
+            }
             for(var j=0; j<layer.nodes.length; j++) {
                 var node = layer.nodes[j];
                 node.id = i + '-' + j;
@@ -168,14 +202,13 @@
                 node.layer = layer;
                 node.draw = true;
                 node.edges = {};
-                flat_nodes[node.id] = node;
                 for(var k=0; k<node.sub_nodes.length; k++) {
                     var name = node.sub_nodes[k];
                     var last_node = last_nodes[name];
 
                     goog.object.setIfUndefined(c_nodes, name, []);
 
-                    if(!last_node && i) {
+                    if(i && !last_node) {
                         var all_new = true;
                         for(var l=0; l<node.sub_nodes.length; l++) {
                             if(last_nodes[node.sub_nodes[l]]) {
@@ -218,8 +251,6 @@
                                           'edges': {},
                                           'parents': [],
                                           'children': []};
-                            p_nodes.push(p_node);
-                            q_nodes.push(q_node);
                             p_layer.nodes.push(p_node);
                             q_layer.nodes.push(q_node);
 
@@ -239,18 +270,9 @@
                                     n--;
                                 }
                             }
-                            //Add the segment between p_node and q_node to each of the layers it crosses
-                            var segment = {'id': p_node.id + '-' + q_node.id,
-                                           'nodes': [p_node, q_node],
-                                           'sub_nodes': seg_sub_nodes.slice(0),
-                                           'draw': last_node.draw};
 
-                            add_layer_edges(layers, last_node.layer.num, last_node.layer.num + 1, last_node, p_node, seg_sub_nodes);
-                            var new_pqs = add_layer_edges(layers, last_node.layer.num + 1, i - 1, p_node, q_node, seg_sub_nodes, segment);
-                            goog.object.extend(new_pqs, pq_segs);
-                            pq_segs = new_pqs;
+                            add_pq_edges(last_node, p_node, q_node, node, seg_sub_nodes);
 
-                            last_node = q_node;
                             update_last_nodes(seg_sub_nodes, q_node, last_nodes);
 
                         } else if(span == 2) {
@@ -265,7 +287,6 @@
                                           'edges': {},
                                           'parents': [],
                                           'children': []};
-                            r_nodes.push(r_node);
                             r_layer.nodes.push(r_node);
                             //Add two new edges last_node.layer -> r_layer
                             //for each name in this node
@@ -281,13 +302,12 @@
                                     n--;
                                 }
                             }
-                            add_layer_edges(layers, last_node.layer.num, i - 1, last_node, r_node, seg_sub_nodes);
+                            add_r_edges(last_node, r_node, node, seg_sub_nodes);
                             update_last_nodes(r_node.sub_nodes, r_node, last_nodes);
-                            last_node = r_node;
+                        } else {
+                            //Add one edge normally
+                            add_simple_edges(last_node, node, seg_sub_nodes);
                         }
-
-                        //Add one edge normally
-                        add_layer_edges(layers, last_node.layer.num, i, last_node, node, seg_sub_nodes);
                         update_last_nodes(seg_sub_nodes, node, last_nodes);
                     }
                     c_nodes[name].push(node);
@@ -303,31 +323,7 @@
             char_nodes.push({'character': character, 'nodes': nodes});
         });
 
-        return {'layers': layers, 'pq_segs': pq_segs, 'flat_nodes': flat_nodes, 'q_nodes': q_nodes,
-                'p_nodes': p_nodes, 'r_nodes': r_nodes, 'char_nodes': char_nodes};
-    }
-
-    function copy_L(L) {
-        var new_L = [];
-        for(var i=0; i<L.length; i++) {
-            var item = L[i];
-            if(item.segs) {
-                new_L.push({'segs': item.segs.slice(0)});
-            } else {
-                new_L.push(item);
-            }
-        }
-        return new_L;
-    }
-
-    function next2power(x) {
-        x--;
-        x |= x >> 1;
-        x |= x >> 2;
-        x |= x >> 4;
-        x |= x >> 8;
-        x |= x >> 16;
-        return x + 1;
+        return {'layers': layers, 'char_nodes': char_nodes};
     }
 
     function count_crossings(q, layer_edges, lower_positions, lower_weights) {
@@ -420,7 +416,7 @@
             var item = Li[j];
             if(item[seg_begin]) {
                 // Join segment container Li[j-1], this p_node's segment, and Li[j+1]
-                Li[j-1].segs = Li[j-1].segs.concat(graph.pq_segs[item.id],
+                Li[j-1].segs = Li[j-1].segs.concat(item.pq_seg,
                                                    Li.splice(j+1, 1)[0].segs);
                 // Remove the p-node
                 Li.splice(j, 1);
@@ -1805,57 +1801,6 @@
             paper_jq.unbind('mousemove');
         });
 
-        // for(var i in graph.flat_nodes) {
-        //     var node = graph.flat_nodes[i];
-        //     if(node.draw) {
-        //         var c = svg.circle(g, node.x, node.y, 10, {'fill': 'red'});
-
-        //         (function(node) {
-        //             $(c).click(function() {
-        //                 console.log(node);
-        //             });
-        //         })(node);
-        //     }
-        // }
-
-        // for(var i in graph.p_nodes) {
-        //     var node = graph.p_nodes[i];
-        //     if(node.draw) {
-        //         var c = svg.circle(g, node.x, node.y, 10, {'fill': 'green'});
-
-        //         (function(node) {
-        //             $(c).click(function() {
-        //                 console.log(node);
-        //             });
-        //         })(node);
-        //     }
-        // }
-
-        // for(var i in graph.q_nodes) {
-        //     var node = graph.q_nodes[i];
-        //     if(node.draw) {
-        //         var c = svg.circle(g, node.x, node.y, 10, {'fill': 'blue'});
-
-        //         (function(node) {
-        //             $(c).click(function() {
-        //                 console.log(node);
-        //             });
-        //         })(node);
-        //     }
-        // }
-
-        // for(var i in graph.r_nodes) {
-        //     var node = graph.r_nodes[i];
-        //     if(node.draw) {
-        //         var c = svg.circle(g, node.x, node.y, 10, {'fill': 'yellow'});
-
-        //         (function(node) {
-        //             $(c).click(function() {
-        //                 console.log(node);
-        //             });
-        //         })(node);
-        //     }
-        // }
     }
 
     function post_process(graph) {
@@ -1989,10 +1934,34 @@
         return graph;
     }
 
-    var NChart = function(paper_id, character_info, layers) {
+    var NChart = function(paper_id, character_info, layers, conf) {
         this.paper_id = paper_id;
         this.character_info = character_info;
         this.layers = layers;
+
+        conf = conf || {};
+        this.node_spacing = conf.node_spacing ? conf.node_spacing : 50;
+        this.sub_node_spacing = conf.sub_node_spacing ? conf.sub_node_spacing : 15;
+        this.start_x = conf.start_x ? conf.start_x : 100;
+        this.slope_func = conf.slope_func ? conf.slope_func : function(edge) { return Math.max(1.5, 3.5 - (edge.weight / 7)); };
+        this.group_styles = conf.group_styles ? conf.group_styles : {'default': {'stroke-width': 3}};
+        this.death_style = conf.death_style ? conf.death_style : {'fill': 'black', 'radius': 5};
+        this.undeath_style = conf.undeath_style ? conf.undeath_style : {'fill': 'white',
+                                                                        'stroke': 'black',
+                                                                        'radius': 5};
+        this.bendiness = conf.bendiness ? conf.bendiness : function(old_x, old_y, new_x, new_y) {
+            Math.min(new_x - old_x - 50, Math.floor(.375 * Math.abs(old_y - new_y)));
+        }
+        this.name_style = conf.name_style ? conf.name_style : {'fill': 'black',
+                                                               'font-family': 'fantasy',
+                                                               'font-size': '9',
+                                                               'dy': '-2'};
+        this.name_padding = conf.name_padding ? conf.name_padding : {'left': 20,
+                                                                     'top': 20,
+                                                                     'bottom': 20};
+        this.length_tolerance = conf.length_tolerance ? conf.length_tolerance : .1;
+        this.max_scale = conf.max_scale ? conf.max_scale : 10;
+        this.min_scale = conf.min_scale ? conf.min_scale : .05;
     };
 
     NChart.prototype.draw = function() {
