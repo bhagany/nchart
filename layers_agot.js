@@ -340,10 +340,10 @@
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['daenerys', 'jorah', 'mirri', 'drogon', 'rhaegal', 'viserion']},
+             {'sub_nodes': ['daenerys', 'jorah', 'drogon', 'rhaegal', 'viserion']},
              {'sub_nodes': ['robb', 'grey wind', 'theon', 'cat', 'brynden', 'jaime']},
-             {'sub_nodes': ['ned', 'sansa', 'arya', 'cersei', 'joffrey', 'myrcella',
-                            'tommen', 'sandor', 'barristan', 'ilyn', 'petyr', 'varys', 'pycelle', 'gendry']},
+             {'sub_nodes': ['sansa', 'arya', 'cersei', 'joffrey', 'myrcella', 'tommen', 'sandor',
+                            'barristan', 'ilyn', 'petyr', 'varys', 'pycelle', 'gendry']},
              {'sub_nodes': ['tyrion', 'tywin', 'gregor']},
              {'sub_nodes': ['jon', 'ghost', 'jeor', 'aemon', 'sam']},
              {'sub_nodes': ['illyrio']},
@@ -352,6 +352,7 @@
              {'sub_nodes': ['benjen']},
              {'sub_nodes': ['loras', 'renly']},
              {'sub_nodes': ['bran', 'rickon', 'summer', 'shaggydog']},
+             {'sub_nodes': ['lysa', 'robert_a']},
          ]
         }
     ];
