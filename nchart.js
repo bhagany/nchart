@@ -83,13 +83,6 @@
         return new_c;
     }
 
-    function update_last_nodes(names, node, last_nodes) {
-        for(var i=0; i<names.length; i++) {
-            var name = names[i];
-            last_nodes[name] = node;
-        }
-    }
-
     function copy_L(L) {
         var new_L = [];
         for(var i=0; i<L.length; i++) {
@@ -180,19 +173,23 @@
     }
 
     function parse_layers(layers, characters) {
-        var edges = {};
         var last_nodes = {};
+        function update_last_nodes(node, names) {
+            for(var i=0; i<names.length; i++) {
+                var name = names[i];
+                last_nodes[name] = node;
+            }
+        }
+
         var c_nodes = {};
         for(var i=0; i<layers.length; i++) {
             var layer = layers[i];
             layer.segs = {};
             layer.num = i;
-            if(i) {
-                layer.prev = layers[i - 1];
-            }
-            if(i + 1 < layers.length) {
-                layer.next = layers[i + 1];
-            }
+
+            layer.prev = layers[i - 1];
+            layer.next = layers[i + 1];
+
             for(var j=0; j<layer.nodes.length; j++) {
                 var node = layer.nodes[j];
                 node.id = i + '-' + j;
@@ -221,18 +218,18 @@
                             last_node = copy_node(node, layers[0]);
                             last_node.draw = false;
                             layers[0].nodes.unshift(last_node);
-                            update_last_nodes(node.sub_nodes, last_node, last_nodes);
+                            update_last_nodes(last_node, node.sub_nodes);
                         }
                     }
                     if(i && last_node != node) {
                         var span = i - last_node.layer.num;
-                        var seg_sub_nodes = intersect(node.sub_nodes, last_node.sub_nodes);
+                        var sub_nodes = intersect(node.sub_nodes, last_node.sub_nodes);
                         if(span > 2) {
                             //Add two new vertices at layers last_node.layer.num + 1 and i - 1
                             var p_layer = layers[last_node.layer.num + 1];
                             var q_layer = layers[i - 1];
                             var p_node = {'id': (last_node.layer.num + 1) + '-' + p_layer.nodes.length,
-                                          'sub_nodes': seg_sub_nodes,
+                                          'sub_nodes': sub_nodes,
                                           'duration': 0,
                                           'layer': p_layer,
                                           'p': true,
@@ -242,7 +239,7 @@
                                           'parents': [],
                                           'children': []};
                             var q_node = {'id': (i - 1) + '-' + q_layer.nodes.length,
-                                          'sub_nodes': seg_sub_nodes.slice(0),
+                                          'sub_nodes': sub_nodes,
                                           'duration': 0,
                                           'layer': q_layer,
                                           'q': true,
@@ -256,30 +253,25 @@
 
                             //Add two new edges last_node.layer -> p_layer, p_layer -> q_layer
                             //for each name in this node
-                            for(var n=0; n<seg_sub_nodes.length; n++) {
-                                var seg_name = seg_sub_nodes[n];
+                            for(var n=0; n<sub_nodes.length; n++) {
+                                var seg_name = sub_nodes[n];
                                 if(last_node == last_nodes[seg_name]) {
-                                    goog.object.setIfUndefined(c_nodes, seg_name, []);
                                     if(last_node.draw) {
                                         c_nodes[seg_name].push(p_node);
                                         c_nodes[seg_name].push(q_node);
                                     }
                                 } else {
-                                    seg_sub_nodes.splice(n, 1);
-                                    q_node.sub_nodes.splice(n, 1);
+                                    sub_nodes.splice(n, 1);
                                     n--;
                                 }
                             }
 
-                            add_pq_edges(last_node, p_node, q_node, node, seg_sub_nodes);
-
-                            update_last_nodes(seg_sub_nodes, q_node, last_nodes);
-
+                            add_pq_edges(last_node, p_node, q_node, node, sub_nodes);
                         } else if(span == 2) {
                             //Add one new vertex at layer i - 1
                             var r_layer = layers[i - 1];
                             var r_node = {'id': (i - 1) + '-' + r_layer.nodes.length,
-                                          'sub_nodes': seg_sub_nodes,
+                                          'sub_nodes': sub_nodes,
                                           'duration': 0,
                                           'layer': r_layer,
                                           'r': true,
@@ -290,25 +282,24 @@
                             r_layer.nodes.push(r_node);
                             //Add two new edges last_node.layer -> r_layer
                             //for each name in this node
-                            for(var n=0; n<seg_sub_nodes.length; n++) {
-                                var seg_name = seg_sub_nodes[n];
+                            for(var n=0; n<sub_nodes.length; n++) {
+                                var seg_name = sub_nodes[n];
                                 if(last_node == last_nodes[seg_name]) {
-                                    goog.object.setIfUndefined(c_nodes, seg_name, []);
                                     if(last_node.draw) {
                                         c_nodes[seg_name].push(r_node);
                                     }
                                 } else {
-                                    seg_sub_nodes.splice(n, 1);
+                                    sub_nodes.splice(n, 1);
                                     n--;
                                 }
                             }
-                            add_r_edges(last_node, r_node, node, seg_sub_nodes);
-                            update_last_nodes(r_node.sub_nodes, r_node, last_nodes);
+                            add_r_edges(last_node, r_node, node, sub_nodes);
                         } else {
                             //Add one edge normally
-                            add_simple_edges(last_node, node, seg_sub_nodes);
+                            add_simple_edges(last_node, node, sub_nodes);
                         }
-                        update_last_nodes(seg_sub_nodes, node, last_nodes);
+
+                        update_last_nodes(node, sub_nodes);
                     }
                     c_nodes[name].push(node);
                     last_nodes[name] = node;
@@ -410,36 +401,36 @@
         return cross_count;
     }
 
-    function step1(graph, Li, seg_begin) {
+    function replace_p_nodes(alt_L, p) {
         // Step 1
-        for(var j=0; j<Li.length; j++) {
-            var item = Li[j];
-            if(item[seg_begin]) {
-                // Join segment container Li[j-1], this p_node's segment, and Li[j+1]
-                Li[j-1].segs = Li[j-1].segs.concat(item.pq_seg,
-                                                   Li.splice(j+1, 1)[0].segs);
+        for(var j=0; j<alt_L.length; j++) {
+            var item = alt_L[j];
+            if(item[p]) {
+                // Join segment container alt_L[j-1], this p_node's segment, and alt_L[j+1]
+                alt_L[j-1].segs = alt_L[j-1].segs.concat(item.pq_seg,
+                                                         alt_L.splice(j+1, 1)[0].segs);
                 // Remove the p-node
-                Li.splice(j, 1);
+                alt_L.splice(j, 1);
                 j--;
             }
         }
     }
 
-    function step2(Li, next_layer, seg_end, parents, last_pos) {
+    function make_L(alt_L, next_layer, q, parents, last_pos) {
         // Step 2
         // Assign pos to layer
         var LS = [];
         var pos = 0;
-        for(var j=0; j<Li.length; j+=2) {
-            var segment = copy_segment_container(Li[j], next_layer);
+        for(var j=0; j<alt_L.length; j+=2) {
+            var S = copy_segment_container(alt_L[j], next_layer);
             pos = j ? pos + 1 : 0;
-            segment.measure = segment.pos = pos
-            pos += segment.segs.length;
-            if(segment.segs.length > 0) {
-                LS.push(segment);
+            S.measure = S.pos = pos
+            pos += S.segs.length;
+            if(S.segs.length > 0) {
+                LS.push(S);
             }
-            if(j < Li.length - 1) {
-                var node = Li[j + 1];
+            if(j < alt_L.length - 1) {
+                var node = alt_L[j + 1];
                 node.pos = pos;
             }
         }
@@ -448,7 +439,7 @@
         var LV = [];
         for(var j=0; j<next_layer.nodes.length; j++) {
             var node = next_layer.nodes[j];
-            if(!node[seg_end]) {
+            if(!node[q]) {
                 LV.push(node);
             }
         }
@@ -502,18 +493,6 @@
         goog.array.stableSort(LV, measure_sort);
         goog.array.stableSort(LS, measure_sort);
 
-        return [LS, LV];
-    }
-
-    function measure_sort(a, b) {
-        return a.measure - b.measure;
-    }
-
-    function sub_measure_sort(a, b) {
-        return a.sub_measure - b.sub_measure;
-    }
-
-    function step3(LS, LV) {
         // Step 3
         var L = [];
 
@@ -544,21 +523,29 @@
         return L;
     }
 
-    function step4(L, layer, next_layer, reverse) {
+    function measure_sort(a, b) {
+        return a.measure - b.measure;
+    }
+
+    function sub_measure_sort(a, b) {
+        return a.sub_measure - b.sub_measure;
+    }
+
+    function replace_q_nodes(next_layer, pq_num) {
         // Step 4
-        var pq = reverse ? 0 : 1;
+        var L = next_layer.L;
         for(var j=0; j<L.length; j++) {
             var item = L[j];
             if(item.segs) {
                 // It's actually a segment container
                 var S = item;
                 for(var k=0; k<S.segs.length; k++) {
-                    if(S.segs[k].nodes[pq].layer.num == next_layer.num) {
+                    if(S.segs[k].nodes[pq_num].layer.num == next_layer.num) {
                         // It's a q node
                         var S_segs = S.segs.splice(0, k);
                         var S1 = {'pos': S.pos, 'segs': S_segs};
                         var S2 = S;
-                        var v = S2.segs.splice(0, 1)[0].nodes[pq];
+                        var v = S2.segs.splice(0, 1)[0].nodes[pq_num];
 
                         // S2 is already in L, need to insert v and S1 before it
                         // And remove it if it's empty
@@ -580,7 +567,7 @@
         }
     }
 
-    function step5(L, prev_L, last_pos, children, parents) {
+    function get_crossings(prev_L, L, children, parents, last_pos) {
         // Step 5
         // Need to find edges between L - 1 and L
         var L_map = {};
@@ -690,18 +677,18 @@
         return crossings;
     }
 
-    function step6(L, next_layer) {
+    function make_alt_L(next_layer) {
         // Step 6
-        var alternating_L = copy_L(L);
+        var alt_L = copy_L(next_layer.L);
         var last = 'node';
-        for(var j=0; j<alternating_L.length; j++) {
-            var item = alternating_L[j];
+        for(var j=0; j<alt_L.length; j++) {
+            var item = alt_L[j];
             if(last == 'node' && item.sub_nodes) {
-                alternating_L.splice(j, 0, {'segs': []});
+                alt_L.splice(j, 0, {'segs': []});
                 last = 'segment';
             } else if(last == 'segment' && item.segs) {
-                alternating_L[j - 1].segs = alternating_L[j - 1].segs
-                    .concat(alternating_L.splice(j, 1)[0].segs);
+                alt_L[j - 1].segs = alt_L[j - 1].segs
+                    .concat(alt_L.splice(j, 1)[0].segs);
                 j--;
                 last = 'segment';
             } else {
@@ -709,57 +696,53 @@
             }
         }
         if(last == 'node') {
-            alternating_L.push({'segs': []});
+            alt_L.push({'segs': []});
         }
         next_layer.nodes = [];
         next_layer.segments = [];
-        for(var j=0; j<alternating_L.length; j++) {
+        for(var j=0; j<alt_L.length; j++) {
             if(j % 2) {
-                next_layer.nodes.push(alternating_L[j]);
+                next_layer.nodes.push(alt_L[j]);
             } else {
-                next_layer.segments.push(alternating_L[j]);
+                next_layer.segments.push(alt_L[j]);
             }
         }
 
-        return alternating_L;
+        return alt_L;
     }
 
-    function minimize_crossings(graph, Li, i, compaction, reverse, last_pos) {
+    function minimize_crossings(layer, reverse, last_pos) {
         if(reverse) {
-            var seg_begin = 'q';
-            var seg_end = 'p';
+            var p = 'q';
+            var q = 'p';
             var children = 'parents';
             var parents = 'children';
+            var next_layer = layer.prev;
+            var pq_num = 0;
         } else {
-            var seg_begin = 'p';
-            var seg_end = 'q';
+            var p = 'p';
+            var q = 'q';
             var children = 'children';
             var parents = 'parents';
-        }            
+            var next_layer = layer.next;
+            var pq_num = 1;
+        }
 
-        var layers = graph.layers;
-        var layer = layers[i];
-        var next_layer = layers[i + 1];
-        var prev_L = compaction[i];
-
-        step1(graph, Li, seg_begin);
-        var ls = step2(Li, next_layer, seg_end, parents, last_pos);
-        var LS = ls[0];
-        var LV = ls[1];
-        var L = step3(LS, LV);
-        step4(L, layer, next_layer, reverse);
-        var crossings = step5(L, prev_L, last_pos, children, parents);
-        var alternating_L = step6(L, next_layer);
-        return [crossings, compaction.concat([L]), alternating_L];
+        replace_p_nodes(layer.alt_L, p);
+        next_layer.L = make_L(layer.alt_L, next_layer, q, parents, last_pos);
+        replace_q_nodes(next_layer, pq_num);
+        var crossings = get_crossings(layer.L, next_layer.L, children, parents, last_pos);
+        next_layer.alt_L = make_alt_L(next_layer);
+        return [crossings, next_layer];
     }
 
-    function align_vertically(graph, up_down, left_right) {
-        var align_to = up_down ? 'children' : 'parents';
-        var pos = left_right ? 'r_pos' : 'pos';
+    function align_horizontally(graph, left_right, up_down) {
+        var align_to = left_right ? 'children' : 'parents';
+        var pos = up_down ? 'r_pos' : 'pos';
         for(var i=0; i<graph.e_compaction.length; i++) {
             var layer = graph.layers[i];
             var L = graph.e_compaction[i];
-            if(left_right) {
+            if(up_down) {
                 L.reverse();
             }
             var r = -1;
@@ -767,7 +750,7 @@
                 var v = L[j];
                 var aligners = v[align_to];
                 if(aligners.length) {
-                    if(left_right) {
+                    if(up_down) {
                         aligners.reverse();
                     }
                     var parent_arr = [];
@@ -791,22 +774,22 @@
                             }
                         }
                     }
-                    if(left_right) {
+                    if(up_down) {
                         aligners.reverse();
                     }
                 }
             }
-            if(left_right) {
+            if(up_down) {
                 L.reverse();
             }
         }
     }
 
-    function place_block(v, delta, up_down, left_right) {
+    function place_block(v, delta, left_right, up_down) {
         if(v.y == null) {
-            var seg_start = up_down ? 'q' : 'p';
+            var seg_start = left_right ? 'q' : 'p';
             var pos, pred, shift_func, set_func;
-            if(left_right) {
+            if(up_down) {
                 pos = 'r_pos';
                 pred = 'succ';
                 shift_func = Math.max;
@@ -822,11 +805,11 @@
             do {
                 if(w[pos] > 0) {
                     var u = w[pred].root;
-                    place_block(u, delta, up_down, left_right);
+                    place_block(u, delta, left_right, up_down);
                     if(v.sink == v) {
                         v.sink = u.sink;
                     }
-                    if(!left_right && v[seg_start]) {
+                    if(!up_down && v[seg_start]) {
                         var u_align = u;
                         var u_size = 0;
                         var i = 0;
@@ -840,7 +823,7 @@
                     } else {
                         u_size = w[pred].size;
                     }
-                    var node_delta = left_right ? 15 * -w.size - delta : 15 * u_size + delta; //*** 15 spacing
+                    var node_delta = up_down ? 15 * -w.size - delta : 15 * u_size + delta; //*** 15 spacing
                     if(v.sink != u.sink) {
                         u.sink.shift = shift_func(u.sink.shift, v.y - u.y - node_delta);
                     } else {
@@ -852,13 +835,13 @@
         }
     }
 
-    function compact_horizontally(graph, delta, up_down, left_right) {
+    function compact_vertically(graph, delta, left_right, up_down) {
         for(var i=0; i<graph.e_compaction.length; i++) {
             var L = graph.e_compaction[i];
             for(var j=0; j<L.length; j++) {
                 var v = L[j];
                 if(v.root == v) {
-                    place_block(v, delta, up_down, left_right);
+                    place_block(v, delta, left_right, up_down);
                 }
             }
         }
@@ -867,21 +850,21 @@
         var max_coord = -Infinity;
         for(var i=0; i<graph.e_compaction.length; i++) {
             var L = graph.e_compaction[i];
-            if(left_right) {
+            if(up_down) {
                 L.reverse();
             }
             var L_y = [];
             for(var j=0; j<L.length; j++) {
                 var v = L[j];
                 v.y = v.root.y;
-                if((!left_right && v.sink.shift < Infinity) || (left_right && v.sink.shift > -Infinity)) {
+                if((!up_down && v.sink.shift < Infinity) || (up_down && v.sink.shift > -Infinity)) {
                     v.y = v.y + v.sink.shift;
                 }
                 L_y.push(v.y);
                 min_coord = Math.min(min_coord, v.y);
                 max_coord = Math.max(max_coord, v.y);
             }
-            if(left_right) {
+            if(up_down) {
                 L.reverse();
                 L_y.reverse();
             }
@@ -896,14 +879,15 @@
         var a = 0;
         var best = {'crossings': Infinity, 'compaction': []};
         goog.object.extend(best, graph);
-        var layer = graph.layers[0];
+
         var reverse = false;
-        var Li = [{'segs': []}];
+        var layer = graph.layers[0];
+        layer.alt_L = [{'segs': []}];
         var last_pos = {};
         for(var i=0; i<layer.nodes.length; i++) {
             var v = layer.nodes[i];
-            Li.push(v);
-            Li.push({'segs': []});
+            layer.alt_L.push(v);
+            layer.alt_L.push({'segs': []});
             for(var j=0; j<v.sub_nodes.length; j++) {
                 last_pos[v.sub_nodes[j]] = [i,j];
             }
@@ -912,11 +896,12 @@
             var old_total_crossings = total_crossings;
             total_crossings = 0;
             var compaction = [layer.nodes.slice(0)];
+            layer.L = compaction[0];
             for(var i=0; i<graph.layers.length - 1; i++) {
-                var results = minimize_crossings(graph, Li, i, compaction, reverse, last_pos);
+                var results = minimize_crossings(layer, reverse, last_pos);
                 total_crossings += results[0];
-                compaction = results[1];
-                Li = results[2];
+                layer = results[1];
+                compaction = compaction.concat([layer.L]);
             }
             console.log(a, total_crossings);
             var difference = Math.abs(total_crossings - old_total_crossings);
@@ -1083,18 +1068,18 @@
         var l_alignments = [];
         var r_alignments = [];
         var alignments = [];
-        for(var i in ['up', 'down']) {
+        for(var i in ['left', 'right']) {
             i = parseInt(i);
             if(i) {
                 graph.compaction.reverse();
                 graph.e_compaction.reverse();
                 graph.layers.reverse();
             }
-            for(var j in ['left', 'right']) {
+            for(var j in ['up', 'down']) {
                 j = parseInt(j);
                 initialize_nodes(graph, j);
-                align_vertically(graph, i, j);
-                var alignment = compact_horizontally(graph, delta, i, j);
+                align_horizontally(graph, i, j);
+                var alignment = compact_vertically(graph, delta, i, j);
                 if(i) {
                     alignment.y_coords.reverse();
                 }
@@ -1215,7 +1200,7 @@
     }
 
 
-    function initialize_nodes(graph, left_right) {
+    function initialize_nodes(graph, up_down) {
         for(var i=0; i<graph.e_compaction.length; i++) {
             var L = graph.e_compaction[i];
             for(var j=0; j<L.length; j++) {
@@ -1223,7 +1208,7 @@
                 v.root = v;
                 v.align = v;
                 v.sink = v;
-                v.shift = left_right ? -Infinity : Infinity;
+                v.shift = up_down ? -Infinity : Infinity;
                 v.size = v.sub_nodes.length;
                 v.y = null;
             }
@@ -1371,7 +1356,6 @@
             var last_horiz = false;
             for(var j=0; j<c_nodes.nodes.length; j++) {
                 var node = c_nodes.nodes[j];
-                if(node.r) continue;
                 var edge_y = node.y + (node.sub_node_order[short_name] * 15); //*** 15 size here
                 var end_x = node.x + node.duration;
                 var this_seg = [];
