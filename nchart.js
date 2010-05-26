@@ -1544,8 +1544,7 @@
 
         function point_and_length_at_x(seg, x, tol) {
             var mid_x = (seg.x_range[0] + seg.x_range[1]) / 2;
-            var mid_len = (seg.len_range[0] + seg.len_range[1]) / 2;
-            var left, right;
+            var mid_len, left, right;
 
             // Since we know the curve is symmetrical, we can do one iteration
             // without going through the expensive math.
@@ -1556,7 +1555,8 @@
                 left = .5;
                 right = 1;
             } else {
-                return mid_len;
+                return {'point': {'x': mid_x, 'y': (seg.y_range[0] + seg.y_range[1]) / 2},
+                        'length': (seg.len_range[0] + seg.len_range[1]) / 2};
             }
             
             while(true) {
@@ -1575,8 +1575,7 @@
 
         function point_and_length_at_y(seg, y, tol) {
             var mid_y = (seg.y_range[0] + seg.y_range[1]) / 2;
-            var mid_len = (seg.len_range[0] + seg.len_range[1]) / 2;
-            var left, right;
+            var mid_len, left, right;
 
             // Since we know the curve is symmetrical, we can do one iteration
             // without going through the expensive math.
@@ -1587,7 +1586,8 @@
                 left = .5;
                 right = 1;
             } else {
-                return mid_len;
+                return {'point': {'x': (seg.x_range[0] + seg.x_range[1]) / 2, 'y': mid_y},
+                        'length': (seg.len_range[0] + seg.len_range[1]) / 2};
             }
             
             while(true) {
@@ -1606,8 +1606,7 @@
 
         function point_and_length_at_y_neg(seg, y, tol) {
             var mid_y = (seg.y_range[0] + seg.y_range[1]) / 2;
-            var mid_len = (seg.len_range[0] + seg.len_range[1]) / 2;
-            var left, right;
+            var mid_len, left, right;
 
             // Since we know the curve is symmetrical, we can do one iteration
             // without going through the expensive math.
@@ -1618,7 +1617,8 @@
                 left = .5;
                 right = 1;
             } else {
-                return mid_len;
+                return {'point': {'x': (seg.x_range[0] + seg.x_range[1]) / 2, 'y': mid_y},
+                        'length': (seg.len_range[0] + seg.len_range[1]) / 2};
             }
             
             while(true) {
