@@ -731,147 +731,54 @@
         replace_p_nodes(layer.alt_L, p);
         next_layer.L = make_L(layer.alt_L, next_layer, q, parents, last_pos);
         replace_q_nodes(next_layer, pq_num);
-        var crossings = get_crossings(layer.L, next_layer.L, children, parents, last_pos);
         next_layer.alt_L = make_alt_L(next_layer);
+        var crossings = get_crossings(layer.L, next_layer.L, children, parents, last_pos);
         return [crossings, next_layer];
     }
 
-    function align_horizontally(graph, left_right, up_down) {
-        var align_to = left_right ? 'children' : 'parents';
-        var pos = up_down ? 'r_pos' : 'pos';
-        for(var i=0; i<graph.e_compaction.length; i++) {
-            var layer = graph.layers[i];
-            var L = graph.e_compaction[i];
-            if(up_down) {
-                L.reverse();
-            }
-            var r = -1;
-            for(var j=0; j<L.length; j++) {
-                var v = L[j];
-                var aligners = v[align_to];
-                if(aligners.length) {
-                    if(up_down) {
-                        aligners.reverse();
-                    }
-                    var parent_arr = [];
-                    for(var k=0; k<aligners.length; k++) {
-                        var aligner = aligners[k];
-                        var edge = v.edges[aligner.id];
-                        for(var l=0; l<edge.weight; l++) {
-                            parent_arr.push(aligner);
-                        }
-                    }
-                    var proto_median = ((parent_arr.length + 1) / 2) - 1;
-                    for(var m=Math.floor(proto_median); m<=Math.ceil(proto_median); m++) {
-                        if(v.align == v) {
-                            var n = parent_arr[m];
-                            var edge = v.edges[n.id];
-                            if((!edge || !edge.marked) && r < n[pos]) {
-                                n.align = v;
-                                v.root = n.root;
-                                v.align = v.root;
-                                r = n[pos];
-                            }
-                        }
-                    }
-                    if(up_down) {
-                        aligners.reverse();
-                    }
-                }
-            }
-            if(up_down) {
-                L.reverse();
-            }
-        }
-    }
+    function neighborify(graph) {
+        var l_orders = [];
+        var childrens = [];
+        var order;
 
-    function place_block(v, delta, left_right, up_down) {
-        if(v.y == null) {
-            var seg_start = left_right ? 'q' : 'p';
-            var pos, pred, shift_func, set_func;
-            if(up_down) {
-                pos = 'r_pos';
-                pred = 'succ';
-                shift_func = Math.max;
-                set_func = Math.min;
-            } else {
-                pos = 'pos';
-                pred = 'pred';
-                shift_func = Math.min;
-                set_func = Math.max;
-            }
-            v.y = 0;
-            var w = v;
-            do {
-                if(w[pos] > 0) {
-                    var u = w[pred].root;
-                    place_block(u, delta, left_right, up_down);
-                    if(v.sink == v) {
-                        v.sink = u.sink;
-                    }
-                    if(!up_down && v[seg_start]) {
-                        var u_align = u;
-                        var u_size = 0;
-                        var i = 0;
-                        do {
-                            if(u_align.layer.num >= v.layer.num) {
-                                u_size = Math.max(u_size, u_align.size);
-                                i++;
-                            }
-                            u_align = u_align.align;
-                        } while(i < v.span && u_align != u);
-                    } else {
-                        u_size = w[pred].size;
-                    }
-                    var node_delta = up_down ? 15 * -w.size - delta : 15 * u_size + delta; //*** 15 spacing
-                    if(v.sink != u.sink) {
-                        u.sink.shift = shift_func(u.sink.shift, v.y - u.y - node_delta);
-                    } else {
-                        v.y = set_func(v.y, u.y + node_delta);
-                    }
-                }
-                w = w.align;
-            } while(w != v);
+        function node_sort(a, b) {
+            return order[a.id] - order[b.id];
         }
-    }
 
-    function compact_vertically(graph, delta, left_right, up_down) {
         for(var i=0; i<graph.e_compaction.length; i++) {
             var L = graph.e_compaction[i];
+            
+            var l_order = {};
+            var last_childrens = childrens;
+            childrens = [];
             for(var j=0; j<L.length; j++) {
                 var v = L[j];
-                if(v.root == v) {
-                    place_block(v, delta, left_right, up_down);
+                l_order[v.id] = j;
+
+                order = l_orders[i - 1];
+                goog.array.stableSort(v.parents, node_sort);
+                childrens.push(v.children);
+
+                if(j > 0) {
+                    v.pred = L[j - 1];
                 }
-            }
-        }
-        var y_coords = [];
-        var min_coord = Infinity;
-        var max_coord = -Infinity;
-        for(var i=0; i<graph.e_compaction.length; i++) {
-            var L = graph.e_compaction[i];
-            if(up_down) {
-                L.reverse();
-            }
-            var L_y = [];
-            for(var j=0; j<L.length; j++) {
-                var v = L[j];
-                v.y = v.root.y;
-                if((!up_down && v.sink.shift < Infinity) || (up_down && v.sink.shift > -Infinity)) {
-                    v.y = v.y + v.sink.shift;
+                if(j < L.length - 1) {
+                    v.succ = L[j + 1];
                 }
-                L_y.push(v.y);
-                min_coord = Math.min(min_coord, v.y);
-                max_coord = Math.max(max_coord, v.y);
+                l_order[v.id] = j;
+
+                // Reset the pos, because the current configuration probably won't be the same as the last
+                // time through the crossing reduction
+                v.pos = j;
+                v.r_pos = L.length - j - 1;
             }
-            if(up_down) {
-                L.reverse();
-                L_y.reverse();
+
+            for(var j=0; j<last_childrens.length; j++) {
+                order = l_order;
+                goog.array.stableSort(last_childrens[j], node_sort);
             }
-            y_coords.push(L_y);
+            l_orders.push(l_order);
         }
-        var width = max_coord - min_coord;
-        return {'y_coords': y_coords, 'width': width, 'max_coord': max_coord, 'min_coord': min_coord};
     }
 
     function order(graph) {
@@ -973,113 +880,168 @@
             best.e_compaction.push(L);
         }
 
-        // var last_pos = {};
-        // for(var i=0; i<best.e_compaction.length; i++) {
-        //     var L = best.e_compaction[i];
-        //     // Reset the best sub node order
-        //     for(var j=0; j<L.length; j++) {
-        //         var node = L[j];
-        //         if(node.draw) {
-        //             if(node.nodes) {
-        //                 for(var k=0; k<node.sub_nodes.length; k++) {
-        //                     var sub_node = node.sub_nodes[k];
-        //                     last_pos[sub_node][0] = j;
-        //                 }
-        //             } else {
-        //                 node.sub_node_order = {};
-        //                 for(var k=0; k<node.sub_nodes.length; k++) {
-        //                     var sub_node = node.sub_nodes[k];
-        //                     node.sub_node_pos[sub_node] = last_pos[sub_node] ? last_pos[sub_node] : [j,k];
-        //                 }
-        //                 node.sub_nodes.sort(function(a, b) {
-        //                     if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
-        //                         return node.sub_node_pos[a][0] - node.sub_node_pos[b][0];
-        //                     } else {
-        //                         return node.sub_node_pos[a][1] - node.sub_node_pos[b][1];
-        //                     }
-        //                 });
-        //                 for(var k=0; k<node.sub_nodes.length; k++) {
-        //                     var sub_node = node.sub_nodes[k];
-        //                     node.sub_node_order[sub_node] = k;
-        //                     last_pos[sub_node] = [j,k];
-        //                 }
-                        
-        //                 // Reset markedness
-        //                 for(var target_id in node.edges) {
-        //                     var edge = node.edges[target_id];
-        //                     edge.marked = best.marked[node.id][target_id];
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-
         best.layers = graph.layers;
         neighborify(best);
         return best;
     }
 
-    function neighborify(graph) {
-        var l_orders = [];
-        var childrens = [];
-        var order;
+    function Drawer(graph) {
+        this.graph = graph;
+    }
 
-        function node_sort(a, b) {
-            return order[a.id] - order[b.id];
-        }
-
-        for(var i=0; i<graph.e_compaction.length; i++) {
-            var L = graph.e_compaction[i];
-            
-            var l_order = {};
-            var last_childrens = childrens;
-            childrens = [];
+    Drawer.prototype.align_horizontally = function(left_right, up_down) {
+        var align_to = left_right ? 'children' : 'parents';
+        var pos = up_down ? 'r_pos' : 'pos';
+        for(var i=0; i<this.graph.e_compaction.length; i++) {
+            var L = this.graph.e_compaction[i];
+            if(up_down) {
+                L.reverse();
+            }
+            var r = -1;
             for(var j=0; j<L.length; j++) {
                 var v = L[j];
-                l_order[v.id] = j;
-
-                order = l_orders[i - 1];
-                goog.array.stableSort(v.parents, node_sort);
-                childrens.push(v.children);
-
-                if(j > 0) {
-                    v.pred = L[j - 1];
+                var aligners = v[align_to];
+                if(aligners.length) {
+                    if(up_down) {
+                        aligners.reverse();
+                    }
+                    var parent_arr = [];
+                    for(var k=0; k<aligners.length; k++) {
+                        var aligner = aligners[k];
+                        var edge = v.edges[aligner.id];
+                        for(var l=0; l<edge.weight; l++) {
+                            parent_arr.push(aligner);
+                        }
+                    }
+                    var proto_median = ((parent_arr.length + 1) / 2) - 1;
+                    for(var m=Math.floor(proto_median); m<=Math.ceil(proto_median); m++) {
+                        if(v.align == v) {
+                            var n = parent_arr[m];
+                            var edge = v.edges[n.id];
+                            if((!edge || !edge.marked) && r < n[pos]) {
+                                n.align = v;
+                                v.root = n.root;
+                                v.align = v.root;
+                                r = n[pos];
+                            }
+                        }
+                    }
+                    if(up_down) {
+                        aligners.reverse();
+                    }
                 }
-                if(j < L.length - 1) {
-                    v.succ = L[j + 1];
-                }
-                l_order[v.id] = j;
-
-                // Reset the pos, because the current configuration probably won't be the same as the last time through
-                // the crossing reduction
-                v.pos = j;
-                v.r_pos = L.length - j - 1;
             }
-
-            for(var j=0; j<last_childrens.length; j++) {
-                order = l_order;
-                goog.array.stableSort(last_childrens[j], node_sort);
+            if(up_down) {
+                L.reverse();
             }
-            l_orders.push(l_order);
         }
     }
 
-    function place_nodes(graph, delta) {
+    Drawer.prototype.place_block = function(v, delta, left_right, up_down) {
+        if(v.y == null) {
+            var seg_start = left_right ? 'q' : 'p';
+            var pos, pred, shift_func, set_func;
+            if(up_down) {
+                pos = 'r_pos';
+                pred = 'succ';
+                shift_func = Math.max;
+                set_func = Math.min;
+            } else {
+                pos = 'pos';
+                pred = 'pred';
+                shift_func = Math.min;
+                set_func = Math.max;
+            }
+            v.y = 0;
+            var w = v;
+            do {
+                if(w[pos] > 0) {
+                    var u = w[pred].root;
+                    this.place_block(u, delta, left_right, up_down);
+                    if(v.sink == v) {
+                        v.sink = u.sink;
+                    }
+                    if(!up_down && v[seg_start]) {
+                        var u_align = u;
+                        var u_size = 0;
+                        var i = 0;
+                        do {
+                            if(u_align.layer.num >= v.layer.num) {
+                                u_size = Math.max(u_size, u_align.size);
+                                i++;
+                            }
+                            u_align = u_align.align;
+                        } while(i < v.span && u_align != u);
+                    } else {
+                        u_size = w[pred].size;
+                    }
+                    var node_delta = up_down ? 15 * -w.size - delta : 15 * u_size + delta; //*** 15 spacing
+                    if(v.sink != u.sink) {
+                        u.sink.shift = shift_func(u.sink.shift, v.y - u.y - node_delta);
+                    } else {
+                        v.y = set_func(v.y, u.y + node_delta);
+                    }
+                }
+                w = w.align;
+            } while(w != v);
+        }
+    }
+
+    Drawer.prototype.compact_vertically = function(delta, left_right, up_down) {
+        for(var i=0; i<this.graph.e_compaction.length; i++) {
+            var L = this.graph.e_compaction[i];
+            for(var j=0; j<L.length; j++) {
+                var v = L[j];
+                if(v.root == v) {
+                    this.place_block(v, delta, left_right, up_down);
+                }
+            }
+        }
+        var y_coords = [];
+        var min_coord = Infinity;
+        var max_coord = -Infinity;
+        for(var i=0; i<this.graph.e_compaction.length; i++) {
+            var L = this.graph.e_compaction[i];
+            if(up_down) {
+                L.reverse();
+            }
+            var L_y = [];
+            for(var j=0; j<L.length; j++) {
+                var v = L[j];
+                v.y = v.root.y;
+                if((!up_down && v.sink.shift < Infinity) || (up_down && v.sink.shift > -Infinity)) {
+                    v.y = v.y + v.sink.shift;
+                }
+                L_y.push(v.y);
+                min_coord = Math.min(min_coord, v.y);
+                max_coord = Math.max(max_coord, v.y);
+            }
+            if(up_down) {
+                L.reverse();
+                L_y.reverse();
+            }
+            y_coords.push(L_y);
+        }
+        var width = max_coord - min_coord;
+        return {'y_coords': y_coords, 'width': width, 'max_coord': max_coord, 'min_coord': min_coord};
+    }
+
+    Drawer.prototype.place_nodes = function(delta) {
         var l_alignments = [];
         var r_alignments = [];
         var alignments = [];
         for(var i in ['left', 'right']) {
             i = parseInt(i);
             if(i) {
-                graph.compaction.reverse();
-                graph.e_compaction.reverse();
-                graph.layers.reverse();
+                this.graph.compaction.reverse();
+                this.graph.e_compaction.reverse();
+                this.graph.layers.reverse();
             }
             for(var j in ['up', 'down']) {
                 j = parseInt(j);
-                initialize_nodes(graph, j);
-                align_horizontally(graph, i, j);
-                var alignment = compact_vertically(graph, delta, i, j);
+                this.initialize_nodes(j);
+                this.align_horizontally(i, j);
+                var alignment = this.compact_vertically(delta, i, j);
                 if(i) {
                     alignment.y_coords.reverse();
                 }
@@ -1091,9 +1053,9 @@
                 }
             }
             if(i) {
-                graph.compaction.reverse();
-                graph.e_compaction.reverse();
-                graph.layers.reverse();
+                this.graph.compaction.reverse();
+                this.graph.e_compaction.reverse();
+                this.graph.layers.reverse();
             }
         }
         // Choose narrowest alignment
@@ -1126,8 +1088,8 @@
         // Set y coordinates
         var min_y = Infinity;
         var max_y = -Infinity;
-        for(var i=0; i<graph.e_compaction.length; i++) {
-            var L = graph.e_compaction[i];
+        for(var i=0; i<this.graph.e_compaction.length; i++) {
+            var L = this.graph.e_compaction[i];
             for(var j=0; j<L.length; j++) {
                 var v = L[j];
                 var v_coords = [alignments[0].y_coords[i][j],
@@ -1149,17 +1111,17 @@
         if(min_y != 20) {
             var shift = -min_y + 20;
             max_y += shift;
-            for(var i=0; i<graph.e_compaction.length; i++) {
-                var L = graph.e_compaction[i];
+            for(var i=0; i<this.graph.e_compaction.length; i++) {
+                var L = this.graph.e_compaction[i];
                 for(var j=0; j<L.length; j++) {
                     L[j].y += shift;
                 }
             }
         }
-        graph.max_y = max_y;
+        this.graph.max_y = max_y;
 
-        for(var i=0; i<graph.char_nodes.length; i++) {
-            var c_nodes = graph.char_nodes[i];
+        for(var i=0; i<this.graph.char_nodes.length; i++) {
+            var c_nodes = this.graph.char_nodes[i];
             var posen = 0;
             for(var j=0; j<c_nodes.nodes.length; j++) {
                 posen += c_nodes.nodes[j].pos;
@@ -1167,14 +1129,14 @@
             c_nodes.avg_pos = posen / j;
         }
 
-        place_x(graph);
-        graph.max_x = graph.e_compaction[graph.e_compaction.length - 1][0].x
+        this.place_x();
+        this.graph.max_x = this.graph.e_compaction[this.graph.e_compaction.length - 1][0].x
     }
 
-    function place_x(graph) {
+    Drawer.prototype.place_x = function() {
         var last_x = 100; //*** start x
-        for(var i=0; i<graph.e_compaction.length; i++) {
-            var L = graph.e_compaction[i];
+        for(var i=0; i<this.graph.e_compaction.length; i++) {
+            var L = this.graph.e_compaction[i];
             var max_y_diff = 0;
             var use_slope = Infinity;
             for(var j=0; j<L.length; j++) {
@@ -1200,9 +1162,9 @@
     }
 
 
-    function initialize_nodes(graph, up_down) {
-        for(var i=0; i<graph.e_compaction.length; i++) {
-            var L = graph.e_compaction[i];
+    Drawer.prototype.initialize_nodes = function(up_down) {
+        for(var i=0; i<this.graph.e_compaction.length; i++) {
+            var L = this.graph.e_compaction[i];
             for(var j=0; j<L.length; j++) {
                 var v = L[j];
                 v.root = v;
@@ -1335,14 +1297,14 @@
         });
     }
 
-    function draw_curvy(graph, svg, original_scale, x_offset, y_offset) {
+    Drawer.prototype.draw_curvy = function(svg, original_scale, x_offset, y_offset) {
         var g = svg.group('graph');
         var pov = svg.group(g, 'pov', {'stroke-width': 3}); //***
         var non_pov = svg.group(g, 'non_pov', {'stroke-width': 1}); //***
         var death_icon_settings = {'fill': 'black'}; //***
         var undeath_icon_settings = {'stroke': 'black', 'fill': 'white'}; //***
-        for(var i=0; i<graph.char_nodes.length; i++) {
-            var c_nodes = graph.char_nodes[i];
+        for(var i=0; i<this.graph.char_nodes.length; i++) {
+            var c_nodes = this.graph.char_nodes[i];
             var dead_arr = [];
             var short_name = c_nodes.character.short_name;
             var last = {'x': c_nodes.nodes[0].x, 'y': c_nodes.nodes[0].y + c_nodes.nodes[0].sub_node_order[short_name] * 15}; //*** 15 spacing
@@ -1506,26 +1468,27 @@
         svg.change(g, {'transform': 'translate(' + x_offset + ',' + y_offset + '), scale(' + original_scale + ')'});
     }
 
-    function draw_graph(paper_id, graph) {
+    Drawer.prototype.draw_graph = function(paper_id) {
         var paper_jq = $('#' + paper_id);
         paper_jq.children().remove();
         var body = $('body');
         var p_width = paper_jq.width();
         var p_height = paper_jq.height();
-        var w_scale = p_width / graph.max_x;
-        var h_scale = p_height / graph.max_y;
+        var w_scale = p_width / this.graph.max_x;
+        var h_scale = p_height / this.graph.max_y;
         if(w_scale < h_scale) {
             var original_scale = w_scale;
             var x_offset = 0;
-            var y_offset = (p_height / 2) - (w_scale * graph.max_y / 2);
+            var y_offset = (p_height / 2) - (w_scale * this.graph.max_y / 2);
         } else {
             var original_scale = h_scale;
-            var x_offset = (p_width / 2) - (h_scale * graph.max_x / 2);
+            var x_offset = (p_width / 2) - (h_scale * this.graph.max_x / 2);
             var y_offset = 0;
         }
         var scale = original_scale;
+        var self = this;
         paper_jq.svg({
-            'onLoad': function(svg) { draw_curvy(graph, svg, original_scale, x_offset, y_offset); },
+            'onLoad': function(svg) { self.draw_curvy(svg, original_scale, x_offset, y_offset); },
             'settings': {'width': p_width,
                          'height': p_height - 15}
             }
@@ -1787,12 +1750,12 @@
 
     }
 
-    function post_process(graph) {
+    Drawer.prototype.post_process = function() {
         var grouped_already = [];
         var current_groups = [];
         var group_hash = {};
-        for(var i=0; i<graph.e_compaction.length; i++) {
-            var L = graph.e_compaction[i];
+        for(var i=0; i<this.graph.e_compaction.length; i++) {
+            var L = this.graph.e_compaction[i];
             for(var j=0; j<L.length; j++) {
                 var node = L[j];
 
@@ -1837,8 +1800,8 @@
         }
 
         var last_pos = {};
-        for(var i=0; i<graph.e_compaction.length; i++) {
-            var L = graph.e_compaction[i];
+        for(var i=0; i<this.graph.e_compaction.length; i++) {
+            var L = this.graph.e_compaction[i];
             // Reset the graph sub node order
             for(var j=0; j<L.length; j++) {
                 var node = L[j];
@@ -1908,14 +1871,12 @@
                         // Reset markedness
                         for(var target_id in node.edges) {
                             var edge = node.edges[target_id];
-                            edge.marked = graph.marked[node.id][target_id];
+                            edge.marked = this.graph.marked[node.id][target_id];
                         }
                     }
                 }
             }
         }
-
-        return graph;
     }
 
     var NChart = function(paper_id, characters, layers, conf) {
@@ -1951,9 +1912,11 @@
     NChart.prototype.draw = function() {
         var graph = parse_layers(this.layers, this.characters);
         var ordered_graph = order(graph);
-        post_process(ordered_graph);
-        place_nodes(ordered_graph, 50);
-        draw_graph('paper', ordered_graph);
+        this.drawer = new Drawer(ordered_graph);
+
+        this.drawer.post_process(ordered_graph);
+        this.drawer.place_nodes(50);
+        this.drawer.draw_graph('paper');
 
         return this;
     };
