@@ -1292,7 +1292,7 @@
             var p = svg.path(char_group,
                              edge_arr.join(''),
                              {'id': short_name,
-                              'stroke': group_colors[c_nodes.character.group],
+                              'stroke': c_nodes.character.color,
                               'stroke-width': 'inherit',
                               'stroke-linecap': 'round',
                               'stroke-linejoin': 'round',
@@ -1301,7 +1301,7 @@
                 svg.path(char_group,
                          dead_arr.join(''),
                          {'id': short_name + '_dead',
-                          'stroke': group_colors[c_nodes.character.group],
+                          'stroke': c_nodes.character.color,
                           'stroke-width': 'inherit',
                           'stroke-linecap': 'round',
                           'stroke-linejoin': 'round',
@@ -1335,7 +1335,7 @@
         });
     }
 
-    function draw_curvy(graph, group_colors, svg, original_scale, x_offset, y_offset) {
+    function draw_curvy(graph, svg, original_scale, x_offset, y_offset) {
         var g = svg.group('graph');
         var pov = svg.group(g, 'pov', {'stroke-width': 3}); //***
         var non_pov = svg.group(g, 'non_pov', {'stroke-width': 1}); //***
@@ -1431,7 +1431,7 @@
                              start,
                              {'id': short_name,
                               'class': 'character',
-                              'stroke': group_colors[c_nodes.character.group],
+                              'stroke': c_nodes.character.color,
                               'stroke-width': 'inherit',
                               'stroke-linecap': 'round',
                               'stroke-linejoin': 'round',
@@ -1470,7 +1470,7 @@
                 svg.path(char_group,
                          dead_arr.join(' '),
                          {'id': short_name + '_dead',
-                          'stroke': group_colors[c_nodes.character.group],
+                          'stroke': c_nodes.character.color,
                           'stroke-width': 'inherit',
                           'stroke-linecap': 'round',
                           'stroke-linejoin': 'round',
@@ -1506,7 +1506,7 @@
         svg.change(g, {'transform': 'translate(' + x_offset + ',' + y_offset + '), scale(' + original_scale + ')'});
     }
 
-    function draw_graph(paper_id, graph, group_colors) {
+    function draw_graph(paper_id, graph) {
         var paper_jq = $('#' + paper_id);
         paper_jq.children().remove();
         var body = $('body');
@@ -1525,7 +1525,7 @@
         }
         var scale = original_scale;
         paper_jq.svg({
-            'onLoad': function(svg) { draw_curvy(graph, group_colors, svg, original_scale, x_offset, y_offset); },
+            'onLoad': function(svg) { draw_curvy(graph, svg, original_scale, x_offset, y_offset); },
             'settings': {'width': p_width,
                          'height': p_height - 15}
             }
@@ -1918,9 +1918,9 @@
         return graph;
     }
 
-    var NChart = function(paper_id, character_info, layers, conf) {
+    var NChart = function(paper_id, characters, layers, conf) {
         this.paper_id = paper_id;
-        this.character_info = character_info;
+        this.characters = characters;
         this.layers = layers;
 
         conf = conf || {};
@@ -1949,11 +1949,11 @@
     };
 
     NChart.prototype.draw = function() {
-        var graph = parse_layers(this.layers, this.character_info.characters);
+        var graph = parse_layers(this.layers, this.characters);
         var ordered_graph = order(graph);
         post_process(ordered_graph);
         place_nodes(ordered_graph, 50);
-        draw_graph('paper', ordered_graph, this.character_info.colors);
+        draw_graph('paper', ordered_graph);
 
         return this;
     };
