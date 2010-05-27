@@ -1104,7 +1104,8 @@
                     } else {
                         u_size = w[pred].size;
                     }
-                    var node_delta = up_down ? 15 * -w.size - delta : 15 * u_size + delta; //*** 15 spacing
+                    var node_delta = up_down ? this.nchart.sub_node_spacing * -w.size - delta
+                        : this.nchart.sub_node_spacing * u_size + delta;
                     if(v.sink != u.sink) {
                         u.sink.shift = shift_func(u.sink.shift, v.y - u.y - node_delta);
                     } else {
@@ -1230,7 +1231,7 @@
                 v.y = Math.round((v_coords[1] + v_coords[2]) / 2);
                 // v.y = alignments[0].y_coords[i][j];
                 min_y = Math.min(v.y, min_y);
-                max_y = Math.max(v.y + ((v.size - 1) * 15), max_y); //*** 15 spacing
+                max_y = Math.max(v.y + ((v.size - 1) * this.nchart.sub_node_spacing), max_y);
             }
         }
 
@@ -1263,7 +1264,7 @@
     }
 
     Drawer.prototype.place_x = function() {
-        var last_x = 100; //*** start x
+        var last_x = this.nchart.start_x;
         for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
             var L = this.nchart.graph.e_compaction[i];
             var max_y_diff = 0;
@@ -1275,7 +1276,7 @@
                     var c = v.children[k];
                     if(v.y != c.y) {
                         var edge = v.edges[c.id];
-                        var slope = Math.max(1.5, 3.5 - (edge.weight / 7));  //*** slope
+                        var slope = this.nchart.slope_func(edge);
                         var y_diff = Math.abs(v.y - c.y) + v.layer.duration * slope;
                         if(y_diff > max_y_diff) {
                             max_y_diff = y_diff;
@@ -1334,7 +1335,7 @@
                         box_arr.push('L');
                     }
                 }
-                var edge_y = node.y + (node.sub_node_order[short_name] * 15); //*** 15 spacing
+                var edge_y = node.y + (node.sub_node_order[short_name] * this.nchart.sub_node_spacing);
                 var box_y = edge_y - 4;
                 var back_box_y = edge_y + 4;
                 edge_arr.push(node.x + ' ' + edge_y);
@@ -1430,13 +1431,11 @@
         var g = svg.group('graph');
         var pov = svg.group(g, 'pov', {'stroke-width': 3}); //***
         var non_pov = svg.group(g, 'non_pov', {'stroke-width': 1}); //***
-        var death_icon_settings = {'fill': 'black'}; //***
-        var undeath_icon_settings = {'stroke': 'black', 'fill': 'white'}; //***
         for(var i=0; i<this.nchart.graph.char_nodes.length; i++) {
             var c_nodes = this.nchart.graph.char_nodes[i];
             var dead_arr = [];
             var short_name = c_nodes.character.short_name;
-            var last = {'x': c_nodes.nodes[0].x, 'y': c_nodes.nodes[0].y + c_nodes.nodes[0].sub_node_order[short_name] * 15}; //*** 15 spacing
+            var last = {'x': c_nodes.nodes[0].x, 'y': c_nodes.nodes[0].y + c_nodes.nodes[0].sub_node_order[short_name] * this.nchart.sub_node_spacing};
             var edge_arr = ['M', last.x, last.y];
             var start = 'M' + last.x + ' ' + last.y;
             var deaths = [];
@@ -1447,11 +1446,11 @@
             var last_horiz = false;
             for(var j=0; j<c_nodes.nodes.length; j++) {
                 var node = c_nodes.nodes[j];
-                var edge_y = node.y + (node.sub_node_order[short_name] * 15); //*** 15 size here
+                var edge_y = node.y + (node.sub_node_order[short_name] * this.nchart.sub_node_spacing);
                 var end_x = node.x + node.duration;
                 var this_seg = [];
                 if(j) {
-                    var bend = Math.min(node.x - last.x - 50, Math.floor(.375 * Math.abs(last.y - edge_y))); //*** bendiness
+                    var bend = this.nchart.bendiness(last.x, last.y, node.x, edge_y);
                     var last_segment = segments[segments.length - 1];
                     last_horiz = horiz;
                     horiz = last.y == edge_y;
@@ -1502,14 +1501,14 @@
                 last = {'x': end_x, 'y': edge_y};
 
                 if(node.deaths && goog.array.contains(node.deaths, short_name)) {
-                    deaths.push([end_x, edge_y, 5]); //*** 5?
+                    deaths.push([end_x, edge_y]);
                     if(!dead) {
                         dead_arr.push('M', end_x, edge_y);
                         dead = true;
                     }
                 }
                 if(node.undeaths && goog.array.contains(node.undeaths, short_name)) {
-                    undeaths.push([end_x, edge_y, 5]); //*** 5?
+                    undeaths.push([end_x, edge_y]);
                     dead = false;
                 }
             }
@@ -1570,19 +1569,17 @@
             }
             for(var j=0; j<deaths.length; j++) {
                 var death = deaths[j];
-                svg.circle(char_group, death[0], death[1], death[2], death_icon_settings);
+                svg.circle(char_group, death[0], death[1], this.nchart.death_radius, this.nchart.death_style);
                 skip_points.push(death);
             }
             for(var j=0; j<undeaths.length; j++) {
                 var undeath = undeaths[j];
-                svg.circle(char_group, undeath[0], undeath[1], undeath[2], undeath_icon_settings);
+                svg.circle(char_group, undeath[0], undeath[1], this.nchart.undeath_radius,
+                           this.nchart.undeath_style);
                 skip_points.push(undeath);
             }
 
-            var name_text = svg.text(char_group, null, null, '', {'fill': 'black',
-                                                                  'font-family': 'fantasy',
-                                                                  'font-size': '9',
-                                                                  'dy': '-2'}); //**** all this stuff
+            var name_text = svg.text(char_group, null, null, '', this.nchart.name_style);
             // if(text_len > path_len) {
             //     //do voodoo here
             //     svg.remove(name_text);
@@ -1727,10 +1724,11 @@
             }
         }
 
+        var self = this;
         function move_name(left_x, right_x, top_y, bottom_y) {
-            left_x += 20; //****
-            top_y += 20; //***
-            bottom_y -= 20; //***
+            left_x += self.nchart.name_padding.left;
+            top_y += self.nchart.name_padding.top;
+            bottom_y -= self.nchart.name_padding.bottom;
             return function() {
                 var p = $(this);
                 var segments = p.data('segments');
@@ -1762,7 +1760,7 @@
                     p_and_l = {'point': {'x': left_x, 'y': crossing_y},
                                'length': seg.len_range[0] + left_x - seg.x_range[0]};
                 } else if(seg.type == 'C') {
-                    p_and_l = point_and_length_at_x(seg, left_x, .1);  //*** .1 tolerance
+                    p_and_l = point_and_length_at_x(seg, left_x, self.length_tolerance);
                     crossing_y = p_and_l.point.y;
                 }
 
@@ -1773,9 +1771,9 @@
                         if(seg.type == 'C') {
                             var y_p_and_l;
                             if(crossing_y < top_y && seg.y_range[1] >= top_y) {
-                                y_p_and_l = point_and_length_at_y(seg, top_y, 1); //*** .1 tol
+                                y_p_and_l = point_and_length_at_y(seg, top_y, self.length_tolerance);
                             } else if(crossing_y > bottom_y && seg.y_range[1] <= bottom_y) {
-                                y_p_and_l = point_and_length_at_y_neg(seg, bottom_y, 1); //*** .1 tol
+                                y_p_and_l = point_and_length_at_y_neg(seg, bottom_y, self.length_tolerance);
                             }
                             if(y_p_and_l) {
                                 start_offset = Math.min(y_p_and_l.length, max_offset);
@@ -1823,7 +1821,9 @@
 
         function zoom_graph(e, delta) {
             old_scale = scale;
-            scale = Math.min(10, Math.max(.05, scale * Math.pow(1.2, (delta / Math.abs(delta))))); //*** min and max scales
+            scale = goog.math.clamp(scale * Math.pow(1.2, (delta / Math.abs(delta))),
+                                    self.nchart.min_scale,
+                                    self.nchart.max_scale);
             if(scale != old_scale) {
                 var k = scale / old_scale;
                 translate = {'x': e.pageX + (k * (translate.x - e.pageX)),
@@ -1891,12 +1891,27 @@
         this.start_x = conf.start_x ? conf.start_x : 100;
         this.slope_func = conf.slope_func ? conf.slope_func : function(edge) { return Math.max(1.5, 3.5 - (edge.weight / 7)); };
         this.group_styles = conf.group_styles ? conf.group_styles : {'default': {'stroke-width': 3}};
+
         this.death_style = conf.death_style ? conf.death_style : {'fill': 'black', 'radius': 5};
+        if(this.death_style.radius) {
+            this.death_radius = this.death_style.radius;
+            delete this.death_style.radius;
+        } else {
+            this.death_radius = 5;
+        }
+
         this.undeath_style = conf.undeath_style ? conf.undeath_style : {'fill': 'white',
                                                                         'stroke': 'black',
                                                                         'radius': 5};
+        if(this.undeath_style.radius) {
+            this.undeath_radius = this.undeath_style.radius;
+            delete this.undeath_style.radius;
+        } else {
+            this.undeath_radius = 5;
+        }
+
         this.bendiness = conf.bendiness ? conf.bendiness : function(old_x, old_y, new_x, new_y) {
-            Math.min(new_x - old_x - 50, Math.floor(.375 * Math.abs(old_y - new_y)));
+            return Math.min(new_x - old_x - 50, Math.floor(.375 * Math.abs(old_y - new_y)));
         }
         this.name_style = conf.name_style ? conf.name_style : {'fill': 'black',
                                                                'font-family': 'fantasy',
