@@ -1505,14 +1505,14 @@
                 last = {'x': end_x, 'y': edge_y};
 
                 if(node.deaths && goog.array.contains(node.deaths, short_name)) {
-                    deaths.push([end_x, edge_y]);
+                    deaths.push([end_x, edge_y, this.nchart.death_radius]);
                     if(!dead) {
                         dead_arr.push('M', end_x, edge_y);
                         dead = true;
                     }
                 }
                 if(node.undeaths && goog.array.contains(node.undeaths, short_name)) {
-                    undeaths.push([end_x, edge_y]);
+                    undeaths.push([end_x, edge_y, this.nchart.undeath_radius]);
                     dead = false;
                 }
             }
@@ -1766,7 +1766,7 @@
                     p_and_l = {'point': {'x': left_x, 'y': crossing_y},
                                'length': seg.len_range[0] + left_x - seg.x_range[0]};
                 } else if(seg.type == 'C') {
-                    p_and_l = point_and_length_at_x(seg, left_x, self.length_tolerance);
+                    p_and_l = point_and_length_at_x(seg, left_x, self.nchart.length_tolerance);
                     crossing_y = p_and_l.point.y;
                 }
 
@@ -1777,9 +1777,9 @@
                         if(seg.type == 'C') {
                             var y_p_and_l;
                             if(crossing_y < top_y && seg.y_range[1] >= top_y) {
-                                y_p_and_l = point_and_length_at_y(seg, top_y, self.length_tolerance);
+                                y_p_and_l = point_and_length_at_y(seg, top_y, self.nchart.length_tolerance);
                             } else if(crossing_y > bottom_y && seg.y_range[1] <= bottom_y) {
-                                y_p_and_l = point_and_length_at_y_neg(seg, bottom_y, self.length_tolerance);
+                                y_p_and_l = point_and_length_at_y_neg(seg, bottom_y, self.nchart.length_tolerance);
                             }
                             if(y_p_and_l) {
                                 start_offset = Math.min(y_p_and_l.length, max_offset);
