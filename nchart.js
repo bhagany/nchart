@@ -1637,7 +1637,8 @@
             return a > b.x_range[1] ? 1 : a < b.x_range[0] ? -1 : 0;
         }
 
-        function point_and_length_at_x(seg, x, tol) {
+        function point_and_length_at_x(seg, x) {
+            var tol = self.nchart.length_tolerance;
             var mid_x = (seg.x_range[0] + seg.x_range[1]) / 2;
             var mid_len, left, right;
 
@@ -1668,7 +1669,8 @@
             }
         }
 
-        function point_and_length_at_y(seg, y, tol) {
+        function point_and_length_at_y(seg, y) {
+            var tol = self.nchart.length_tolerance;
             var mid_y = (seg.y_range[0] + seg.y_range[1]) / 2;
             var mid_len, left, right;
 
@@ -1699,7 +1701,8 @@
             }
         }
 
-        function point_and_length_at_y_neg(seg, y, tol) {
+        function point_and_length_at_y_neg(seg, y) {
+            var tol = self.nchart.length_tolerance;
             var mid_y = (seg.y_range[0] + seg.y_range[1]) / 2;
             var mid_len, left, right;
 
@@ -1766,7 +1769,7 @@
                     p_and_l = {'point': {'x': left_x, 'y': crossing_y},
                                'length': seg.len_range[0] + left_x - seg.x_range[0]};
                 } else if(seg.type == 'C') {
-                    p_and_l = point_and_length_at_x(seg, left_x, self.nchart.length_tolerance);
+                    p_and_l = point_and_length_at_x(seg, left_x);
                     crossing_y = p_and_l.point.y;
                 }
 
@@ -1777,9 +1780,9 @@
                         if(seg.type == 'C') {
                             var y_p_and_l;
                             if(crossing_y < top_y && seg.y_range[1] >= top_y) {
-                                y_p_and_l = point_and_length_at_y(seg, top_y, self.nchart.length_tolerance);
+                                y_p_and_l = point_and_length_at_y(seg, top_y);
                             } else if(crossing_y > bottom_y && seg.y_range[1] <= bottom_y) {
-                                y_p_and_l = point_and_length_at_y_neg(seg, bottom_y, self.nchart.length_tolerance);
+                                y_p_and_l = point_and_length_at_y_neg(seg, bottom_y);
                             }
                             if(y_p_and_l) {
                                 start_offset = Math.min(y_p_and_l.length, max_offset);
@@ -1791,6 +1794,7 @@
                 }
 
                 if(!start_offset) {
+                    svg.change(p.data('name_path'), {'startOffset': start_offset});
                     return;
                 }
 
