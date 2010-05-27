@@ -885,15 +885,144 @@
         return best;
     }
 
-    function Drawer(graph) {
-        this.graph = graph;
+    function post_process(graph) {
+        var grouped_already = [];
+        var current_groups = [];
+        var group_hash = {};
+        for(var i=0; i<graph.e_compaction.length; i++) {
+            var L = graph.e_compaction[i];
+            for(var j=0; j<L.length; j++) {
+                var node = L[j];
+
+                for(var k=0; k<current_groups.length; k++) {
+                    var groups = current_groups[k].groups;
+                    for(var l=0; l<groups.length; l++) {
+                        var group = groups[l];
+                        if(group.length == 1) {
+                            continue;
+                        }
+                        var intersection = intersect(group, node.sub_nodes);
+                        if(intersection.length && intersection.length != group.length) {
+                            for(var m=0; m<intersection.length; m++) {
+                                group.splice(goog.array.indexOf(group, intersection[m]), 1);
+                            }
+                            groups.splice(l, 0, intersection);
+                            l++;
+                        }
+                    }
+                }
+
+                var initials = [];
+                var node_groups = {'node': node, 'groups': [node.sub_nodes.slice(0)]};
+                for(var k=0; k<node.sub_nodes.length; k++) {
+                    var sub_node = node.sub_nodes[k];
+                    if(!goog.array.contains(grouped_already, sub_node)) {
+                        initials.push(sub_node);
+                        group_hash[sub_node] = node_groups;
+                    }
+                }
+
+                if(initials.length) {
+                    current_groups.push(node_groups);
+                    grouped_already = grouped_already.concat(initials);
+                }
+            }
+        }
+
+        for(var i=0; i<current_groups.length; i++) {
+            current_groups[i].node.initial_ordering = current_groups[i].groups;
+            current_groups[i].node.sub_nodes = goog.array.flatten(current_groups[i].groups);
+        }
+
+        var last_pos = {};
+        for(var i=0; i<graph.e_compaction.length; i++) {
+            var L = graph.e_compaction[i];
+            // Reset the graph sub node order
+            for(var j=0; j<L.length; j++) {
+                var node = L[j];
+                if(node.draw) {
+                    if(node.nodes) {
+                        // If this is a segment, just reset the node position for all sub nodes;
+                        // sub node position is guaranteed to remain the same
+                        for(var k=0; k<node.sub_nodes.length; k++) {
+                            var sub_node = node.sub_nodes[k];
+                            last_pos[sub_node][0] = j;
+                        }
+                    } else {
+
+                        function sub_node_compare(a, b) {
+                            if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
+                                return node.sub_node_pos[b][0]- node.sub_node_pos[a][0];
+                            } else {
+                                return node.sub_node_pos[b][1] - node.sub_node_pos[a][1];
+                            }
+                        }
+
+                        node.sub_node_order = {};
+
+                        var initials = [];
+                        for(var k=0; k<node.sub_nodes.length; k++) {
+                            var sub_node = node.sub_nodes[k];
+                            if(last_pos[sub_node]) {
+                                node.sub_node_pos[sub_node] = last_pos[sub_node];
+                            } else {
+                                node.sub_node_pos[sub_node] = [j,k,0];
+                                initials.push(sub_node);
+                            }
+                        }
+                        if(initials.length && initials.length != node.sub_nodes.length) {
+                            for(var k=0; k<node.initial_ordering.length; k++) {
+                                var group = node.initial_ordering[k];
+                                var initials_in_group = intersect(group, initials);
+                                if(initials_in_group.length && initials_in_group.length < group.length) {
+                                    var non_initials_in_group = goog.array.filter(group, function(sub_node) {
+                                        return !goog.array.contains(initials_in_group, sub_node);
+                                    });
+                                    goog.array.stableSort(non_initials_in_group, sub_node_compare);
+                                    var lowest_pos = node.sub_node_pos[non_initials_in_group[0]];
+                                    for(var l=0; l<initials_in_group.length; l++) {
+                                        var initial = initials_in_group[l];
+                                        node.sub_node_pos[initial] = lowest_pos.slice(0);
+                                        node.sub_node_pos[initial][2] = l + 1;
+                                    }
+                                }
+                            }
+                        }
+                                    
+                        goog.array.stableSort(node.sub_nodes, function(a, b) {
+                            if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
+                                return node.sub_node_pos[a][0] - node.sub_node_pos[b][0];
+                            } else {
+                                return node.sub_node_pos[a][1] - node.sub_node_pos[b][1];
+                            }
+                        });
+
+                        for(var k=0; k<node.sub_nodes.length; k++) {
+                            var sub_node = node.sub_nodes[k];
+                            node.sub_node_order[sub_node] = k;
+                            last_pos[sub_node] = [j,k,0];
+                        }
+                        
+                        // Reset markedness
+                        for(var target_id in node.edges) {
+                            var edge = node.edges[target_id];
+                            edge.marked = graph.marked[node.id][target_id];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    function Drawer(nchart) {
+        this.nchart = nchart;
     }
 
     Drawer.prototype.align_horizontally = function(left_right, up_down) {
         var align_to = left_right ? 'children' : 'parents';
         var pos = up_down ? 'r_pos' : 'pos';
-        for(var i=0; i<this.graph.e_compaction.length; i++) {
-            var L = this.graph.e_compaction[i];
+        for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
+            var L = this.nchart.graph.e_compaction[i];
             if(up_down) {
                 L.reverse();
             }
@@ -988,8 +1117,8 @@
     }
 
     Drawer.prototype.compact_vertically = function(delta, left_right, up_down) {
-        for(var i=0; i<this.graph.e_compaction.length; i++) {
-            var L = this.graph.e_compaction[i];
+        for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
+            var L = this.nchart.graph.e_compaction[i];
             for(var j=0; j<L.length; j++) {
                 var v = L[j];
                 if(v.root == v) {
@@ -1000,8 +1129,8 @@
         var y_coords = [];
         var min_coord = Infinity;
         var max_coord = -Infinity;
-        for(var i=0; i<this.graph.e_compaction.length; i++) {
-            var L = this.graph.e_compaction[i];
+        for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
+            var L = this.nchart.graph.e_compaction[i];
             if(up_down) {
                 L.reverse();
             }
@@ -1033,9 +1162,9 @@
         for(var i in ['left', 'right']) {
             i = parseInt(i);
             if(i) {
-                this.graph.compaction.reverse();
-                this.graph.e_compaction.reverse();
-                this.graph.layers.reverse();
+                this.nchart.graph.compaction.reverse();
+                this.nchart.graph.e_compaction.reverse();
+                this.nchart.graph.layers.reverse();
             }
             for(var j in ['up', 'down']) {
                 j = parseInt(j);
@@ -1053,9 +1182,9 @@
                 }
             }
             if(i) {
-                this.graph.compaction.reverse();
-                this.graph.e_compaction.reverse();
-                this.graph.layers.reverse();
+                this.nchart.graph.compaction.reverse();
+                this.nchart.graph.e_compaction.reverse();
+                this.nchart.graph.layers.reverse();
             }
         }
         // Choose narrowest alignment
@@ -1088,8 +1217,8 @@
         // Set y coordinates
         var min_y = Infinity;
         var max_y = -Infinity;
-        for(var i=0; i<this.graph.e_compaction.length; i++) {
-            var L = this.graph.e_compaction[i];
+        for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
+            var L = this.nchart.graph.e_compaction[i];
             for(var j=0; j<L.length; j++) {
                 var v = L[j];
                 var v_coords = [alignments[0].y_coords[i][j],
@@ -1111,17 +1240,17 @@
         if(min_y != 20) {
             var shift = -min_y + 20;
             max_y += shift;
-            for(var i=0; i<this.graph.e_compaction.length; i++) {
-                var L = this.graph.e_compaction[i];
+            for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
+                var L = this.nchart.graph.e_compaction[i];
                 for(var j=0; j<L.length; j++) {
                     L[j].y += shift;
                 }
             }
         }
-        this.graph.max_y = max_y;
+        this.nchart.graph.max_y = max_y;
 
-        for(var i=0; i<this.graph.char_nodes.length; i++) {
-            var c_nodes = this.graph.char_nodes[i];
+        for(var i=0; i<this.nchart.graph.char_nodes.length; i++) {
+            var c_nodes = this.nchart.graph.char_nodes[i];
             var posen = 0;
             for(var j=0; j<c_nodes.nodes.length; j++) {
                 posen += c_nodes.nodes[j].pos;
@@ -1130,13 +1259,13 @@
         }
 
         this.place_x();
-        this.graph.max_x = this.graph.e_compaction[this.graph.e_compaction.length - 1][0].x
+        this.nchart.graph.max_x = this.nchart.graph.e_compaction[this.nchart.graph.e_compaction.length - 1][0].x
     }
 
     Drawer.prototype.place_x = function() {
         var last_x = 100; //*** start x
-        for(var i=0; i<this.graph.e_compaction.length; i++) {
-            var L = this.graph.e_compaction[i];
+        for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
+            var L = this.nchart.graph.e_compaction[i];
             var max_y_diff = 0;
             var use_slope = Infinity;
             for(var j=0; j<L.length; j++) {
@@ -1163,8 +1292,8 @@
 
 
     Drawer.prototype.initialize_nodes = function(up_down) {
-        for(var i=0; i<this.graph.e_compaction.length; i++) {
-            var L = this.graph.e_compaction[i];
+        for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
+            var L = this.nchart.graph.e_compaction[i];
             for(var j=0; j<L.length; j++) {
                 var v = L[j];
                 v.root = v;
@@ -1303,8 +1432,8 @@
         var non_pov = svg.group(g, 'non_pov', {'stroke-width': 1}); //***
         var death_icon_settings = {'fill': 'black'}; //***
         var undeath_icon_settings = {'stroke': 'black', 'fill': 'white'}; //***
-        for(var i=0; i<this.graph.char_nodes.length; i++) {
-            var c_nodes = this.graph.char_nodes[i];
+        for(var i=0; i<this.nchart.graph.char_nodes.length; i++) {
+            var c_nodes = this.nchart.graph.char_nodes[i];
             var dead_arr = [];
             var short_name = c_nodes.character.short_name;
             var last = {'x': c_nodes.nodes[0].x, 'y': c_nodes.nodes[0].y + c_nodes.nodes[0].sub_node_order[short_name] * 15}; //*** 15 spacing
@@ -1474,15 +1603,15 @@
         var body = $('body');
         var p_width = paper_jq.width();
         var p_height = paper_jq.height();
-        var w_scale = p_width / this.graph.max_x;
-        var h_scale = p_height / this.graph.max_y;
+        var w_scale = p_width / this.nchart.graph.max_x;
+        var h_scale = p_height / this.nchart.graph.max_y;
         if(w_scale < h_scale) {
             var original_scale = w_scale;
             var x_offset = 0;
-            var y_offset = (p_height / 2) - (w_scale * this.graph.max_y / 2);
+            var y_offset = (p_height / 2) - (w_scale * this.nchart.graph.max_y / 2);
         } else {
             var original_scale = h_scale;
-            var x_offset = (p_width / 2) - (h_scale * this.graph.max_x / 2);
+            var x_offset = (p_width / 2) - (h_scale * this.nchart.graph.max_x / 2);
             var y_offset = 0;
         }
         var scale = original_scale;
@@ -1750,134 +1879,6 @@
 
     }
 
-    Drawer.prototype.post_process = function() {
-        var grouped_already = [];
-        var current_groups = [];
-        var group_hash = {};
-        for(var i=0; i<this.graph.e_compaction.length; i++) {
-            var L = this.graph.e_compaction[i];
-            for(var j=0; j<L.length; j++) {
-                var node = L[j];
-
-                for(var k=0; k<current_groups.length; k++) {
-                    var groups = current_groups[k].groups;
-                    for(var l=0; l<groups.length; l++) {
-                        var group = groups[l];
-                        if(group.length == 1) {
-                            continue;
-                        }
-                        var intersection = intersect(group, node.sub_nodes);
-                        if(intersection.length && intersection.length != group.length) {
-                            for(var m=0; m<intersection.length; m++) {
-                                group.splice(goog.array.indexOf(group, intersection[m]), 1);
-                            }
-                            groups.splice(l, 0, intersection);
-                            l++;
-                        }
-                    }
-                }
-
-                var initials = [];
-                var node_groups = {'node': node, 'groups': [node.sub_nodes.slice(0)]};
-                for(var k=0; k<node.sub_nodes.length; k++) {
-                    var sub_node = node.sub_nodes[k];
-                    if(!goog.array.contains(grouped_already, sub_node)) {
-                        initials.push(sub_node);
-                        group_hash[sub_node] = node_groups;
-                    }
-                }
-
-                if(initials.length) {
-                    current_groups.push(node_groups);
-                    grouped_already = grouped_already.concat(initials);
-                }
-            }
-        }
-
-        for(var i=0; i<current_groups.length; i++) {
-            current_groups[i].node.initial_ordering = current_groups[i].groups;
-            current_groups[i].node.sub_nodes = goog.array.flatten(current_groups[i].groups);
-        }
-
-        var last_pos = {};
-        for(var i=0; i<this.graph.e_compaction.length; i++) {
-            var L = this.graph.e_compaction[i];
-            // Reset the graph sub node order
-            for(var j=0; j<L.length; j++) {
-                var node = L[j];
-                if(node.draw) {
-                    if(node.nodes) {
-                        // If this is a segment, just reset the node position for all sub nodes;
-                        // sub node position is guaranteed to remain the same
-                        for(var k=0; k<node.sub_nodes.length; k++) {
-                            var sub_node = node.sub_nodes[k];
-                            last_pos[sub_node][0] = j;
-                        }
-                    } else {
-
-                        function sub_node_compare(a, b) {
-                            if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
-                                return node.sub_node_pos[b][0]- node.sub_node_pos[a][0];
-                            } else {
-                                return node.sub_node_pos[b][1] - node.sub_node_pos[a][1];
-                            }
-                        }
-
-                        node.sub_node_order = {};
-
-                        var initials = [];
-                        for(var k=0; k<node.sub_nodes.length; k++) {
-                            var sub_node = node.sub_nodes[k];
-                            if(last_pos[sub_node]) {
-                                node.sub_node_pos[sub_node] = last_pos[sub_node];
-                            } else {
-                                node.sub_node_pos[sub_node] = [j,k,0];
-                                initials.push(sub_node);
-                            }
-                        }
-                        if(initials.length && initials.length != node.sub_nodes.length) {
-                            for(var k=0; k<node.initial_ordering.length; k++) {
-                                var group = node.initial_ordering[k];
-                                var initials_in_group = intersect(group, initials);
-                                if(initials_in_group.length && initials_in_group.length < group.length) {
-                                    var non_initials_in_group = goog.array.filter(group, function(sub_node) {
-                                        return !goog.array.contains(initials_in_group, sub_node);
-                                    });
-                                    goog.array.stableSort(non_initials_in_group, sub_node_compare);
-                                    var lowest_pos = node.sub_node_pos[non_initials_in_group[0]];
-                                    for(var l=0; l<initials_in_group.length; l++) {
-                                        var initial = initials_in_group[l];
-                                        node.sub_node_pos[initial] = lowest_pos.slice(0);
-                                        node.sub_node_pos[initial][2] = l + 1;
-                                    }
-                                }
-                            }
-                        }
-                                    
-                        goog.array.stableSort(node.sub_nodes, function(a, b) {
-                            if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
-                                return node.sub_node_pos[a][0] - node.sub_node_pos[b][0];
-                            } else {
-                                return node.sub_node_pos[a][1] - node.sub_node_pos[b][1];
-                            }
-                        });
-
-                        for(var k=0; k<node.sub_nodes.length; k++) {
-                            var sub_node = node.sub_nodes[k];
-                            node.sub_node_order[sub_node] = k;
-                            last_pos[sub_node] = [j,k,0];
-                        }
-                        
-                        // Reset markedness
-                        for(var target_id in node.edges) {
-                            var edge = node.edges[target_id];
-                            edge.marked = this.graph.marked[node.id][target_id];
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     var NChart = function(paper_id, characters, layers, conf) {
         this.paper_id = paper_id;
@@ -1907,16 +1908,17 @@
         this.length_tolerance = conf.length_tolerance ? conf.length_tolerance : .1;
         this.max_scale = conf.max_scale ? conf.max_scale : 10;
         this.min_scale = conf.min_scale ? conf.min_scale : .05;
+
+        this.drawer = new Drawer(this);
+
+        var graph = parse_layers(this.layers, this.characters);
+        this.graph = order(graph);
+        post_process(this.graph);
     };
 
     NChart.prototype.draw = function() {
-        var graph = parse_layers(this.layers, this.characters);
-        var ordered_graph = order(graph);
-        this.drawer = new Drawer(ordered_graph);
-
-        this.drawer.post_process(ordered_graph);
         this.drawer.place_nodes(50);
-        this.drawer.draw_graph('paper');
+        this.drawer.draw_graph(this.paper_id);
 
         return this;
     };
