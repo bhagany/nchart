@@ -1429,13 +1429,17 @@
 
     Drawer.prototype.draw_curvy = function(svg, original_scale, x_offset, y_offset) {
         var g = svg.group('graph');
-        var pov = svg.group(g, 'pov', {'stroke-width': 3}); //***
-        var non_pov = svg.group(g, 'non_pov', {'stroke-width': 1}); //***
+        var groups = {};
+        goog.object.forEach(this.nchart.group_styles, function(style, group) {
+            groups[group] = svg.group(g, group, style);
+        });
         for(var i=0; i<this.nchart.graph.char_nodes.length; i++) {
             var c_nodes = this.nchart.graph.char_nodes[i];
             var dead_arr = [];
             var short_name = c_nodes.character.short_name;
-            var last = {'x': c_nodes.nodes[0].x, 'y': c_nodes.nodes[0].y + c_nodes.nodes[0].sub_node_order[short_name] * this.nchart.sub_node_spacing};
+            var last = {'x': c_nodes.nodes[0].x,
+                        'y': c_nodes.nodes[0].y + c_nodes.nodes[0].sub_node_order[short_name]
+                             * this.nchart.sub_node_spacing};
             var edge_arr = ['M', last.x, last.y];
             var start = 'M' + last.x + ' ' + last.y;
             var deaths = [];
@@ -1512,7 +1516,7 @@
                     dead = false;
                 }
             }
-            var group = c_nodes.character.pov ? pov : non_pov;
+            var group = groups[c_nodes.character.group] || groups['default_group'];
             
             var char_group = svg.group(group,
                                        short_name + '_group',
@@ -1623,8 +1627,10 @@
         var translate = {'x': x_offset, 'y': y_offset};
         var svg = paper_jq.svg('get');
         var g = svg.getElementById('graph');
-        var pov = svg.getElementById('pov');
-        var non_pov = svg.getElementById('non_pov');
+        var groups = {};
+        goog.object.forEach(this.nchart.group_styles, function(style, group) {
+            groups[group] = svg.getElementById(group);
+        });
         var old_scale;
 
         function segment_search(a, b) {
@@ -1819,6 +1825,7 @@
             };
         }
 
+        var self = this;
         function zoom_graph(e, delta) {
             old_scale = scale;
             scale = goog.math.clamp(scale * Math.pow(1.2, (delta / Math.abs(delta))),
@@ -1830,8 +1837,9 @@
                              'y': e.pageY + (k * (translate.y - e.pageY))};
                 svg.change(g, {'transform': 'translate(' + translate.x + ',' + translate.y + '), scale(' + scale + ')'});
                 if(scale > 1) {
-                    svg.change(pov, {'stroke-width': 3 / scale}); //*** pov width
-                    svg.change(non_pov, {'stroke-width': 1 / scale}); //*** non-pov width
+                    goog.object.forEach(self.nchart.group_styles, function(style, group) {
+                        svg.change(groups[group], {'stroke-width': style['stroke-width'] / scale});
+                    });
                 }
                 var left_x = -translate.x / scale;
                 var right_x = left_x + (p_width / scale);
@@ -1890,7 +1898,10 @@
         this.sub_node_spacing = conf.sub_node_spacing ? conf.sub_node_spacing : 15;
         this.start_x = conf.start_x ? conf.start_x : 100;
         this.slope_func = conf.slope_func ? conf.slope_func : function(edge) { return Math.max(1.5, 3.5 - (edge.weight / 7)); };
-        this.group_styles = conf.group_styles ? conf.group_styles : {'default': {'stroke-width': 3}};
+        this.group_styles = conf.group_styles ? conf.group_styles : {};
+        if(!this.group_styles.default_group) {
+            this.group_styles.default_group = {'stroke-width': 1};
+        }
 
         this.death_style = conf.death_style ? conf.death_style : {'fill': 'black', 'radius': 5};
         if(this.death_style.radius) {
