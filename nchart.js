@@ -662,31 +662,30 @@
         var l_alignments = [];
         var r_alignments = [];
         this.alignments = [];
-        for(var i in ['left', 'right']) {
-            i = parseInt(i);
-            if(i) {
-                this.nchart.graph.compaction.reverse();
-                this.nchart.graph.e_compaction.reverse();
-                this.nchart.graph.layers.reverse();
+        var self = this;
+        goog.array.forEach([0, 1], function(left_right) {
+            if(left_right) {
+                self.nchart.graph.compaction.reverse();
+                self.nchart.graph.e_compaction.reverse();
+                self.nchart.graph.layers.reverse();
             }
-            for(var j in ['up', 'down']) {
-                j = parseInt(j);
-                this.initialize_nodes(j);
-                this.align_horizontally(i, j);
-                var alignment = this.compact_vertically(i, j);
-                this.alignments.push(alignment);
-                if(j) {
+            goog.array.forEach([0, 1], function(up_down) {
+                self.initialize_nodes(up_down);
+                self.align_horizontally(left_right, up_down);
+                var alignment = self.compact_vertically(left_right, up_down);
+                self.alignments.push(alignment);
+                if(up_down) {
                     r_alignments.push(alignment);
                 } else {
                     l_alignments.push(alignment);                    
                 }
+            });
+            if(left_right) {
+                self.nchart.graph.compaction.reverse();
+                self.nchart.graph.e_compaction.reverse();
+                self.nchart.graph.layers.reverse();
             }
-            if(i) {
-                this.nchart.graph.compaction.reverse();
-                this.nchart.graph.e_compaction.reverse();
-                this.nchart.graph.layers.reverse();
-            }
-        }
+        });
 
         this.normalize_alignments(l_alignments, r_alignments);
         this.place_y();
@@ -1113,7 +1112,6 @@
             }
         }
     }
-
 
     SvgDrawer.prototype.draw_graph = function() {
         this.place_nodes();
