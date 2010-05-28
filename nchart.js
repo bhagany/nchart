@@ -659,8 +659,8 @@
     };
 
     SvgDrawer.prototype.place_nodes = function() {
-        var l_alignments = [];
-        var r_alignments = [];
+        var u_alignments = [];
+        var d_alignments = [];
         this.alignments = [];
         var self = this;
         goog.array.forEach([0, 1], function(left_right) {
@@ -675,9 +675,9 @@
                 var alignment = self.compact_vertically(left_right, up_down);
                 self.alignments.push(alignment);
                 if(up_down) {
-                    r_alignments.push(alignment);
+                    d_alignments.push(alignment);
                 } else {
-                    l_alignments.push(alignment);                    
+                    u_alignments.push(alignment);                    
                 }
             });
             if(left_right) {
@@ -687,12 +687,12 @@
             }
         });
 
-        this.normalize_alignments(l_alignments, r_alignments);
+        this.normalize_alignments(u_alignments, d_alignments);
         this.place_y();
         this.place_x();
     };
 
-    SvgDrawer.prototype.normalize_alignments = function(l_alignments, r_alignments) {
+    SvgDrawer.prototype.normalize_alignments = function(u_alignments, d_alignments) {
         // Choose narrowest alignment
         var narrowest = {'width': Infinity};
         for(var i=0; i<this.alignments.length; i++) {
@@ -703,11 +703,11 @@
         }
 
         // Align to narrowest
-        var lr_alignments = [l_alignments, r_alignments];
-        for(var h=0; h<lr_alignments.length; h++) {
+        var ud_alignments = [u_alignments, d_alignments];
+        for(var h=0; h<ud_alignments.length; h++) {
             var min_or_max = h ? 'max_coord' : 'min_coord';
-            for(var i=0; i<lr_alignments[h].length; i++) {
-                var alignment = lr_alignments[h][i];
+            for(var i=0; i<ud_alignments[h].length; i++) {
+                var alignment = ud_alignments[h][i];
                 var delta = alignment[min_or_max] - narrowest[min_or_max];
                 if(delta != 0) {
                     for(var j=0; j<alignment.y_coords.length; j++) {
