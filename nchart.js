@@ -321,12 +321,55 @@
             best.e_compaction.push(L);
         }
 
-        best.layers = this.graph.layers;
-        neighborify(best);
         this.graph = best;
     }
 
-    NChart.prototype.post_process = function() {
+    NChart.prototype.neighborify = function() {
+        var l_orders = [];
+        var childrens = [];
+        var order;
+
+        function node_sort(a, b) {
+            return order[a.id] - order[b.id];
+        }
+
+        for(var i=0; i<this.graph.e_compaction.length; i++) {
+            var L = this.graph.e_compaction[i];
+            
+            var l_order = {};
+            var last_childrens = childrens;
+            childrens = [];
+            for(var j=0; j<L.length; j++) {
+                var v = L[j];
+                l_order[v.id] = j;
+
+                order = l_orders[i - 1];
+                goog.array.stableSort(v.parents, node_sort);
+                childrens.push(v.children);
+
+                if(j > 0) {
+                    v.pred = L[j - 1];
+                }
+                if(j < L.length - 1) {
+                    v.succ = L[j + 1];
+                }
+                l_order[v.id] = j;
+
+                // Reset the pos, because the current configuration probably won't be the same as the last
+                // time through the crossing reduction
+                v.pos = j;
+                v.r_pos = L.length - j - 1;
+            }
+
+            for(var j=0; j<last_childrens.length; j++) {
+                order = l_order;
+                goog.array.stableSort(last_childrens[j], node_sort);
+            }
+            l_orders.push(l_order);
+        }
+    };
+
+    NChart.prototype.group_sub_nodes = function() {
         var grouped_already = [];
         var current_groups = [];
         var group_hash = {};
@@ -374,7 +417,10 @@
             current_groups[i].node.initial_ordering = current_groups[i].groups;
             current_groups[i].node.sub_nodes = goog.array.flatten(current_groups[i].groups);
         }
+    };
 
+    NChart.prototype.sort_sub_nodes = function() {
+        this.group_sub_nodes();
         var last_pos = {};
         for(var i=0; i<this.graph.e_compaction.length; i++) {
             var L = this.graph.e_compaction[i];
@@ -453,6 +499,11 @@
                 }
             }
         }
+    }
+
+    NChart.prototype.post_process = function() {
+        this.neighborify();
+        this.sort_sub_nodes();
     }
 
 
@@ -1907,52 +1958,6 @@
         var crossings = get_crossings(layer.L, next_layer.L, children, parents, last_pos);
         return [crossings, next_layer];
     }
-
-    function neighborify(graph) {
-        var l_orders = [];
-        var childrens = [];
-        var order;
-
-        function node_sort(a, b) {
-            return order[a.id] - order[b.id];
-        }
-
-        for(var i=0; i<graph.e_compaction.length; i++) {
-            var L = graph.e_compaction[i];
-            
-            var l_order = {};
-            var last_childrens = childrens;
-            childrens = [];
-            for(var j=0; j<L.length; j++) {
-                var v = L[j];
-                l_order[v.id] = j;
-
-                order = l_orders[i - 1];
-                goog.array.stableSort(v.parents, node_sort);
-                childrens.push(v.children);
-
-                if(j > 0) {
-                    v.pred = L[j - 1];
-                }
-                if(j < L.length - 1) {
-                    v.succ = L[j + 1];
-                }
-                l_order[v.id] = j;
-
-                // Reset the pos, because the current configuration probably won't be the same as the last
-                // time through the crossing reduction
-                v.pos = j;
-                v.r_pos = L.length - j - 1;
-            }
-
-            for(var j=0; j<last_childrens.length; j++) {
-                order = l_order;
-                goog.array.stableSort(last_childrens[j], node_sort);
-            }
-            l_orders.push(l_order);
-        }
-    }
-
 
     window.NChart = NChart;
 })(window);
