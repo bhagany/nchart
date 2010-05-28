@@ -643,6 +643,9 @@
             y_coords.push(L_y);
         }
         var width = max_coord - min_coord;
+        if(left_right) {
+            y_coords.reverse();
+        }
         return {'y_coords': y_coords, 'width': width, 'max_coord': max_coord, 'min_coord': min_coord};
     };
 
@@ -662,9 +665,6 @@
                 this.initialize_nodes(j);
                 this.align_horizontally(i, j);
                 var alignment = this.compact_vertically(i, j);
-                if(i) {
-                    alignment.y_coords.reverse();
-                }
                 this.alignments.push(alignment);
                 if(j) {
                     r_alignments.push(alignment);
@@ -678,6 +678,13 @@
                 this.nchart.graph.layers.reverse();
             }
         }
+
+        this.normalize_alignments(l_alignments, r_alignments);
+        this.place_y();
+        this.place_x();
+    };
+
+    SvgDrawer.prototype.normalize_alignments = function(l_alignments, r_alignments) {
         // Choose narrowest alignment
         var narrowest = {'width': Infinity};
         for(var i=0; i<this.alignments.length; i++) {
@@ -704,10 +711,6 @@
                 }
             }
         }
-
-        this.place_y();
-        this.place_x();
-        this.nchart.graph.max_x = this.nchart.graph.e_compaction[this.nchart.graph.e_compaction.length - 1][0].x
     };
 
     SvgDrawer.prototype.place_y = function() {
@@ -773,6 +776,7 @@
             }
             last_x += Math.floor(Math.max(max_y_diff / use_slope, 100));
         }
+        this.nchart.graph.max_x = this.nchart.graph.e_compaction[this.nchart.graph.e_compaction.length - 1][0].x
     };
 
     SvgDrawer.prototype.initialize_nodes = function(up_down) {
