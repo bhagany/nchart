@@ -649,7 +649,7 @@
     SvgDrawer.prototype.place_nodes = function() {
         var l_alignments = [];
         var r_alignments = [];
-        var alignments = [];
+        this.alignments = [];
         for(var i in ['left', 'right']) {
             i = parseInt(i);
             if(i) {
@@ -665,7 +665,7 @@
                 if(i) {
                     alignment.y_coords.reverse();
                 }
-                alignments.push(alignment);
+                this.alignments.push(alignment);
                 if(j) {
                     r_alignments.push(alignment);
                 } else {
@@ -680,8 +680,8 @@
         }
         // Choose narrowest alignment
         var narrowest = {'width': Infinity};
-        for(var i=0; i<alignments.length; i++) {
-            var alignment = alignments[i];
+        for(var i=0; i<this.alignments.length; i++) {
+            var alignment = this.alignments[i];
             if(alignment.width < narrowest.width) {
                 narrowest = alignment;
             }
@@ -705,6 +705,12 @@
             }
         }
 
+        this.place_y();
+        this.place_x();
+        this.nchart.graph.max_x = this.nchart.graph.e_compaction[this.nchart.graph.e_compaction.length - 1][0].x
+    };
+
+    SvgDrawer.prototype.place_y = function() {
         // Set y coordinates
         var min_y = Infinity;
         var max_y = -Infinity;
@@ -712,14 +718,14 @@
             var L = this.nchart.graph.e_compaction[i];
             for(var j=0; j<L.length; j++) {
                 var v = L[j];
-                var v_coords = [alignments[0].y_coords[i][j],
-                                alignments[1].y_coords[i][j],
-                                alignments[2].y_coords[i][j],
-                                alignments[3].y_coords[i][j]];
+                var v_coords = [this.alignments[0].y_coords[i][j],
+                                this.alignments[1].y_coords[i][j],
+                                this.alignments[2].y_coords[i][j],
+                                this.alignments[3].y_coords[i][j]];
                 v_coords.sort(function(a, b) { return a - b; });
                 // Set the y coordinate to be the rounded average median (yeah, that's right) of the four alignments
                 v.y = Math.round((v_coords[1] + v_coords[2]) / 2);
-                // v.y = alignments[0].y_coords[i][j];
+                // v.y = this.alignments[0].y_coords[i][j];
                 min_y = Math.min(v.y, min_y);
                 max_y = Math.max(v.y + ((v.size - 1) * this.nchart.sub_node_spacing), max_y);
             }
@@ -739,9 +745,6 @@
             }
         }
         this.nchart.graph.max_y = max_y;
-
-        this.place_x();
-        this.nchart.graph.max_x = this.nchart.graph.e_compaction[this.nchart.graph.e_compaction.length - 1][0].x
     };
 
     SvgDrawer.prototype.place_x = function() {
