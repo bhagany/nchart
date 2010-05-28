@@ -922,11 +922,12 @@
         });
     }
 
-    SvgDrawer.prototype.draw_curvy = function(svg, original_scale, x_offset, y_offset) {
-        var g = svg.group('graph');
+    SvgDrawer.prototype.draw_curvy = function() {
+        var self = this;
+        var g = this.svg.group('graph');
         var groups = {};
         goog.object.forEach(this.nchart.group_styles, function(style, group) {
-            groups[group] = svg.group(g, group, style);
+            groups[group] = self.svg.group(g, group, style);
         });
         for(var i=0; i<this.nchart.graph.char_nodes.length; i++) {
             var c_nodes = this.nchart.graph.char_nodes[i];
@@ -934,7 +935,7 @@
             var short_name = c_nodes.character.short_name;
             var last = {'x': c_nodes.nodes[0].x,
                         'y': c_nodes.nodes[0].y + c_nodes.nodes[0].sub_node_order[short_name]
-                             * this.nchart.sub_node_spacing};
+                        * this.nchart.sub_node_spacing};
             var edge_arr = ['M', last.x, last.y];
             var start = 'M' + last.x + ' ' + last.y;
             var deaths = [];
@@ -1013,24 +1014,24 @@
             }
             var group = groups[c_nodes.character.group] || groups['default_group'];
             
-            var char_group = svg.group(group,
-                                       short_name + '_group',
-                                       {'stroke-width': 'inherit'});
-            var p = svg.path(char_group,
-                             start,
-                             {'id': short_name,
-                              'class': 'character',
-                              'stroke': c_nodes.character.color,
-                              'stroke-width': 'inherit',
-                              'stroke-linecap': 'round',
-                              'stroke-linejoin': 'round',
-                              'fill': 'none'});
+            var char_group = this.svg.group(group,
+                                            short_name + '_group',
+                                            {'stroke-width': 'inherit'});
+            var p = this.svg.path(char_group,
+                                  start,
+                                  {'id': short_name,
+                                   'class': 'character',
+                                   'stroke': c_nodes.character.color,
+                                   'stroke-width': 'inherit',
+                                   'stroke-linecap': 'round',
+                                   'stroke-linejoin': 'round',
+                                   'fill': 'none'});
 
             var last_len = 0;
             for(var j=0; j<segments.length; j++) {
                 var seg = segments[j];
                 var d = $(p).attr('d') || '';
-                svg.change(p, {'d': d + seg.d.join(' ')});
+                this.svg.change(p, {'d': d + seg.d.join(' ')});
                 if(seg.type == 'C') {
                     var p_len = p.getTotalLength();
                     seg.len_range = [last_len, p_len];
@@ -1048,49 +1049,49 @@
             var skip_points = [];
             p_jq.data('skip_points', skip_points);
             if(dead_arr.length > 1) {
-                svg.path(char_group,
-                         dead_arr.join(' '),
-                         {'id': short_name + '_dead_background',
-                          'stroke': 'white', //*** Should match background color
-                          'stroke-width': '4', //*** really ought to be whatever plus 1
-                          'stroke-linecap': 'round',
-                          'stroke-linejoin': 'round',
-                          'fill': 'none'});
-                svg.path(char_group,
-                         dead_arr.join(' '),
-                         {'id': short_name + '_dead',
-                          'stroke': c_nodes.character.color,
-                          'stroke-width': 'inherit',
-                          'stroke-linecap': 'round',
-                          'stroke-linejoin': 'round',
-                          'stroke-dasharray': '10',
-                          'fill': 'none'});
+                this.svg.path(char_group,
+                              dead_arr.join(' '),
+                              {'id': short_name + '_dead_background',
+                               'stroke': 'white', //*** Should match background color
+                               'stroke-width': '4', //*** really ought to be whatever plus 1
+                               'stroke-linecap': 'round',
+                               'stroke-linejoin': 'round',
+                               'fill': 'none'});
+                this.svg.path(char_group,
+                              dead_arr.join(' '),
+                              {'id': short_name + '_dead',
+                               'stroke': c_nodes.character.color,
+                               'stroke-width': 'inherit',
+                               'stroke-linecap': 'round',
+                               'stroke-linejoin': 'round',
+                               'stroke-dasharray': '10',
+                               'fill': 'none'});
             }
             for(var j=0; j<deaths.length; j++) {
                 var death = deaths[j];
-                svg.circle(char_group, death[0], death[1], this.nchart.death_radius, this.nchart.death_style);
+                this.svg.circle(char_group, death[0], death[1], this.nchart.death_radius, this.nchart.death_style);
                 skip_points.push(death);
             }
             for(var j=0; j<undeaths.length; j++) {
                 var undeath = undeaths[j];
-                svg.circle(char_group, undeath[0], undeath[1], this.nchart.undeath_radius,
-                           this.nchart.undeath_style);
+                this.svg.circle(char_group, undeath[0], undeath[1], this.nchart.undeath_radius,
+                                this.nchart.undeath_style);
                 skip_points.push(undeath);
             }
 
-            var name_text = svg.text(char_group, null, null, '', this.nchart.name_style);
+            var name_text = this.svg.text(char_group, null, null, '', this.nchart.name_style);
             // if(text_len > path_len) {
             //     //do voodoo here
-            //     svg.remove(name_text);
+            //     this.svg.remove(name_text);
             // } else {
-                //do a use
+            //do a use
             // }
-            p_jq.data('name_path', svg.textpath(name_text,
-                                                '#' + short_name,
-                                                c_nodes.character.name));
+            p_jq.data('name_path', this.svg.textpath(name_text,
+                                                     '#' + short_name,
+                                                     c_nodes.character.name));
             p_jq.data('name_len', name_text.getComputedTextLength());
         }
-        svg.change(g, {'transform': 'translate(' + x_offset + ',' + y_offset + '), scale(' + original_scale + ')'});
+        this.svg.change(g, {'transform': 'translate(' + this.start_x + ',' + this.start_y + '), scale(' + this.start_scale + ')'});
     };
 
     SvgDrawer.prototype.figure_scale = function() {
@@ -1110,6 +1111,7 @@
                 this.start_x = (width / 2) - (h_scale * this.nchart.graph.max_x / 2); + this.nchart.initial_padding.left;
                 this.start_y = this.nchart.initial_padding.top;
             }
+            this.translate = {'x': this.start_x, 'y': this.start_y};
         }
     }
 
@@ -1123,7 +1125,8 @@
         var self = this;
         this.nchart.paper.svg({
             'onLoad': function(svg) {
-                self.draw_curvy(svg, self.start_scale, self.start_x, self.start_y);
+                self.svg = svg;
+                self.draw_curvy();
             },
             'settings': {'width': this.nchart.paper.width(),
                          'height': this.nchart.paper.height()}
@@ -1231,17 +1234,11 @@
 
     SvgDrawer.prototype.attach_events = function() {
         var self = this;
-        var translate = {'x': this.start_x, 'y': this.start_y};
-        var svg = this.nchart.paper.svg('get');
-        var g = svg.getElementById('graph');
+        var g = this.svg.getElementById('graph');
         var width = this.nchart.paper.width();
         var height = this.nchart.paper.height();
-        var groups = {};
-        goog.object.forEach(this.nchart.group_styles, function(style, group) {
-            groups[group] = svg.getElementById(group);
-        });
 
-        this.nchart.paper.mousewheel(zoom_graph);
+        this.nchart.paper.mousewheel(this.zoom_graph());
         this.nchart.paper.dblclick(function(e) {
             var in_out;
             if(e.which == 1) {
@@ -1250,7 +1247,7 @@
                 in_out = -2;
             }
             if(in_out) {
-                zoom_graph(e, in_out);
+                (self.zoom_graph())(e, in_out);
             }
         });
 
@@ -1258,17 +1255,17 @@
         this.nchart.paper.mousedown(function(e) {
             mouse_position = {'x': e.pageX, 'y': e.pageY};
             original_translate = {};
-            goog.object.extend(original_translate, translate);
+            goog.object.extend(original_translate, self.translate);
             self.nchart.paper.mousemove(function(e) {
-                translate = {'x': original_translate.x + e.pageX - mouse_position.x,
-                             'y': original_translate.y + e.pageY - mouse_position.y};
+                self.translate = {'x': original_translate.x + e.pageX - mouse_position.x,
+                                  'y': original_translate.y + e.pageY - mouse_position.y};
 
-                svg.change(g, {'transform': 'translate(' + translate.x + ',' + translate.y + '), scale(' + self.scale + ')'});
-                var left_x = -translate.x / self.scale;
+                self.svg.change(g, {'transform': 'translate(' + self.translate.x + ',' + self.translate.y + '), scale(' + self.scale + ')'});
+                var left_x = -self.translate.x / self.scale;
                 var right_x = left_x + (width / self.scale);
-                var top_y = -translate.y / self.scale;
+                var top_y = -self.translate.y / self.scale;
                 var bottom_y = top_y + (height / self.scale);
-                $('path.character').each(move_name(left_x, right_x, top_y, bottom_y));
+                $('path.character').each(self.move_name(left_x, right_x, top_y, bottom_y));
             });
         });
 
@@ -1276,126 +1273,135 @@
             self.nchart.paper.unbind('mousemove');
         });
 
-        function zoom_graph(e, delta) {
+    }
+
+    SvgDrawer.prototype.zoom_graph = function() {
+        var self = this;
+        return function(e, delta) {
             var old_scale = self.scale;
+            var g = self.svg.getElementById('graph');
+            var groups = {};
+            goog.object.forEach(self.nchart.group_styles, function(style, group) {
+                groups[group] = self.svg.getElementById(group);
+            });
             self.scale = goog.math.clamp(self.scale * Math.pow(1.2, (delta / Math.abs(delta))),
                                          self.nchart.min_scale,
                                          self.nchart.max_scale);
             if(self.scale != old_scale) {
                 var k = self.scale / old_scale;
-                translate = {'x': e.pageX + (k * (translate.x - e.pageX)),
-                             'y': e.pageY + (k * (translate.y - e.pageY))};
-                svg.change(g, {'transform': 'translate(' + translate.x + ',' + translate.y + '), scale(' + self.scale + ')'});
+                self.translate = {'x': e.pageX + (k * (self.translate.x - e.pageX)),
+                                  'y': e.pageY + (k * (self.translate.y - e.pageY))};
+                self.svg.change(g, {'transform': 'translate(' + self.translate.x + ',' + self.translate.y + '), scale(' + self.scale + ')'});
                 if(self.scale > 1) {
                     goog.object.forEach(self.nchart.group_styles, function(style, group) {
-                        svg.change(groups[group], {'stroke-width': style['stroke-width'] / self.scale});
+                        self.svg.change(groups[group], {'stroke-width': style['stroke-width'] / self.scale});
                     });
                 }
-                var left_x = -translate.x / self.scale;
-                var right_x = left_x + (width / self.scale);
-                var top_y = -translate.y / self.scale;
-                var bottom_y = top_y + (height / self.scale);
-                $('path.character').each(move_name(left_x, right_x, top_y, bottom_y));
+                var left_x = -self.translate.x / self.scale;
+                var right_x = left_x + (self.nchart.paper.width() / self.scale);
+                var top_y = -self.translate.y / self.scale;
+                var bottom_y = top_y + (self.nchart.paper.height() / self.scale);
+                $('path.character').each(self.move_name(left_x, right_x, top_y, bottom_y));
             }
             return false;
         }
+    }
 
-        function move_name(left_x, right_x, top_y, bottom_y) {
-            left_x += self.nchart.name_padding.left;
-            top_y += self.nchart.name_padding.top;
-            bottom_y -= self.nchart.name_padding.bottom;
-            return function() {
-                var p = $(this);
-                var segments = p.data('segments');
-                var last_index = segments.length - 1;
+    SvgDrawer.prototype.move_name = function(left_x, right_x, top_y, bottom_y) {
+        var self = this;
+        left_x += this.nchart.name_padding.left;
+        top_y += this.nchart.name_padding.top;
+        bottom_y -= this.nchart.name_padding.bottom;
+        return function() {
+            var p = $(this);
+            var segments = p.data('segments');
+            var last_index = segments.length - 1;
 
-                if(left_x > segments[last_index].x_range[1]) {
-                    return;
-                }
+            if(left_x > segments[last_index].x_range[1]) {
+                return;
+            }
 
-                var p_len = p.data('length');
-                var name_len = p.data('name_len');
-                var skip_points = p.data('skip_points');
-                var max_offset = p_len - name_len;
-                var seg, start_offset, index;
-                var right_of_left = false;
+            var p_len = p.data('length');
+            var name_len = p.data('name_len');
+            var skip_points = p.data('skip_points');
+            var max_offset = p_len - name_len;
+            var seg, start_offset, index;
+            var right_of_left = false;
 
-                if(left_x < segments[0].x_range[0]) {
-                    seg = segments[0];
-                    index = 0;
-                    right_of_left = true;
-                } else if(left_x <= segments[last_index].x_range[1]) {
-                    index = goog.array.binarySearch(segments, left_x, segment_search);
-                    seg = segments[index];
-                }
-
-                var crossing_y, p_and_l;
-                if(seg.type == 'H') {
-                    crossing_y = seg.y_range[0];
-                    p_and_l = {'point': {'x': left_x, 'y': crossing_y},
-                               'length': seg.len_range[0] + left_x - seg.x_range[0]};
-                } else if(seg.type == 'C') {
-                    p_and_l = self.point_and_length_at_x(seg, left_x);
-                    crossing_y = p_and_l.point.y;
-                }
-
-                if(crossing_y >= top_y && crossing_y <= bottom_y) {
-                    start_offset = right_of_left ? 0 : Math.min(p_and_l.length, max_offset);
-                } else {
-                    while(!start_offset && seg && seg.x_range[0] < right_x) {
-                        if(seg.type == 'C') {
-                            var y_p_and_l;
-                            if(crossing_y < top_y && seg.y_range[1] >= top_y) {
-                                y_p_and_l = self.point_and_length_at_y(seg, top_y);
-                            } else if(crossing_y > bottom_y && seg.y_range[1] <= bottom_y) {
-                                y_p_and_l = self.point_and_length_at_y_neg(seg, bottom_y);
-                            }
-                            if(y_p_and_l) {
-                                start_offset = Math.min(y_p_and_l.length, max_offset);
-                            }
-                        }
-                        index++;
-                        seg = segments[index];
-                    }
-                }
-
-                if(!start_offset) {
-                    svg.change(p.data('name_path'), {'startOffset': start_offset});
-                    return;
-                }
-
-                var len_right = seg.len_range[1];
-                var segs = [seg];
-                index++;
+            if(left_x < segments[0].x_range[0]) {
+                seg = segments[0];
+                index = 0;
+                right_of_left = true;
+            } else if(left_x <= segments[last_index].x_range[1]) {
+                index = goog.array.binarySearch(segments, left_x, segment_search);
                 seg = segments[index];
-                while(seg && len_right < start_offset + name_len) {
-                    segs.push(seg);
-                    len_right = seg.len_range[1];
+            }
+
+            var crossing_y, p_and_l;
+            if(seg.type == 'H') {
+                crossing_y = seg.y_range[0];
+                p_and_l = {'point': {'x': left_x, 'y': crossing_y},
+                           'length': seg.len_range[0] + left_x - seg.x_range[0]};
+            } else if(seg.type == 'C') {
+                p_and_l = self.point_and_length_at_x(seg, left_x);
+                crossing_y = p_and_l.point.y;
+            }
+
+            if(crossing_y >= top_y && crossing_y <= bottom_y) {
+                start_offset = right_of_left ? 0 : Math.min(p_and_l.length, max_offset);
+            } else {
+                while(!start_offset && seg && seg.x_range[0] < right_x) {
+                    if(seg.type == 'C') {
+                        var y_p_and_l;
+                        if(crossing_y < top_y && seg.y_range[1] >= top_y) {
+                            y_p_and_l = self.point_and_length_at_y(seg, top_y);
+                        } else if(crossing_y > bottom_y && seg.y_range[1] <= bottom_y) {
+                            y_p_and_l = self.point_and_length_at_y_neg(seg, bottom_y);
+                        }
+                        if(y_p_and_l) {
+                            start_offset = Math.min(y_p_and_l.length, max_offset);
+                        }
+                    }
                     index++;
                     seg = segments[index];
                 }
+            }
 
-                for(var i=0; i<skip_points.length; i++) {
-                    var pt = skip_points[i];
-                    var pt_diam = pt[2];
-                    for(var j=0; j<segs.length; j++) {
-                        var s = segs[j];
-                        if(s.x_range[0] == pt[0]) {
-                            if(start_offset < s.len_range[0] + pt_diam) {
-                                start_offset = s.len_range[0] + pt_diam;
-                            }
-                        } else if(s.x_range[1] == pt[0]) {
-                            if(start_offset + name_len > s.len_range[1] - pt_diam) {
-                                start_offset = s.len_range[1] - name_len - pt_diam;
-                            }
+            if(!start_offset) {
+                self.svg.change(p.data('name_path'), {'startOffset': start_offset});
+                return;
+            }
+
+            var len_right = seg.len_range[1];
+            var segs = [seg];
+            index++;
+            seg = segments[index];
+            while(seg && len_right < start_offset + name_len) {
+                segs.push(seg);
+                len_right = seg.len_range[1];
+                index++;
+                seg = segments[index];
+            }
+
+            for(var i=0; i<skip_points.length; i++) {
+                var pt = skip_points[i];
+                var pt_diam = pt[2];
+                for(var j=0; j<segs.length; j++) {
+                    var s = segs[j];
+                    if(s.x_range[0] == pt[0]) {
+                        if(start_offset < s.len_range[0] + pt_diam) {
+                            start_offset = s.len_range[0] + pt_diam;
+                        }
+                    } else if(s.x_range[1] == pt[0]) {
+                        if(start_offset + name_len > s.len_range[1] - pt_diam) {
+                            start_offset = s.len_range[1] - name_len - pt_diam;
                         }
                     }
                 }
-                svg.change(p.data('name_path'), {'startOffset': start_offset});
-            };
-        }
+            }
+            self.svg.change(p.data('name_path'), {'startOffset': start_offset});
+        };
     }
-
 
     // Extend goog's Bezier curve implementation with a few enhancements
     $(function() {
