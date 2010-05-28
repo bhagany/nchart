@@ -327,27 +327,24 @@
     }
 
     NChart.prototype.neighborify = function() {
-        var l_orders = [];
         var childrens = [];
-        var order;
 
         function node_sort(a, b) {
-            return order[a.id] - order[b.id];
+            return a.pos - b.pos;
         }
 
         for(var i=0; i<this.graph.e_compaction.length; i++) {
             var L = this.graph.e_compaction[i];
             
-            var l_order = {};
             var last_childrens = childrens;
             childrens = [];
             for(var j=0; j<L.length; j++) {
                 var v = L[j];
-                l_order[v.id] = j;
 
-                order = l_orders[i - 1];
-                goog.array.stableSort(v.parents, node_sort);
-                childrens.push(v.children);
+                // Reset the pos, because the current configuration probably won't be the same as the last
+                // time through the crossing reduction
+                v.pos = j;
+                v.r_pos = L.length - j - 1;
 
                 if(j > 0) {
                     v.pred = L[j - 1];
@@ -355,19 +352,18 @@
                 if(j < L.length - 1) {
                     v.succ = L[j + 1];
                 }
-                l_order[v.id] = j;
 
-                // Reset the pos, because the current configuration probably won't be the same as the last
-                // time through the crossing reduction
-                v.pos = j;
-                v.r_pos = L.length - j - 1;
+                // Sort v's parents, which have already been assigned their pos
+                goog.array.stableSort(v.parents, node_sort);
+
+                // Save v's children, for sorting after the next i loop, when they will have their poses as well
+                childrens.push(v.children);
             }
 
+            // Sort the children arrays from the last i loop
             for(var j=0; j<last_childrens.length; j++) {
-                order = l_order;
                 goog.array.stableSort(last_childrens[j], node_sort);
             }
-            l_orders.push(l_order);
         }
     };
 
