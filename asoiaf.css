@@ -1,10 +1,11 @@
 body {
-  margin: 0;
-  padding: 0;
-  border: 0;
+    margin: 0;
+    padding: 20px;
+    border: 0;
 }
 
 #paper {
-  width: 99%;
-  height: 745px;
+    width: 99%;
+    height: 745px;
+    border: 1px solid black;
 }

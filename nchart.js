@@ -23,7 +23,6 @@
         conf = conf || {};
         this.node_spacing = conf.node_spacing ? conf.node_spacing : 50;
         this.sub_node_spacing = conf.sub_node_spacing ? conf.sub_node_spacing : 15;
-        this.start_x = conf.start_x ? conf.start_x : 100;
         this.slope_func = conf.slope_func ? conf.slope_func : function(edge) { return Math.max(1.5, 3.5 - (edge.weight / 7)); };
         this.group_styles = conf.group_styles ? conf.group_styles : {};
         if(!this.group_styles.default_group) {
@@ -56,12 +55,22 @@
                                                                'font-family': 'fantasy',
                                                                'font-size': '9',
                                                                'dy': '-2'};
-        this.name_padding = conf.name_padding ? conf.name_padding : {'left': 20,
-                                                                     'top': 20,
-                                                                     'bottom': 20};
+        this.name_padding = conf.name_padding ? conf.name_padding : {'top': 20,
+                                                                     'bottom': 20,
+                                                                     'left': 20};
+        this.initial_padding = conf.initial_padding ? conf.initial_padding : {'top': 20,
+                                                                              'right': 20,
+                                                                              'bottom': 20,
+                                                                              'left': 20};
+        goog.array.forEach(['top', 'right', 'bottom', 'left'], function(dir) {
+            self.initial_padding[dir] = self.initial_padding[dir] || 0;
+        });
         this.length_tolerance = conf.length_tolerance ? conf.length_tolerance : .1;
         this.max_scale = conf.max_scale ? conf.max_scale : 10;
         this.min_scale = conf.min_scale ? conf.min_scale : .05;
+        if(conf.start_scale && conf.start_scale != 'auto') {
+            this.start_scale = conf.start_scale;
+        }
 
         this.drawer = new SvgDrawer(this);
 
@@ -751,7 +760,7 @@
     };
 
     SvgDrawer.prototype.place_x = function() {
-        var last_x = this.nchart.start_x;
+        var last_x = 0;
         for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
             var L = this.nchart.graph.e_compaction[i];
             var max_y_diff = 0;
@@ -1085,33 +1094,45 @@
         svg.change(g, {'transform': 'translate(' + x_offset + ',' + y_offset + '), scale(' + original_scale + ')'});
     };
 
+    SvgDrawer.prototype.figure_scale = function() {
+        if(this.nchart.start_scale) {
+            this.start_scale = this.nchart.start_scale;
+        } else {
+            var width = this.nchart.paper.width() - this.nchart.initial_padding.left - this.nchart.initial_padding.right;
+            var height = this.nchart.paper.height() - this.nchart.initial_padding.top - this.nchart.initial_padding.bottom;
+            var w_scale = width / this.nchart.graph.max_x;
+            var h_scale = height / this.nchart.graph.max_y;
+            if(w_scale < h_scale) {
+                this.start_scale = w_scale;
+                this.start_x = this.nchart.initial_padding.left;
+                this.start_y = (height / 2) - (w_scale * this.nchart.graph.max_y / 2) + this.nchart.initial_padding.top;
+            } else {
+                this.start_scale = h_scale;
+                this.start_x = (width / 2) - (h_scale * this.nchart.graph.max_x / 2); + this.nchart.initial_padding.left;
+                this.start_y = this.nchart.initial_padding.top;
+            }
+        }
+    }
+
+
     SvgDrawer.prototype.draw_graph = function() {
         this.place_nodes();
+        this.figure_scale();
         this.nchart.paper.children().remove();
-        var body = $('body');
         var p_width = this.nchart.paper.width();
         var p_height = this.nchart.paper.height();
-        var w_scale = p_width / this.nchart.graph.max_x;
-        var h_scale = p_height / this.nchart.graph.max_y;
-        if(w_scale < h_scale) {
-            var original_scale = w_scale;
-            var x_offset = 0;
-            var y_offset = (p_height / 2) - (w_scale * this.nchart.graph.max_y / 2);
-        } else {
-            var original_scale = h_scale;
-            var x_offset = (p_width / 2) - (h_scale * this.nchart.graph.max_x / 2);
-            var y_offset = 0;
-        }
-        var scale = original_scale;
+        var scale = this.start_scale;
         var self = this;
         this.nchart.paper.svg({
-            'onLoad': function(svg) { self.draw_curvy(svg, original_scale, x_offset, y_offset); },
-            'settings': {'width': p_width,
-                         'height': p_height - 15}
+            'onLoad': function(svg) {
+                self.draw_curvy(svg, self.start_scale, self.start_x, self.start_y);
+            },
+            'settings': {'width': this.nchart.paper.width(),
+                         'height': this.nchart.paper.height()}
             }
         );
 
-        var translate = {'x': x_offset, 'y': y_offset};
+        var translate = {'x': this.start_x, 'y': this.start_y};
         var svg = this.nchart.paper.svg('get');
         var g = svg.getElementById('graph');
         var groups = {};
