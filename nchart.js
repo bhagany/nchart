@@ -294,10 +294,14 @@
             this.graph.layers.reverse();
         }
 
+        this.graph = best;
+    }
+
+    NChart.prototype.expand_compaction = function() {
         //Un-segmentify the compaction
-        best.e_compaction = [];
-        for(var i=0; i<best.compaction.length; i++) {
-            var L = best.compaction[i].slice(0);
+        this.graph.e_compaction = [];
+        for(var i=0; i<this.graph.compaction.length; i++) {
+            var L = this.graph.compaction[i].slice(0);
             for(var j=0; j<L.length; j++) {
                 var v = L[j];
                 if(v.segs) {
@@ -318,10 +322,8 @@
                     j--;
                 }
             }
-            best.e_compaction.push(L);
+            this.graph.e_compaction.push(L);
         }
-
-        this.graph = best;
     }
 
     NChart.prototype.neighborify = function() {
@@ -502,6 +504,7 @@
     }
 
     NChart.prototype.post_process = function() {
+        this.expand_compaction();
         this.neighborify();
         this.sort_sub_nodes();
     }
