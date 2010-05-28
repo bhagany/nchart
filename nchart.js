@@ -1119,7 +1119,7 @@
         this.nchart.paper.children().remove();
         var p_width = this.nchart.paper.width();
         var p_height = this.nchart.paper.height();
-        var scale = this.start_scale;
+        this.scale = this.start_scale;
         var self = this;
         this.nchart.paper.svg({
             'onLoad': function(svg) {
@@ -1130,116 +1130,176 @@
             }
         );
 
+        this.attach_events();
+    };
+
+    SvgDrawer.prototype.point_and_length_at_x = function(seg, x) {
+        var tol = this.nchart.length_tolerance;
+        var mid_x = (seg.x_range[0] + seg.x_range[1]) / 2;
+        var mid_len, left, right;
+
+        // Since we know the curve is symmetrical, we can do one iteration
+        // without going through the expensive math.
+        if(x < mid_x - tol) {
+            left = 0;
+            right = .5;
+        } else if(x > mid_x + tol) {
+            left = .5;
+            right = 1;
+        } else {
+            return {'point': {'x': mid_x, 'y': (seg.y_range[0] + seg.y_range[1]) / 2},
+                    'length': (seg.len_range[0] + seg.len_range[1]) / 2};
+        }
+        
+        while(true) {
+            mid_len = (left + right) / 2;
+            var mid_result = seg.bezier.getPoint(mid_len);
+            if(x < mid_result.x - tol) {
+                right = mid_len;
+            } else if(x > mid_result.x + tol) {
+                left = mid_len;
+            } else {
+                return {'point': mid_result,
+                        'length': seg.bezier.lengthAtPoint(mid_len) + seg.len_range[0]};
+            }
+        }
+    };
+
+    SvgDrawer.prototype.point_and_length_at_y = function(seg, y) {
+        var tol = this.nchart.length_tolerance;
+        var mid_y = (seg.y_range[0] + seg.y_range[1]) / 2;
+        var mid_len, left, right;
+
+        // Since we know the curve is symmetrical, we can do one iteration
+        // without going through the expensive math.
+        if(y < mid_y - tol) {
+            left = 0;
+            right = .5;
+        } else if(y > mid_y + tol) {
+            left = .5;
+            right = 1;
+        } else {
+            return {'point': {'x': (seg.x_range[0] + seg.x_range[1]) / 2, 'y': mid_y},
+                    'length': (seg.len_range[0] + seg.len_range[1]) / 2};
+        }
+        
+        while(true) {
+            mid_len = (left + right) / 2;
+            var mid_result = seg.bezier.getPoint(mid_len);
+            if(y < mid_result.y - tol) {
+                right = mid_len;
+            } else if(y > mid_result.y + tol) {
+                left = mid_len;
+            } else {
+                return {'point': mid_result,
+                        'length': seg.bezier.lengthAtPoint(mid_len) + seg.len_range[0]};
+            }
+        }
+    };
+
+    SvgDrawer.prototype.point_and_length_at_y_neg = function(seg, y) {
+        var tol = this.nchart.length_tolerance;
+        var mid_y = (seg.y_range[0] + seg.y_range[1]) / 2;
+        var mid_len, left, right;
+
+        // Since we know the curve is symmetrical, we can do one iteration
+        // without going through the expensive math.
+        if(y > mid_y + tol) {
+            left = 0;
+            right = .5;
+        } else if(y < mid_y - tol) {
+            left = .5;
+            right = 1;
+        } else {
+            return {'point': {'x': (seg.x_range[0] + seg.x_range[1]) / 2, 'y': mid_y},
+                    'length': (seg.len_range[0] + seg.len_range[1]) / 2};
+        }
+        
+        while(true) {
+            mid_len = (left + right) / 2;
+            var mid_result = seg.bezier.getPoint(mid_len);
+            if(y > mid_result.y + tol) {
+                right = mid_len;
+            } else if(y < mid_result.y - tol) {
+                left = mid_len;
+            } else {
+                return {'point': mid_result,
+                        'length': seg.bezier.lengthAtPoint(mid_len) + seg.len_range[0]};
+            }
+        }
+    };
+
+    SvgDrawer.prototype.attach_events = function() {
+        var self = this;
         var translate = {'x': this.start_x, 'y': this.start_y};
         var svg = this.nchart.paper.svg('get');
         var g = svg.getElementById('graph');
+        var width = this.nchart.paper.width();
+        var height = this.nchart.paper.height();
         var groups = {};
         goog.object.forEach(this.nchart.group_styles, function(style, group) {
             groups[group] = svg.getElementById(group);
         });
-        var old_scale;
 
-        function segment_search(a, b) {
-            return a > b.x_range[1] ? 1 : a < b.x_range[0] ? -1 : 0;
-        }
-
-        function point_and_length_at_x(seg, x) {
-            var tol = self.nchart.length_tolerance;
-            var mid_x = (seg.x_range[0] + seg.x_range[1]) / 2;
-            var mid_len, left, right;
-
-            // Since we know the curve is symmetrical, we can do one iteration
-            // without going through the expensive math.
-            if(x < mid_x - tol) {
-                left = 0;
-                right = .5;
-            } else if(x > mid_x + tol) {
-                left = .5;
-                right = 1;
-            } else {
-                return {'point': {'x': mid_x, 'y': (seg.y_range[0] + seg.y_range[1]) / 2},
-                        'length': (seg.len_range[0] + seg.len_range[1]) / 2};
+        this.nchart.paper.mousewheel(zoom_graph);
+        this.nchart.paper.dblclick(function(e) {
+            var in_out;
+            if(e.which == 1) {
+                in_out = 2;
+            } else if(e.which == 3) {
+                in_out = -2;
             }
-            
-            while(true) {
-                mid_len = (left + right) / 2;
-                var mid_result = seg.bezier.getPoint(mid_len);
-                if(x < mid_result.x - tol) {
-                    right = mid_len;
-                } else if(x > mid_result.x + tol) {
-                    left = mid_len;
-                } else {
-                    return {'point': mid_result,
-                            'length': seg.bezier.lengthAtPoint(mid_len) + seg.len_range[0]};
+            if(in_out) {
+                zoom_graph(e, in_out);
+            }
+        });
+
+        var mouse_position;
+        this.nchart.paper.mousedown(function(e) {
+            mouse_position = {'x': e.pageX, 'y': e.pageY};
+            original_translate = {};
+            goog.object.extend(original_translate, translate);
+            self.nchart.paper.mousemove(function(e) {
+                translate = {'x': original_translate.x + e.pageX - mouse_position.x,
+                             'y': original_translate.y + e.pageY - mouse_position.y};
+
+                svg.change(g, {'transform': 'translate(' + translate.x + ',' + translate.y + '), scale(' + self.scale + ')'});
+                var left_x = -translate.x / self.scale;
+                var right_x = left_x + (width / self.scale);
+                var top_y = -translate.y / self.scale;
+                var bottom_y = top_y + (height / self.scale);
+                $('path.character').each(move_name(left_x, right_x, top_y, bottom_y));
+            });
+        });
+
+        this.nchart.paper.mouseup(function(e) {
+            self.nchart.paper.unbind('mousemove');
+        });
+
+        function zoom_graph(e, delta) {
+            var old_scale = self.scale;
+            self.scale = goog.math.clamp(self.scale * Math.pow(1.2, (delta / Math.abs(delta))),
+                                         self.nchart.min_scale,
+                                         self.nchart.max_scale);
+            if(self.scale != old_scale) {
+                var k = self.scale / old_scale;
+                translate = {'x': e.pageX + (k * (translate.x - e.pageX)),
+                             'y': e.pageY + (k * (translate.y - e.pageY))};
+                svg.change(g, {'transform': 'translate(' + translate.x + ',' + translate.y + '), scale(' + self.scale + ')'});
+                if(self.scale > 1) {
+                    goog.object.forEach(self.nchart.group_styles, function(style, group) {
+                        svg.change(groups[group], {'stroke-width': style['stroke-width'] / self.scale});
+                    });
                 }
+                var left_x = -translate.x / self.scale;
+                var right_x = left_x + (width / self.scale);
+                var top_y = -translate.y / self.scale;
+                var bottom_y = top_y + (height / self.scale);
+                $('path.character').each(move_name(left_x, right_x, top_y, bottom_y));
             }
+            return false;
         }
 
-        function point_and_length_at_y(seg, y) {
-            var tol = self.nchart.length_tolerance;
-            var mid_y = (seg.y_range[0] + seg.y_range[1]) / 2;
-            var mid_len, left, right;
-
-            // Since we know the curve is symmetrical, we can do one iteration
-            // without going through the expensive math.
-            if(y < mid_y - tol) {
-                left = 0;
-                right = .5;
-            } else if(y > mid_y + tol) {
-                left = .5;
-                right = 1;
-            } else {
-                return {'point': {'x': (seg.x_range[0] + seg.x_range[1]) / 2, 'y': mid_y},
-                        'length': (seg.len_range[0] + seg.len_range[1]) / 2};
-            }
-            
-            while(true) {
-                mid_len = (left + right) / 2;
-                var mid_result = seg.bezier.getPoint(mid_len);
-                if(y < mid_result.y - tol) {
-                    right = mid_len;
-                } else if(y > mid_result.y + tol) {
-                    left = mid_len;
-                } else {
-                    return {'point': mid_result,
-                            'length': seg.bezier.lengthAtPoint(mid_len) + seg.len_range[0]};
-                }
-            }
-        }
-
-        function point_and_length_at_y_neg(seg, y) {
-            var tol = self.nchart.length_tolerance;
-            var mid_y = (seg.y_range[0] + seg.y_range[1]) / 2;
-            var mid_len, left, right;
-
-            // Since we know the curve is symmetrical, we can do one iteration
-            // without going through the expensive math.
-            if(y > mid_y + tol) {
-                left = 0;
-                right = .5;
-            } else if(y < mid_y - tol) {
-                left = .5;
-                right = 1;
-            } else {
-                return {'point': {'x': (seg.x_range[0] + seg.x_range[1]) / 2, 'y': mid_y},
-                        'length': (seg.len_range[0] + seg.len_range[1]) / 2};
-            }
-            
-            while(true) {
-                mid_len = (left + right) / 2;
-                var mid_result = seg.bezier.getPoint(mid_len);
-                if(y > mid_result.y + tol) {
-                    right = mid_len;
-                } else if(y < mid_result.y - tol) {
-                    left = mid_len;
-                } else {
-                    return {'point': mid_result,
-                            'length': seg.bezier.lengthAtPoint(mid_len) + seg.len_range[0]};
-                }
-            }
-        }
-
-        var self = this;
         function move_name(left_x, right_x, top_y, bottom_y) {
             left_x += self.nchart.name_padding.left;
             top_y += self.nchart.name_padding.top;
@@ -1275,7 +1335,7 @@
                     p_and_l = {'point': {'x': left_x, 'y': crossing_y},
                                'length': seg.len_range[0] + left_x - seg.x_range[0]};
                 } else if(seg.type == 'C') {
-                    p_and_l = point_and_length_at_x(seg, left_x);
+                    p_and_l = self.point_and_length_at_x(seg, left_x);
                     crossing_y = p_and_l.point.y;
                 }
 
@@ -1286,9 +1346,9 @@
                         if(seg.type == 'C') {
                             var y_p_and_l;
                             if(crossing_y < top_y && seg.y_range[1] >= top_y) {
-                                y_p_and_l = point_and_length_at_y(seg, top_y);
+                                y_p_and_l = self.point_and_length_at_y(seg, top_y);
                             } else if(crossing_y > bottom_y && seg.y_range[1] <= bottom_y) {
-                                y_p_and_l = point_and_length_at_y_neg(seg, bottom_y);
+                                y_p_and_l = self.point_and_length_at_y_neg(seg, bottom_y);
                             }
                             if(y_p_and_l) {
                                 start_offset = Math.min(y_p_and_l.length, max_offset);
@@ -1334,67 +1394,7 @@
                 svg.change(p.data('name_path'), {'startOffset': start_offset});
             };
         }
-
-        function zoom_graph(e, delta) {
-            old_scale = scale;
-            scale = goog.math.clamp(scale * Math.pow(1.2, (delta / Math.abs(delta))),
-                                    self.nchart.min_scale,
-                                    self.nchart.max_scale);
-            if(scale != old_scale) {
-                var k = scale / old_scale;
-                translate = {'x': e.pageX + (k * (translate.x - e.pageX)),
-                             'y': e.pageY + (k * (translate.y - e.pageY))};
-                svg.change(g, {'transform': 'translate(' + translate.x + ',' + translate.y + '), scale(' + scale + ')'});
-                if(scale > 1) {
-                    goog.object.forEach(self.nchart.group_styles, function(style, group) {
-                        svg.change(groups[group], {'stroke-width': style['stroke-width'] / scale});
-                    });
-                }
-                var left_x = -translate.x / scale;
-                var right_x = left_x + (p_width / scale);
-                var top_y = -translate.y / scale;
-                var bottom_y = top_y + (p_height / scale);
-                $('path.character').each(move_name(left_x, right_x, top_y, bottom_y));
-            }
-            return false;
-        }
-
-        this.nchart.paper.mousewheel(zoom_graph);
-        this.nchart.paper.dblclick(function(e) {
-            var in_out;
-            if(e.which == 1) {
-                in_out = 2;
-            } else if(e.which == 3) {
-                in_out = -2;
-            }
-            if(in_out) {
-                zoom_graph(e, in_out);
-            }
-        });
-
-        var mouse_position;
-        this.nchart.paper.mousedown(function(e) {
-            mouse_position = {'x': e.pageX, 'y': e.pageY};
-            original_translate = {};
-            goog.object.extend(original_translate, translate);
-            self.nchart.paper.mousemove(function(e) {
-                translate = {'x': original_translate.x + e.pageX - mouse_position.x,
-                             'y': original_translate.y + e.pageY - mouse_position.y};
-
-                svg.change(g, {'transform': 'translate(' + translate.x + ',' + translate.y + '), scale(' + scale + ')'});
-                var left_x = -translate.x / scale;
-                var right_x = left_x + (p_width / scale);
-                var top_y = -translate.y / scale;
-                var bottom_y = top_y + (p_height / scale);
-                $('path.character').each(move_name(left_x, right_x, top_y, bottom_y));
-            });
-        });
-
-        this.nchart.paper.mouseup(function(e) {
-            self.nchart.paper.unbind('mousemove');
-        });
-
-    };
+    }
 
 
     // Extend goog's Bezier curve implementation with a few enhancements
@@ -1970,6 +1970,10 @@
         next_layer.alt_L = make_alt_L(next_layer);
         var crossings = get_crossings(layer.L, next_layer.L, children, parents, last_pos);
         return [crossings, next_layer];
+    }
+
+    function segment_search(a, b) {
+        return a > b.x_range[1] ? 1 : a < b.x_range[0] ? -1 : 0;
     }
 
     window.NChart = NChart;
