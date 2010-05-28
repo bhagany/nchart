@@ -717,7 +717,7 @@
                                 alignments[2].y_coords[i][j],
                                 alignments[3].y_coords[i][j]];
                 v_coords.sort(function(a, b) { return a - b; });
-                // Set the y coordinate to be the average median (rounded) of the four alignments
+                // Set the y coordinate to be the rounded average median (yeah, that's right) of the four alignments
                 v.y = Math.round((v_coords[1] + v_coords[2]) / 2);
                 // v.y = alignments[0].y_coords[i][j];
                 min_y = Math.min(v.y, min_y);
@@ -740,18 +740,9 @@
         }
         this.nchart.graph.max_y = max_y;
 
-        for(var i=0; i<this.nchart.graph.char_nodes.length; i++) {
-            var c_nodes = this.nchart.graph.char_nodes[i];
-            var posen = 0;
-            for(var j=0; j<c_nodes.nodes.length; j++) {
-                posen += c_nodes.nodes[j].pos;
-            }
-            c_nodes.avg_pos = posen / j;
-        }
-
         this.place_x();
         this.nchart.graph.max_x = this.nchart.graph.e_compaction[this.nchart.graph.e_compaction.length - 1][0].x
-    }
+    };
 
     SvgDrawer.prototype.place_x = function() {
         var last_x = this.nchart.start_x;
@@ -779,8 +770,7 @@
             }
             last_x += Math.floor(Math.max(max_y_diff / use_slope, 100));
         }
-    }
-
+    };
 
     SvgDrawer.prototype.initialize_nodes = function(up_down) {
         for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
@@ -795,7 +785,7 @@
                 v.y = null;
             }
         }
-    }
+    };
 
     function draw_straight(svg, original_scale) {
         var g = svg.group('graph');
@@ -1086,7 +1076,7 @@
             p_jq.data('name_len', name_text.getComputedTextLength());
         }
         svg.change(g, {'transform': 'translate(' + x_offset + ',' + y_offset + '), scale(' + original_scale + ')'});
-    }
+    };
 
     SvgDrawer.prototype.draw_graph = function() {
         this.place_nodes();
@@ -1378,7 +1368,7 @@
             self.nchart.paper.unbind('mousemove');
         });
 
-    }
+    };
 
 
     // Extend goog's Bezier curve implementation with a few enhancements
