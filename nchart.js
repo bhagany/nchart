@@ -220,7 +220,7 @@
         });
 
         return {'layers': layers, 'char_nodes': char_nodes};
-    }
+    };
 
     NChart.prototype.order = function(graph) {
         var total_crossings;
@@ -295,7 +295,7 @@
         }
 
         this.graph = best;
-    }
+    };
 
     NChart.prototype.expand_compaction = function() {
         //Un-segmentify the compaction
@@ -324,7 +324,7 @@
             }
             this.graph.e_compaction.push(L);
         }
-    }
+    };
 
     NChart.prototype.neighborify = function() {
         var childrens = [];
@@ -425,85 +425,83 @@
             // Reset the graph sub node order
             for(var j=0; j<L.length; j++) {
                 var node = L[j];
-                if(node.draw) {
-                    if(node.nodes) {
-                        // If this is a segment, just reset the node position for all sub nodes;
-                        // sub node position is guaranteed to remain the same
-                        for(var k=0; k<node.sub_nodes.length; k++) {
-                            var sub_node = node.sub_nodes[k];
-                            last_pos[sub_node][0] = j;
-                        }
-                    } else {
+                if(node.nodes) {
+                    // If this is a segment, just reset the node position for all sub nodes;
+                    // sub node position is guaranteed to remain the same
+                    for(var k=0; k<node.sub_nodes.length; k++) {
+                        var sub_node = node.sub_nodes[k];
+                        last_pos[sub_node][0] = j;
+                    }
+                } else {
 
-                        function sub_node_compare(a, b) {
-                            if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
-                                return node.sub_node_pos[b][0]- node.sub_node_pos[a][0];
-                            } else {
-                                return node.sub_node_pos[b][1] - node.sub_node_pos[a][1];
-                            }
+                    function sub_node_compare(a, b) {
+                        if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
+                            return node.sub_node_pos[b][0]- node.sub_node_pos[a][0];
+                        } else {
+                            return node.sub_node_pos[b][1] - node.sub_node_pos[a][1];
                         }
+                    }
 
-                        node.sub_node_order = {};
+                    node.sub_node_order = {};
 
-                        var initials = [];
-                        for(var k=0; k<node.sub_nodes.length; k++) {
-                            var sub_node = node.sub_nodes[k];
-                            if(last_pos[sub_node]) {
-                                node.sub_node_pos[sub_node] = last_pos[sub_node];
-                            } else {
-                                node.sub_node_pos[sub_node] = [j,k,0];
-                                initials.push(sub_node);
-                            }
+                    var initials = [];
+                    for(var k=0; k<node.sub_nodes.length; k++) {
+                        var sub_node = node.sub_nodes[k];
+                        if(last_pos[sub_node]) {
+                            node.sub_node_pos[sub_node] = last_pos[sub_node];
+                        } else {
+                            node.sub_node_pos[sub_node] = [j,k,0];
+                            initials.push(sub_node);
                         }
-                        if(initials.length && initials.length != node.sub_nodes.length) {
-                            for(var k=0; k<node.initial_ordering.length; k++) {
-                                var group = node.initial_ordering[k];
-                                var initials_in_group = intersect(group, initials);
-                                if(initials_in_group.length && initials_in_group.length < group.length) {
-                                    var non_initials_in_group = goog.array.filter(group, function(sub_node) {
-                                        return !goog.array.contains(initials_in_group, sub_node);
-                                    });
-                                    goog.array.stableSort(non_initials_in_group, sub_node_compare);
-                                    var lowest_pos = node.sub_node_pos[non_initials_in_group[0]];
-                                    for(var l=0; l<initials_in_group.length; l++) {
-                                        var initial = initials_in_group[l];
-                                        node.sub_node_pos[initial] = lowest_pos.slice(0);
-                                        node.sub_node_pos[initial][2] = l + 1;
-                                    }
+                    }
+                    if(initials.length && initials.length != node.sub_nodes.length) {
+                        for(var k=0; k<node.initial_ordering.length; k++) {
+                            var group = node.initial_ordering[k];
+                            var initials_in_group = intersect(group, initials);
+                            if(initials_in_group.length && initials_in_group.length < group.length) {
+                                var non_initials_in_group = goog.array.filter(group, function(sub_node) {
+                                    return !goog.array.contains(initials_in_group, sub_node);
+                                });
+                                goog.array.stableSort(non_initials_in_group, sub_node_compare);
+                                var lowest_pos = node.sub_node_pos[non_initials_in_group[0]];
+                                for(var l=0; l<initials_in_group.length; l++) {
+                                    var initial = initials_in_group[l];
+                                    node.sub_node_pos[initial] = lowest_pos.slice(0);
+                                    node.sub_node_pos[initial][2] = l + 1;
                                 }
                             }
                         }
-                                    
-                        goog.array.stableSort(node.sub_nodes, function(a, b) {
-                            if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
-                                return node.sub_node_pos[a][0] - node.sub_node_pos[b][0];
-                            } else {
-                                return node.sub_node_pos[a][1] - node.sub_node_pos[b][1];
-                            }
-                        });
+                    }
+                    
+                    goog.array.stableSort(node.sub_nodes, function(a, b) {
+                        if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
+                            return node.sub_node_pos[a][0] - node.sub_node_pos[b][0];
+                        } else {
+                            return node.sub_node_pos[a][1] - node.sub_node_pos[b][1];
+                        }
+                    });
 
-                        for(var k=0; k<node.sub_nodes.length; k++) {
-                            var sub_node = node.sub_nodes[k];
-                            node.sub_node_order[sub_node] = k;
-                            last_pos[sub_node] = [j,k,0];
-                        }
-                        
-                        // Reset markedness
-                        for(var target_id in node.edges) {
-                            var edge = node.edges[target_id];
-                            edge.marked = this.graph.marked[node.id][target_id];
-                        }
+                    for(var k=0; k<node.sub_nodes.length; k++) {
+                        var sub_node = node.sub_nodes[k];
+                        node.sub_node_order[sub_node] = k;
+                        last_pos[sub_node] = [j,k,0];
+                    }
+                    
+                    // Reset markedness
+                    for(var target_id in node.edges) {
+                        var edge = node.edges[target_id];
+                        edge.marked = this.graph.marked[node.id][target_id];
                     }
                 }
             }
         }
-    }
+    };
 
     NChart.prototype.post_process = function() {
         this.expand_compaction();
         this.neighborify();
         this.sort_sub_nodes();
-    }
+    };
 
 
     function SvgDrawer(nchart) {
@@ -556,7 +554,7 @@
                 L.reverse();
             }
         }
-    }
+    };
 
     SvgDrawer.prototype.place_block = function(v, left_right, up_down) {
         if(v.y == null) {
@@ -607,7 +605,7 @@
                 w = w.align;
             } while(w != v);
         }
-    }
+    };
 
     SvgDrawer.prototype.compact_vertically = function(left_right, up_down) {
         for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
@@ -646,7 +644,7 @@
         }
         var width = max_coord - min_coord;
         return {'y_coords': y_coords, 'width': width, 'max_coord': max_coord, 'min_coord': min_coord};
-    }
+    };
 
     SvgDrawer.prototype.place_nodes = function() {
         var l_alignments = [];
