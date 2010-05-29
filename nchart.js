@@ -1119,8 +1119,6 @@
         this.place_nodes();
         this.figure_scale();
         this.nchart.paper.children().remove();
-        var p_width = this.nchart.paper.width();
-        var p_height = this.nchart.paper.height();
         this.scale = this.start_scale;
         var self = this;
         this.nchart.paper.svg({
@@ -1232,11 +1230,20 @@
         }
     };
 
+    SvgDrawer.prototype.adjust_graph = function() {
+        var g = this.svg.getElementById('graph');
+
+        this.svg.change(g, {'transform': 'translate(' + this.translate.x + ',' + this.translate.y + '), scale(' + this.scale + ')'});
+        var left_x = -this.translate.x / this.scale;
+        var right_x = left_x + (this.nchart.paper.width() / this.scale);
+        var top_y = -this.translate.y / this.scale;
+        var bottom_y = top_y + (this.nchart.paper.height() / this.scale);
+        $('path.character').each(this.move_name(left_x, right_x, top_y, bottom_y));
+    }
+
+
     SvgDrawer.prototype.attach_events = function() {
         var self = this;
-        var g = this.svg.getElementById('graph');
-        var width = this.nchart.paper.width();
-        var height = this.nchart.paper.height();
 
         this.nchart.paper.mousewheel(this.zoom_graph());
         this.nchart.paper.dblclick(function(e) {
@@ -1259,13 +1266,7 @@
             self.nchart.paper.mousemove(function(e) {
                 self.translate = {'x': original_translate.x + e.pageX - mouse_position.x,
                                   'y': original_translate.y + e.pageY - mouse_position.y};
-
-                self.svg.change(g, {'transform': 'translate(' + self.translate.x + ',' + self.translate.y + '), scale(' + self.scale + ')'});
-                var left_x = -self.translate.x / self.scale;
-                var right_x = left_x + (width / self.scale);
-                var top_y = -self.translate.y / self.scale;
-                var bottom_y = top_y + (height / self.scale);
-                $('path.character').each(self.move_name(left_x, right_x, top_y, bottom_y));
+                self.adjust_graph();
             });
         });
 
@@ -1279,7 +1280,6 @@
         var self = this;
         return function(e, delta) {
             var old_scale = self.scale;
-            var g = self.svg.getElementById('graph');
             var groups = {};
             goog.object.forEach(self.nchart.group_styles, function(style, group) {
                 groups[group] = self.svg.getElementById(group);
@@ -1291,17 +1291,12 @@
                 var k = self.scale / old_scale;
                 self.translate = {'x': e.pageX + (k * (self.translate.x - e.pageX)),
                                   'y': e.pageY + (k * (self.translate.y - e.pageY))};
-                self.svg.change(g, {'transform': 'translate(' + self.translate.x + ',' + self.translate.y + '), scale(' + self.scale + ')'});
                 if(self.scale > 1) {
                     goog.object.forEach(self.nchart.group_styles, function(style, group) {
                         self.svg.change(groups[group], {'stroke-width': style['stroke-width'] / self.scale});
                     });
                 }
-                var left_x = -self.translate.x / self.scale;
-                var right_x = left_x + (self.nchart.paper.width() / self.scale);
-                var top_y = -self.translate.y / self.scale;
-                var bottom_y = top_y + (self.nchart.paper.height() / self.scale);
-                $('path.character').each(self.move_name(left_x, right_x, top_y, bottom_y));
+                self.adjust_graph();
             }
             return false;
         }
