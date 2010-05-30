@@ -82,12 +82,12 @@
         this.order();
         this.post_process();
         return this;
-    }
+    };
 
     NChart.prototype.plot = function() {
         this.plotter.place_nodes();
         return this;
-    }
+    };
 
     NChart.prototype.draw = function() {
         this.drawer.draw_graph();
