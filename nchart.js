@@ -1380,16 +1380,16 @@
 
             for(var i=0; i<skip_points.length; i++) {
                 var pt = skip_points[i];
-                var pt_diam = pt[2];
+                var pt_rad = pt[2];
                 for(var j=0; j<segs.length; j++) {
                     var s = segs[j];
                     if(s.x_range[0] == pt[0]) {
-                        if(start_offset < s.len_range[0] + pt_diam) {
-                            start_offset = s.len_range[0] + pt_diam;
+                        if(start_offset < s.len_range[0] + pt_rad) {
+                            start_offset = s.len_range[0] + pt_rad;
                         }
                     } else if(s.x_range[1] == pt[0]) {
-                        if(start_offset + name_len > s.len_range[1] - pt_diam) {
-                            start_offset = s.len_range[1] - name_len - pt_diam;
+                        if(start_offset + name_len > s.len_range[1] - pt_rad) {
+                            start_offset = s.len_range[1] - name_len - pt_rad;
                         }
                     }
                 }
