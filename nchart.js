@@ -72,16 +72,25 @@
             this.start_scale = conf.start_scale;
         }
 
+        this.plotter = new Plotter(this);
         this.drawer = new SvgDrawer(this);
 
         this.graph = this.parse_layers(layers);
+    };
+
+    NChart.prototype.calc = function() {
         this.order();
         this.post_process();
-    };
+        return this;
+    }
+
+    NChart.prototype.plot = function() {
+        this.plotter.place_nodes();
+        return this;
+    }
 
     NChart.prototype.draw = function() {
         this.drawer.draw_graph();
-
         return this;
     };
 
@@ -513,11 +522,11 @@
     };
 
 
-    function SvgDrawer(nchart) {
+    function Plotter(nchart) {
         this.nchart = nchart;
     }
 
-    SvgDrawer.prototype.align_horizontally = function(left_right, up_down) {
+    Plotter.prototype.align_horizontally = function(left_right, up_down) {
         var align_to = left_right ? 'children' : 'parents';
         var pos = up_down ? 'r_pos' : 'pos';
         for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
@@ -565,7 +574,7 @@
         }
     };
 
-    SvgDrawer.prototype.place_block = function(v, left_right, up_down) {
+    Plotter.prototype.place_block = function(v, left_right, up_down) {
         if(v.y == null) {
             var seg_start = left_right ? 'q' : 'p';
             var pos, pred, shift_func, set_func;
@@ -616,7 +625,7 @@
         }
     };
 
-    SvgDrawer.prototype.compact_vertically = function(left_right, up_down) {
+    Plotter.prototype.compact_vertically = function(left_right, up_down) {
         for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
             var L = this.nchart.graph.e_compaction[i];
             for(var j=0; j<L.length; j++) {
@@ -658,7 +667,7 @@
         return {'y_coords': y_coords, 'width': width, 'max_coord': max_coord, 'min_coord': min_coord};
     };
 
-    SvgDrawer.prototype.place_nodes = function() {
+    Plotter.prototype.place_nodes = function() {
         var u_alignments = [];
         var d_alignments = [];
         this.alignments = [];
@@ -692,7 +701,7 @@
         this.place_x();
     };
 
-    SvgDrawer.prototype.normalize_alignments = function(u_alignments, d_alignments) {
+    Plotter.prototype.normalize_alignments = function(u_alignments, d_alignments) {
         // Choose narrowest alignment
         var narrowest = {'width': Infinity};
         for(var i=0; i<this.alignments.length; i++) {
@@ -721,7 +730,7 @@
         }
     };
 
-    SvgDrawer.prototype.place_y = function() {
+    Plotter.prototype.place_y = function() {
         // Set y coordinates
         var min_y = Infinity;
         var max_y = -Infinity;
@@ -758,7 +767,7 @@
         this.nchart.graph.max_y = max_y;
     };
 
-    SvgDrawer.prototype.place_x = function() {
+    Plotter.prototype.place_x = function() {
         var last_x = 0;
         for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
             var L = this.nchart.graph.e_compaction[i];
@@ -787,7 +796,7 @@
         this.nchart.graph.max_x = this.nchart.graph.e_compaction[this.nchart.graph.e_compaction.length - 1][0].x
     };
 
-    SvgDrawer.prototype.initialize_nodes = function(up_down) {
+    Plotter.prototype.initialize_nodes = function(up_down) {
         for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
             var L = this.nchart.graph.e_compaction[i];
             for(var j=0; j<L.length; j++) {
@@ -920,6 +929,10 @@
                 svg.change(e.target.nextElementSibling, {'stroke-width': 'inherit'});
             }
         });
+    }
+
+    function SvgDrawer(nchart) {
+        this.nchart = nchart;
     }
 
     SvgDrawer.prototype.draw_curvy = function() {
@@ -1116,7 +1129,6 @@
     }
 
     SvgDrawer.prototype.draw_graph = function() {
-        this.place_nodes();
         this.figure_scale();
         this.nchart.paper.children().remove();
         this.scale = this.start_scale;
