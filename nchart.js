@@ -1076,7 +1076,7 @@
                         if(last_pos[sub_node]) {
                             node.sub_node_pos[sub_node] = last_pos[sub_node];
                         } else {
-                            node.sub_node_pos[sub_node] = [j,k];
+                            node.sub_node_pos[sub_node] = [j,k,0];
                             initials.push(sub_node);
                         }
                     }
@@ -1093,16 +1093,19 @@
                                 for(var l=0; l<initials_in_group.length; l++) {
                                     var initial = initials_in_group[l];
                                     node.sub_node_pos[initial] = lowest_pos.slice(0);
+                                    node.sub_node_pos[initial][2] = l + 1;
                                 }
                             }
                         }
                     }
-                    
+
                     goog.array.stableSort(node.sub_nodes, function(a, b) {
                         if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
                             return node.sub_node_pos[a][0] - node.sub_node_pos[b][0];
-                        } else {
+                        } else if(node.sub_node_pos[a][1] != node.sub_node_pos[b][1]) {
                             return node.sub_node_pos[a][1] - node.sub_node_pos[b][1];
+                        } else {
+                            return node.sub_node_pos[a][2] - node.sub_node_pos[b][2];
                         }
                     });
 
@@ -1110,7 +1113,7 @@
                     for(var k=0; k<node.sub_nodes.length; k++) {
                         var sub_node = node.sub_nodes[k];
                         node.sub_node_order[sub_node] = k;
-                        last_pos[sub_node] = [j,k];
+                        last_pos[sub_node] = [j,k,0];
                     }
                     
                     // Reset markedness
