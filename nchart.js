@@ -10,6 +10,7 @@
 // Add name sliding to the straight line graph
 // Add centering to the straight line graph
 // Deal with names that are too long for their paths
+// Do only half bezier curves for r nodes
 
 (function(window) {
     goog.require('goog.array');
@@ -568,6 +569,10 @@
 
     //NChart.prototype.sub_measure_sort = NChart.prototype.sort_gen('sub_measure');
 
+    NChart.prototype.lowest_sub_pos_sort = function(a, b) {
+        return a.lowest_sub_pos - b.lowest_sub_pos;
+    };
+
     NChart.prototype.make_alt_L = function(next_layer, pq_num) {
         this.replace_q_nodes(next_layer, pq_num);
         // Step 6
@@ -871,6 +876,7 @@
                     j--;
                 }
             }
+            this.graph.layers[i].L = L;
             this.graph.e_compaction.push(L);
         }
     };
@@ -914,10 +920,107 @@
         }
     };
 
+    NChart.prototype.group_initial_nodes = function() {
+        var grouped_already = [];
+        var current_groups = [];
+        for(var i=0; i<this.graph.e_compaction.length; i++) {
+            var L = this.graph.e_compaction[i];
+            for(var j=0; j<L.length; j++) {
+                var node = L[j];
+                var child = node.children[0];
+
+                for(var k=0; k<current_groups.length; k++) {
+                    if(current_groups[k].node.layer.num < node.layer.num) {
+                        var groups = current_groups[k].groups;
+                        for(var l=0; l<groups.length; l++) {
+                            var group = groups[l];
+                            if(group.length == 1) {
+                                continue;
+                            }
+                            var intersection = intersect(group, node.sub_nodes);
+                            if(intersection.length && intersection.length != group.length) {
+                                for(var m=0; m<intersection.length; m++) {
+                                    group.splice(goog.array.indexOf(group, intersection[m]), 1);
+                                }
+                                groups.splice(l, 0, intersection);
+                                l++;
+                            }
+                        }
+                    }
+                }
+
+                if(node.parents.length == 0 &&
+                   node.children.length == 1 && 
+                   child.parents.length > 1 &&
+                   !goog.array.contains(grouped_already, child.id)) {
+                    var groups = [];
+                    for(var k=0; k<child.parents.length; k++) {
+                        groups = groups.concat(intersect(child.sub_nodes,
+                                                         child.parents[k].sub_nodes));;
+                    }
+                    current_groups.push({'node': child, 'groups': [groups]});
+
+                    grouped_already.push(child.id);
+                }
+            }
+        }
+        for(var i=0; i<current_groups.length; i++) {
+            var cg = current_groups[i];
+            var groupage = goog.array.flatten(cg.groups);
+            for(var j=0; j<cg.node.parents.length; j++) {
+                var parent = cg.node.parents[j];
+                parent.lowest_sub_pos = Infinity;
+                for(var k=0; k<parent.sub_nodes.length; k++) {
+                    parent.lowest_sub_pos = Math.min(parent.lowest_sub_pos,
+                                                     goog.array.indexOf(groupage, parent.sub_nodes[k]));
+                }
+            }
+            goog.array.stableSort(cg.node.parents, this.lowest_sub_pos_sort);
+            var parent_L = cg.node.parents[0].layer.L;
+            var insert_point = -1;
+            var to_insert = [];
+            for(var j=0; j<cg.node.parents.length; j++) {
+                var parent = cg.node.parents[j];
+                if(parent.parents.length) {
+                    if(insert_point < 0) {
+                        insert_point = goog.array.indexOf(parent_L, parent);
+                    }
+                    while(to_insert.length) {
+                        parent_L.splice(insert_point, 0, to_insert.pop());
+                    }
+                    insert_point++;
+                } else {
+                    var index = goog.array.indexOf(parent_L, parent);
+                    var insert = parent_L.splice(index, 1)[0];
+                    if(insert_point >= 0) {
+                        parent_L.splice(index < insert_point ? insert_point - 1 : insert_point, 0, insert);
+                    } else {
+                        to_insert.push(insert);
+                    }
+                }
+            }
+
+            if(to_insert.length) {
+                var L = cg.node.layer.L;
+                var node_index = goog.array.indexOf(L, cg.node);
+                if(node_index < L.length - 1) {
+                    var index = goog.array.indexOf(parent_L, L[node_index + 1].parents[0]);
+                } else if(node_index > 0) {
+                    var index = goog.array.indexOf(parent_L, L[node_index - 1].parents[L[node_index - 1].parents.length - 1]) + 1;
+                } else {
+                    var index = parent_L.length;
+                }
+
+                while(to_insert.length) {
+                    parent_L.splice(index, 0, to_insert.pop());
+                }
+            }
+        }
+    };
+
     NChart.prototype.group_sub_nodes = function() {
         var grouped_already = [];
         var current_groups = [];
-        var group_hash = {};
         for(var i=0; i<this.graph.e_compaction.length; i++) {
             var L = this.graph.e_compaction[i];
             for(var j=0; j<L.length; j++) {
@@ -942,17 +1045,15 @@
                 }
 
                 var initials = [];
-                var node_groups = {'node': node, 'groups': [node.sub_nodes.slice(0)]};
                 for(var k=0; k<node.sub_nodes.length; k++) {
                     var sub_node = node.sub_nodes[k];
                     if(!goog.array.contains(grouped_already, sub_node)) {
                         initials.push(sub_node);
-                        group_hash[sub_node] = node_groups;
                     }
                 }
 
                 if(initials.length) {
-                    current_groups.push(node_groups);
+                    current_groups.push({'node': node, 'groups': [node.sub_nodes.slice(0)]});
                     grouped_already = grouped_already.concat(initials);
                 }
             }
@@ -997,7 +1098,7 @@
                         if(last_pos[sub_node]) {
                             node.sub_node_pos[sub_node] = last_pos[sub_node];
                         } else {
-                            node.sub_node_pos[sub_node] = [j,k,0];
+                            node.sub_node_pos[sub_node] = [j,k];
                             initials.push(sub_node);
                         }
                     }
@@ -1014,7 +1115,6 @@
                                 for(var l=0; l<initials_in_group.length; l++) {
                                     var initial = initials_in_group[l];
                                     node.sub_node_pos[initial] = lowest_pos.slice(0);
-                                    node.sub_node_pos[initial][2] = l + 1;
                                 }
                             }
                         }
@@ -1031,7 +1131,7 @@
                     for(var k=0; k<node.sub_nodes.length; k++) {
                         var sub_node = node.sub_nodes[k];
                         node.sub_node_order[sub_node] = k;
-                        last_pos[sub_node] = [j,k,0];
+                        last_pos[sub_node] = [j,k];
                     }
                     
                     // Reset markedness
@@ -1046,10 +1146,10 @@
 
     NChart.prototype.post_process = function() {
         this.expand_compaction();
+        this.group_initial_nodes();
         this.neighborify();
         this.sort_sub_nodes();
     };
-
 
     function Plotter(nchart) {
         this.nchart = nchart;
