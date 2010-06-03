@@ -652,8 +652,13 @@
     };
 
     NChart.prototype.get_crossings = function(layer, L, children, parents) {
+        var sub_node_map = {};
+        for(var i=0; i<layer.sub_nodes.length; i++) {
+            sub_node_map[layer.sub_nodes[i]] = i;
+        }
+
         function sub_node_compare(a, b) {
-            return goog.array.indexOf(layer.sub_nodes, a) - goog.array.indexOf(layer.sub_nodes, b);
+            return sub_node_map[a] - sub_node_map[b];
         }
 
         var prev_L = layer.L
@@ -666,10 +671,12 @@
             var node = L[j];
             if(node.sub_nodes) {
                 if(node[parents] && node.draw) {
-                    goog.array.stableSort(node.sub_nodes, sub_node_compare);
+                    node.sub_nodes.sort(sub_node_compare);
                     for(var k=0; k<node.sub_nodes.length; k++) {
                         var sub_node = node.sub_nodes[k];
-                        L_sub_map[sub_node] = position;
+                        if(sub_node_map[sub_node]) {
+                            L_sub_map[sub_node] = position;
+                        }
                     }
                     L_map[node.id] = position;
                     position++;
