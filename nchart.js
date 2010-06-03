@@ -1000,11 +1000,10 @@
                 } else if(node_index > 0) {
                     do {
                         node_index--;
-                        var pred = L[node_index];
-                        var pred_parents = pred.parents;
+                        var pred_parents = L[node_index].parents;
                         var last_pred_parent = pred_parents[pred_parents.length - 1];
                         index = goog.array.indexOf(parent_L, last_pred_parent) + 1;
-                    } while(node_index && !L[node_index].parents.length);
+                    } while(node_index && !pred_parents.length);
 
                     if(!index) {
                         index = 0;
