@@ -12,7 +12,6 @@
                             'tommen', 'sandor', 'barristan', 'ilyn', 'petyr', 'varys', 'pycelle', 'gendry']},
              {'sub_nodes': ['tyrion', 'tywin', 'gregor']},
              {'sub_nodes': ['jon', 'ghost', 'jeor', 'aemon', 'sam']},
-             {'sub_nodes': ['beric']},
              {'sub_nodes': ['loras', 'renly']},
              {'sub_nodes': ['bran', 'rickon', 'summer', 'shaggydog']},
          ],
