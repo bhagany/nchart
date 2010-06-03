@@ -1,10 +1,6 @@
 // TODO:
 // Hinting for where you'd like to see nodes sorted
 // Show events
-// More intelligent insertion of p,q,r nodes?
-// Optimize?
-// Sorting in Step 2, a better measure
-// Do the y portion of name sliding
 // Test speed of alternate getting of segment lengths (not actually drawing, use tags, etc)
 // Support flipping x and y
 // Add name sliding to the straight line graph
@@ -12,6 +8,13 @@
 // Deal with names that are too long for their paths
 // Do only half bezier curves for r nodes
 // Take out unnecessary stableSorts
+// Debug options:
+//  wireframe
+//  up_left, up_right, down_left, down_right
+//  4_up
+//  4_up_wire
+//  alignments
+//  compaction
 
 (function(window) {
     goog.require('goog.array');
@@ -437,6 +440,8 @@
 
     NChart.prototype.make_L = function(layer, next_layer, p, q, parents) {
         this.replace_p_nodes(layer.alt_L, p);
+
+        // Step 2
         var LS = [];
         var pos = 0;
         for(var j=0; j<layer.alt_L.length; j+=2) {
@@ -484,10 +489,13 @@
                 for(var i=0; i<nodes.length; i++) {
                     var node = nodes[i];
                     var sub_pos = 0;
+                    // var sub_pos = Infinity;
                     for(var j=0; j<node.sub_nodes.length; j++) {
                         sub_pos += goog.array.indexOf(layer.sub_nodes, node.sub_nodes[j]);
+                        // sub_pos = Math.min(sub_pos, goog.array.indexOf(layer.sub_nodes, node.sub_nodes[j]));
                     }
                     node.sub_measure = sub_pos / node.sub_nodes.length;
+                    // node.sub_measure = sub_pos;
                 }
             }
         });
@@ -978,6 +986,7 @@
                     }
                     while(to_insert.length) {
                         parent_L.splice(insert_point, 0, to_insert.pop());
+                        insert_point++;
                     }
                     insert_point++;
                 } else {
