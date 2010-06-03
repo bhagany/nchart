@@ -994,12 +994,23 @@
             if(to_insert.length) {
                 var L = cg.node.layer.L;
                 var node_index = goog.array.indexOf(L, cg.node);
+                var index;
                 if(node_index < L.length - 1) {
-                    var index = goog.array.indexOf(parent_L, L[node_index + 1].parents[0]);
+                    index = goog.array.indexOf(parent_L, L[node_index + 1].parents[0]);
                 } else if(node_index > 0) {
-                    var index = goog.array.indexOf(parent_L, L[node_index - 1].parents[L[node_index - 1].parents.length - 1]) + 1;
+                    do {
+                        node_index--;
+                        var pred = L[node_index];
+                        var pred_parents = pred.parents;
+                        var last_pred_parent = pred_parents[pred_parents.length - 1];
+                        index = goog.array.indexOf(parent_L, last_pred_parent) + 1;
+                    } while(node_index && !L[node_index].parents.length);
+
+                    if(!index) {
+                        index = 0;
+                    }
                 } else {
-                    var index = parent_L.length;
+                    index = parent_L.length;
                 }
 
                 while(to_insert.length) {
