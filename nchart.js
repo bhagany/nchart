@@ -1246,7 +1246,8 @@
                         var u_size = 0;
                         var i = 0;
                         do {
-                            if(u_align.layer.num >= v.layer.num) {
+                            if((left_right && u_align.layer.num <= v.layer.num) ||
+                               (!left_right && u_align.layer.num >= v.layer.num)) {
                                 u_size = Math.max(u_size, u_align.size);
                                 i++;
                             }
