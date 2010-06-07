@@ -8,13 +8,7 @@
 // Deal with names that are too long for their paths
 // Do only half bezier curves for r nodes
 // Take out unnecessary stableSorts
-// Debug options:
-//  wireframe
-//  up_left, up_right, down_left, down_right
-//  4_up
-//  4_up_wire
-//  alignments
-//  compaction
+//  Display final number of crossings
 
 (function(window) {
     goog.require('goog.array');
@@ -75,6 +69,18 @@
         this.min_scale = conf.min_scale ? conf.min_scale : .05;
         if(conf.start_scale && conf.start_scale != 'auto') {
             this.start_scale = conf.start_scale;
+        }
+
+        this.debug = conf.debug ? conf.debug : null;
+        if(this.debug && !(this.debug.direction > 0 && this.debug.direction < 5)) {
+            var self = this;
+            goog.array.forEach(['blocks', 'classes'], function(feature) {
+                if(goog.array.contains(self.debug.features, feature)) {
+                    goog.array.remove(self.debug.features, feature);
+                    alert('Cannot draw ' + feature + ' without a direction');
+                }
+            });
+            delete this.debug.direction;
         }
 
         this.plotter = new Plotter(this);
@@ -1309,13 +1315,32 @@
         var d_alignments = [];
         this.alignments = [];
         var self = this;
-        goog.array.forEach([0, 1], function(left_right) {
+        var horiz_dirs = [0,1];
+        var vert_dirs = [0,1];
+
+        if(this.nchart.debug && this.nchart.debug.direction) {
+            if(this.nchart.debug.direction == 1) {
+                horiz_dirs = [0];
+                vert_dirs = [0];
+            } else if(this.nchart.debug.direction == 2) {
+                horiz_dirs = [1];
+                vert_dirs = [0];
+            } else if(this.nchart.debug.direction == 3) {
+                horiz_dirs = [0];
+                vert_dirs = [1];
+            } else if(this.nchart.debug.direction == 4) {
+                horiz_dirs = [1];
+                vert_dirs = [1];
+            }
+        }
+
+        goog.array.forEach(horiz_dirs, function(left_right) {
             if(left_right) {
                 self.nchart.graph.compaction.reverse();
                 self.nchart.graph.e_compaction.reverse();
                 self.nchart.graph.layers.reverse();
             }
-            goog.array.forEach([0, 1], function(up_down) {
+            goog.array.forEach(vert_dirs, function(up_down) {
                 self.initialize_nodes(up_down);
                 self.align_horizontally(left_right, up_down);
                 var alignment = self.compact_vertically(left_right, up_down);
@@ -1375,24 +1400,23 @@
             var L = this.nchart.graph.e_compaction[i];
             for(var j=0; j<L.length; j++) {
                 var v = L[j];
-                var v_coords = [this.alignments[0].y_coords[i][j],
-                                this.alignments[1].y_coords[i][j],
-                                this.alignments[2].y_coords[i][j],
-                                this.alignments[3].y_coords[i][j]];
-                v_coords.sort(function(a, b) { return a - b; });
-                // Set the y coordinate to be the rounded average median (yeah, that's right) of the four alignments
-                v.y = Math.round((v_coords[1] + v_coords[2]) / 2);
-                // v.y = this.alignments[0].y_coords[i][j];
+                if(!(this.nchart.debug && this.nchart.debug.direction)) {
+                    var v_coords = [this.alignments[0].y_coords[i][j],
+                                    this.alignments[1].y_coords[i][j],
+                                    this.alignments[2].y_coords[i][j],
+                                    this.alignments[3].y_coords[i][j]];
+                    v_coords.sort(function(a, b) { return a - b; });
+                    // Set the y coordinate to be the rounded average median (yeah, that's right) of the four alignments
+                    v.y = Math.round((v_coords[1] + v_coords[2]) / 2);
+                }
                 min_y = Math.min(v.y, min_y);
                 max_y = Math.max(v.y + ((v.size - 1) * this.nchart.sub_node_spacing), max_y);
             }
         }
 
         // For now, just make sure there's no negative y values
-        var width = max_y - min_y;
-        var center = width / 2;
-        if(min_y != 20) {
-            var shift = -min_y + 20;
+        if(min_y != this.nchart.initial_padding['top']) {
+            var shift = this.nchart.initial_padding['top'] - min_y;
             max_y += shift;
             for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
                 var L = this.nchart.graph.e_compaction[i];
@@ -1574,7 +1598,7 @@
 
     SvgDrawer.prototype.draw_curvy = function() {
         var self = this;
-        var g = this.svg.group('graph');
+        var g = this.svg.getElementById('graph');
         var groups = {};
         goog.object.forEach(this.nchart.group_styles, function(style, group) {
             groups[group] = self.svg.group(g, group, style);
@@ -1741,7 +1765,6 @@
                                                      c_nodes.character.name));
             p_jq.data('name_len', name_text.getComputedTextLength());
         }
-        this.svg.change(g, {'transform': 'translate(' + this.start_x + ',' + this.start_y + '), scale(' + this.start_scale + ')'});
     };
 
     SvgDrawer.prototype.figure_scale = function() {
@@ -1765,6 +1788,153 @@
         }
     };
 
+    SvgDrawer.prototype.wireframe = function() {
+        var g = this.svg.getElementById('graph');
+        for(var i=0; i<this.nchart.graph.layers.length; i++) {
+            var layer = this.nchart.graph.layers[i];
+            for(var j=0; j<layer.nodes.length; j++) {
+                var node = layer.nodes[j];
+                if(node.draw) {
+                    for(var k=0; k<node.children.length; k++) {
+                        var child = node.children[k];
+                        if(child.nodes) {
+                            child = child.nodes[1];
+                        }
+                        this.svg.path(g,
+                                      ['M', node.x, node.y, 'L', child.x, child.y].join(' '),
+                                      {'stroke': 'black',
+                                       'stroke-width': '3',
+                                       'stroke-linecap': 'round',
+                                       'stroke-linejoin': 'round',
+                                       'fill': 'none'});
+                    }
+                }
+            }
+        }
+    };
+
+    SvgDrawer.prototype.debug_nodes = function() {
+        var g = this.svg.getElementById('graph');
+        var node_fill;
+        for(var i=0; i<this.nchart.graph.layers.length; i++) {
+            var layer = this.nchart.graph.layers[i];
+            for(var j=0; j<layer.nodes.length; j++) {
+                var node = layer.nodes[j];
+                if(node.draw) {
+                    if(node.p) {
+                        node_fill = 'blue';
+                    } else if(node.q) {
+                        node_fill = 'green';
+                    } else if(node.r) {
+                        node_fill = 'yellow';
+                    } else {
+                        node_fill = 'red';
+                    }
+                    this.svg.circle(g, node.x, node.y, 15, {'fill': node_fill});
+                }
+            }
+        }
+    };
+
+    SvgDrawer.prototype.debug_blocks = function() {
+        var g = this.svg.getElementById('graph');
+
+        for(var i=0; i<this.nchart.graph.layers.length; i++) {
+            var layer = this.nchart.graph.layers[i];
+            for(var j=0; j<layer.L.length; j++) {
+                var v = layer.L[j];
+                if(v.root == v) {
+                    var w = v;
+                    do {
+                        w = w.align;
+                    } while(w.align != v);
+
+                    if(this.nchart.debug.direction % 2 == 0) {
+                        var dummy = v;
+                        v = w;
+                        w = dummy;
+                    }
+
+                    var left = v.x - 17;
+                    var top = v.y - 17;
+                    var width = w.x - v.x + 34;
+                    this.svg.rect(g, left, top, width, 34, 8, 8, {'fill': 'blue', 'opacity': '.25'});
+                }
+            }
+        }
+    };
+
+    SvgDrawer.prototype.debug_classes = function() {
+        var g = this.svg.getElementById('graph');
+
+        var sinks = {};
+        for(var i=0; i<this.nchart.graph.layers.length; i++) {
+            var layer = this.nchart.graph.layers[i];
+            for(var j=0; j<layer.L.length; j++) {
+                var v = layer.L[j];
+                goog.object.setIfUndefined(sinks, v.root.sink.id, {});
+                goog.object.setIfUndefined(sinks[v.root.sink.id], i, []);
+
+                if(!sinks[v.root.sink.id][i][0]) {
+                    sinks[v.root.sink.id][i][0] = v;
+                }
+
+                if(!sinks[v.root.sink.id][i][1] || sinks[v.root.sink.id][i][1].y < v.y) {
+                    sinks[v.root.sink.id][i][1] = v;
+                }
+            }
+        }
+
+        var self = this;
+        goog.object.forEach(sinks, function(layers) {
+            var forward = [];
+            var backward = [];
+            var last_vs;
+            goog.object.forEach(layers, function(vs) {
+                var left = vs[0].x - 22;
+                var top = vs[0].y - 22;
+                var bottom = vs[1].y + 22;
+
+                if(forward[forward.length - 1]) {
+                    var last_left = forward[forward.length - 1][0];
+                    var last_top = forward[forward.length - 1][1];
+                    if(last_top < top) {
+                        forward.push([last_left + 44, last_top]);
+                        forward.push([last_left + 44, top]);
+                    } else {
+                        forward.push([left, last_top]);
+                    }
+                }
+
+                forward.push([left, top]);
+
+                if(backward[backward.length - 1]) {
+                    var last_left = backward[backward.length - 1][0];
+                    var last_bottom = backward[backward.length - 1][1];
+                    if(last_bottom > bottom) {
+                        backward.push([last_left + 44, last_bottom]);
+                        backward.push([last_left + 44, bottom]);
+                    } else {
+                        backward.push([left, last_bottom]);
+                    }
+                }
+
+                backward.push([left, bottom]);
+                last_vs = vs;
+            });
+            
+            var right = last_vs[0].x + 22;
+            forward.push([right, last_vs[0].y - 22]);
+            backward.push([right, last_vs[1].y + 22]);
+
+            backward.reverse();
+            var poly = forward.concat(backward);
+
+            self.svg.polygon(g, poly, {'fill': 'green', 'opacity': '.15'});
+            self.svg.polygon(g, poly, {'stroke': 'black', 'stroke-width': 2, 'fill': 'none'});
+        });
+    };
+
     SvgDrawer.prototype.draw_graph = function() {
         this.figure_scale();
         this.nchart.paper.children().remove();
@@ -1773,7 +1943,24 @@
         this.nchart.paper.svg({
             'onLoad': function(svg) {
                 self.svg = svg;
-                self.draw_curvy();
+                var g = svg.group('graph');
+                self.svg.change(g, {'transform': 'translate(' + self.start_x + ',' + self.start_y + '), scale(' + self.start_scale + ')'});
+
+                if(self.nchart.debug && self.nchart.debug.wireframe) {
+                    self.wireframe();
+                } else {
+                    self.draw_curvy();
+                }
+
+                if(self.nchart.debug) {
+                    goog.array.forEach(self.nchart.debug.features, function(feature) {
+                        if(self['debug_' + feature]) {
+                            self['debug_' + feature]();
+                        } else {
+                            alert('Debug option "' + feature + '" not supported');
+                        }
+                    });
+                }
             },
             'settings': {'width': this.nchart.paper.width(),
                          'height': this.nchart.paper.height()}
