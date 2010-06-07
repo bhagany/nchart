@@ -1244,15 +1244,13 @@
                     if(!up_down && v[seg_start]) {
                         var u_align = u;
                         var u_size = 0;
-                        var i = 0;
                         do {
-                            if((left_right && u_align.layer.num <= v.layer.num) ||
-                               (!left_right && u_align.layer.num >= v.layer.num)) {
+                            if((left_right && u_align.layer.num <= v.layer.num && u_align.layer.num >= w.layer.num) ||
+                               (!left_right && u_align.layer.num >= v.layer.num && u_align.layer.num <= w.layer.num)) {
                                 u_size = Math.max(u_size, u_align.size);
-                                i++;
                             }
                             u_align = u_align.align;
-                        } while(i < v.span && u_align != u);
+                        } while(u_align != u);
                     } else {
                         u_size = w[pred].size;
                     }
