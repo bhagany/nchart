@@ -1219,47 +1219,21 @@
 
     Plotter.prototype.place_block = function(v, left_right, up_down) {
         if(v.y == null) {
-            var seg_start = left_right ? 'q' : 'p';
-            var pos, pred, shift_func, set_func;
-            if(up_down) {
-                pos = 'r_pos';
-                pred = 'succ';
-                shift_func = Math.max;
-                set_func = Math.min;
-            } else {
-                pos = 'pos';
-                pred = 'pred';
-                shift_func = Math.min;
-                set_func = Math.max;
-            }
             v.y = 0;
             var w = v;
             do {
-                if(w[pos] > 0) {
-                    var u = w[pred].root;
+                if(w[this.dir.pos] > 0) {
+                    var u = w[this.dir.pred].root;
                     this.place_block(u, left_right, up_down);
                     if(v.sink == v) {
                         v.sink = u.sink;
                     }
-                    if(!up_down && v[seg_start]) {
-                        var u_align = u;
-                        var u_size = 0;
-                        do {
-                            if((left_right && u_align.layer.num <= v.layer.num && u_align.layer.num >= w.layer.num) ||
-                               (!left_right && u_align.layer.num >= v.layer.num && u_align.layer.num <= w.layer.num)) {
-                                u_size = Math.max(u_size, u_align.size);
-                            }
-                            u_align = u_align.align;
-                        } while(u_align != u);
-                    } else {
-                        u_size = w[pred].size;
-                    }
-                    var delta = up_down ? this.nchart.sub_node_spacing * -w.size - this.nchart.node_spacing
-                        : this.nchart.sub_node_spacing * u_size + this.nchart.node_spacing;
+
                     if(v.sink != u.sink) {
-                        u.sink.shift = shift_func(u.sink.shift, v.y - u.y - delta);
+                        this.shift_all(u, v, w, left_right, up_down);
                     } else {
-                        v.y = set_func(v.y, u.y + delta);
+                        var delta = this.get_delta(u, v, w, left_right, up_down);
+                        v.y = this.dir.set_func(v.y, u.y + delta);
                     }
                 }
                 w = w.align;
@@ -1267,7 +1241,60 @@
         }
     };
 
+    Plotter.prototype.get_delta = function(u, v, w, left_right, up_down) {
+        var seg_start = left_right ? 'q' : 'p';
+        if(!up_down && v[seg_start]) {
+            var u_align = u;
+            var u_size = 0;
+            do {
+                if((left_right && u_align.layer.num <= v.layer.num && u_align.layer.num >= w.layer.num) ||
+                   (!left_right && u_align.layer.num >= v.layer.num && u_align.layer.num <= w.layer.num)) {
+                    u_size = Math.max(u_size, u_align.size);
+                }
+                u_align = u_align.align;
+            } while(u_align != u);
+        } else {
+            u_size = w[this.dir.pred].size;
+        }
+
+        return up_down ? this.nchart.sub_node_spacing * -w.size - this.nchart.node_spacing
+            : this.nchart.sub_node_spacing * u_size + this.nchart.node_spacing;
+    };
+
+
+    // This is a departure from the algorithm given by Brandes and Kopf, which doesn't
+    // account for the case of three or more stacked classes where one class may be completely
+    // isolated from another, and thus will not be shifted.  This can result in overlapping
+    // classes. To solve, we build up a hash of previously shifted sinks, and shift them all
+    // again whenever a shift happens.
+    Plotter.prototype.shift_all = function(u, v, w, left_right, up_down) {
+        this.shift(u, v, w, left_right, up_down);
+
+        var self = this;
+        goog.object.forEach(this.shifted, function(vs, u_id) {
+            if(u.id != u_id) {
+                goog.object.forEach(vs, function(uv) {
+                    self.shift(uv[0], uv[1], uv[2], left_right, up_down);
+                });
+            }
+        });
+
+        goog.object.setIfUndefined(this.shifted, u.id, {});
+        goog.object.setIfUndefined(this.shifted[u.id], v.id, [u, v, w]);
+    };
+
+    Plotter.prototype.shift = function(u, v, w, left_right, up_down) {
+        var delta = this.get_delta(u, v, w, left_right, up_down);
+        var prev_shift = 0;
+        if((up_down && v.sink.shift > -Infinity) || (!up_down && v.sink.shift < Infinity)) {
+            prev_shift = v.sink.shift;
+        }
+        u.sink.shift = this.dir.shift_func(u.sink.shift, v.y - u.y - delta + prev_shift);
+    };
+
     Plotter.prototype.compact_vertically = function(left_right, up_down) {
+        this.shifted = {};
+
         for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
             var L = this.nchart.graph.e_compaction[i];
             for(var j=0; j<L.length; j++) {
@@ -1310,10 +1337,9 @@
     };
 
     Plotter.prototype.place_nodes = function() {
+        this.alignments = [];
         var u_alignments = [];
         var d_alignments = [];
-        this.alignments = [];
-        var self = this;
         var horiz_dirs = [0,1];
         var vert_dirs = [0,1];
 
@@ -1333,15 +1359,13 @@
             }
         }
 
+        var self = this;
         goog.array.forEach(horiz_dirs, function(left_right) {
-            if(left_right) {
-                self.nchart.graph.compaction.reverse();
-                self.nchart.graph.e_compaction.reverse();
-                self.nchart.graph.layers.reverse();
-            }
+            self.right_reverse(left_right);
             goog.array.forEach(vert_dirs, function(up_down) {
-                self.initialize_nodes(up_down);
+                self.initialize(up_down);
                 self.align_horizontally(left_right, up_down);
+
                 var alignment = self.compact_vertically(left_right, up_down);
                 self.alignments.push(alignment);
                 if(up_down) {
@@ -1350,16 +1374,20 @@
                     u_alignments.push(alignment);                    
                 }
             });
-            if(left_right) {
-                self.nchart.graph.compaction.reverse();
-                self.nchart.graph.e_compaction.reverse();
-                self.nchart.graph.layers.reverse();
-            }
+            self.right_reverse(left_right);
         });
 
         this.normalize_alignments(u_alignments, d_alignments);
         this.place_y();
         this.place_x();
+    };
+
+    Plotter.prototype.right_reverse = function(left_right) {
+        if(left_right) {
+            this.nchart.graph.compaction.reverse();
+            this.nchart.graph.e_compaction.reverse();
+            this.nchart.graph.layers.reverse();
+        }
     };
 
     Plotter.prototype.normalize_alignments = function(u_alignments, d_alignments) {
@@ -1456,7 +1484,20 @@
         this.nchart.graph.max_x = this.nchart.graph.e_compaction[this.nchart.graph.e_compaction.length - 1][0].x
     };
 
-    Plotter.prototype.initialize_nodes = function(up_down) {
+    Plotter.prototype.initialize = function(up_down) {
+        this.dir = {};
+        if(up_down) {
+            this.dir.pos = 'r_pos';
+            this.dir.pred = 'succ';
+            this.dir.shift_func = Math.max;
+            this.dir.set_func = Math.min;
+        } else {
+            this.dir.pos = 'pos';
+            this.dir.pred = 'pred';
+            this.dir.shift_func = Math.min;
+            this.dir.set_func = Math.max;
+        }
+
         for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
             var L = this.nchart.graph.e_compaction[i];
             for(var j=0; j<L.length; j++) {
