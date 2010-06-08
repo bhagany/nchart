@@ -8,7 +8,12 @@
 // Deal with names that are too long for their paths
 // Do only half bezier curves for r nodes
 // Take out unnecessary stableSorts
+// Fix Aeron and Victarion crossing Essos line
+// Debug:
 //  Display final number of crossings
+//  Highlight and info on mouseover for debug stuff
+//  Show anchors
+//  Step-through of crossing reduction
 
 (function(window) {
     goog.require('goog.array');
@@ -83,8 +88,8 @@
             delete this.debug.direction;
         }
 
-        this.plotter = new Plotter(this);
-        this.drawer = new SvgDrawer(this);
+        this.plotter = conf.plotter ? new conf.plotter(this) : new Plotter(this);
+        this.drawer = conf.drawer ? new conf.drawer(this) : new SvgDrawer(this);
 
         this.graph = this.parse_layers(layers);
     };
@@ -414,7 +419,7 @@
             a++;
         } while(a < 21);
 
-        if(a % 2) {
+        if(reverse) {
             this.graph.layers.reverse();
         }
 
@@ -1171,7 +1176,6 @@
 
     Plotter.prototype.align_horizontally = function(left_right, up_down) {
         var align_to = left_right ? 'children' : 'parents';
-        var pos = up_down ? 'r_pos' : 'pos';
         for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
             var L = this.nchart.graph.e_compaction[i];
             if(up_down) {
@@ -1198,11 +1202,11 @@
                         if(v.align == v) {
                             var n = parent_arr[m];
                             var edge = v.edges[n.id];
-                            if((!edge || !edge.marked) && r < n[pos]) {
+                            if((!edge || !edge.marked) && r < n[this.dir.pos]) {
                                 n.align = v;
                                 v.root = n.root;
                                 v.align = v.root;
-                                r = n[pos];
+                                r = n[this.dir.pos];
                             }
                         }
                     }
