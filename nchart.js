@@ -9,13 +9,17 @@
 // Do only half bezier curves for r nodes
 // Take out unnecessary stableSorts
 // Fix Aeron and Victarion crossing Essos line
+// Disappearances (alongside deaths and undeaths) - create a general configurable thing?
 // Debug:
 //  Display final number of crossings
 //  Highlight and info on mouseover for debug stuff
 //  Show anchors
 //  Step-through of crossing reduction
+// If we're going to reorder paths, they can't be in a group for each type (default, pov, etc)
+// Rejigger paths - put one in the defs, use an invisible one for the name sliding
 
 (function(window) {
+
     goog.require('goog.array');
     goog.require('goog.object');
     goog.require('goog.math.Bezier');
@@ -1642,6 +1646,7 @@
 
     NChart.SvgDrawer.prototype.draw_curvy = function() {
         var self = this;
+        var defs = this.svg.getElementById('path_defs');
         var g = this.svg.getElementById('graph');
         var groups = {};
         goog.object.forEach(this.nchart.group_styles, function(style, group) {
@@ -1654,7 +1659,6 @@
             var last = {'x': c_nodes.nodes[0].x,
                         'y': c_nodes.nodes[0].y + c_nodes.nodes[0].sub_node_order[short_name]
                         * this.nchart.sub_node_spacing};
-            var edge_arr = ['M', last.x, last.y];
             var start = 'M' + last.x + ' ' + last.y;
             var deaths = [];
             var undeaths = [];
@@ -1674,7 +1678,6 @@
                     horiz = last.y == edge_y;
                     if(horiz) {
                         if(last_horiz) {
-                            edge_arr[edge_arr.length - 1] = end_x;
                             last_segment.x_range[1] = end_x;
                             last_segment.d[1] = end_x;
                         } else {
@@ -1693,9 +1696,6 @@
                                        'bezier': new goog.math.Bezier(last.x, last.y, last.x + bend, last.y, node.x - bend, edge_y, node.x, edge_y)});
                         last_horiz = false;
                     }
-                    if(this_seg.length) {
-                        edge_arr = edge_arr.concat(this_seg);
-                    }
 
                     if(dead) {
                         if(last_horiz) {
@@ -1706,7 +1706,6 @@
                     }
                 }
                 if(node.duration && !horiz) {
-                    edge_arr.push('H', end_x);
                     if(dead) {
                         dead_arr.push('H', end_x);
                     }
@@ -1863,18 +1862,20 @@
         for(var i=0; i<this.nchart.graph.layers.length; i++) {
             var layer = this.nchart.graph.layers[i];
             for(var j=0; j<layer.nodes.length; j++) {
-                var node = layer.nodes[j];
-                if(node.draw) {
-                    if(node.p) {
+                var v = layer.nodes[j];
+                if(v.draw) {
+                    if(v.p) {
                         node_fill = 'blue';
-                    } else if(node.q) {
+                    } else if(v.q) {
                         node_fill = 'green';
-                    } else if(node.r) {
+                    } else if(v.r) {
                         node_fill = 'yellow';
                     } else {
                         node_fill = 'red';
                     }
-                    this.svg.circle(g, node.x, node.y, 15, {'fill': node_fill});
+                    var node = this.svg.circle(g, v.x, v.y, 15, {'fill': node_fill,
+                                                                 'id': 'node_' + v.id,
+                                                                 'class': 'debug_node class_' + v.root.sink.id + ' block_' + v.root.id});
                 }
             }
         }
@@ -1902,35 +1903,55 @@
                     var left = v.x - 17;
                     var top = v.y - 17;
                     var width = w.x - v.x + 34;
-                    this.svg.rect(g, left, top, width, 34, 8, 8, {'fill': 'blue', 'opacity': '.25'});
-                }
-            }
-        }
-    };
 
-    NChart.SvgDrawer.prototype.debug_classes = function() {
-        var g = this.svg.getElementById('graph');
-
-        var sinks = {};
-        for(var i=0; i<this.nchart.graph.layers.length; i++) {
-            var layer = this.nchart.graph.layers[i];
-            for(var j=0; j<layer.L.length; j++) {
-                var v = layer.L[j];
-                goog.object.setIfUndefined(sinks, v.root.sink.id, {});
-                goog.object.setIfUndefined(sinks[v.root.sink.id], i, []);
-
-                if(!sinks[v.root.sink.id][i][0]) {
-                    sinks[v.root.sink.id][i][0] = v;
-                }
-
-                if(!sinks[v.root.sink.id][i][1] || sinks[v.root.sink.id][i][1].y < v.y) {
-                    sinks[v.root.sink.id][i][1] = v;
+                    var dblock = this.svg.rect(g, left, top, width, 34, 8, 8, {'fill': 'blue',
+                                                                               'opacity': '.25',
+                                                                               'id': 'block_' + v.root.id,
+                                                                               'class': 'debug_block class_' + v.root.sink.id});
+                    $(dblock).data('root', 'node_' + v.root.id);
                 }
             }
         }
 
         var self = this;
-        goog.object.forEach(sinks, function(layers) {
+        $('.debug_block').mouseenter(function(e) {
+            self.svg.change(this, {'fill': 'yellow'});
+            if(goog.array.contains(self.nchart.debug.features, 'nodes')) {
+                var root = self.svg.getElementById($(this).data('root'));
+                self.svg.change(root, {'r': 40, 'stroke': 'black', 'stroke-width': 7});
+            }
+        }).mouseleave(function(e) {
+            self.svg.change(this, {'fill': 'blue'});
+            if(goog.array.contains(self.nchart.debug.features, 'nodes')) {
+                var root = self.svg.getElementById($(this).data('root'));
+                self.svg.change(root, {'r': 15, 'stroke': 'none'});
+            }
+        });
+    };
+
+    NChart.SvgDrawer.prototype.debug_classes = function() {
+        var g = this.svg.getElementById('graph');
+
+        var classes = {};
+        for(var i=0; i<this.nchart.graph.layers.length; i++) {
+            var layer = this.nchart.graph.layers[i];
+            for(var j=0; j<layer.L.length; j++) {
+                var v = layer.L[j];
+                goog.object.setIfUndefined(classes, v.root.sink.id, {});
+                goog.object.setIfUndefined(classes[v.root.sink.id], i, []);
+
+                if(!classes[v.root.sink.id][i][0]) {
+                    classes[v.root.sink.id][i][0] = v;
+                }
+
+                if(!classes[v.root.sink.id][i][1] || classes[v.root.sink.id][i][1].y < v.y) {
+                    classes[v.root.sink.id][i][1] = v;
+                }
+            }
+        }
+
+        var self = this;
+        goog.object.forEach(classes, function(layers, sink_id) {
             var forward = [];
             var backward = [];
             var last_vs;
@@ -1974,8 +1995,26 @@
             backward.reverse();
             var poly = forward.concat(backward);
 
-            self.svg.polygon(g, poly, {'fill': 'green', 'opacity': '.15'});
+            var dclass = self.svg.polygon(g, poly, {'fill': 'green',
+                                                    'opacity': '.15',
+                                                    'id': 'class_' + sink_id,
+                                                    'class': 'debug_class'});
+            $(dclass).data('sink', 'node_' + sink_id);
             self.svg.polygon(g, poly, {'stroke': 'black', 'stroke-width': 2, 'fill': 'none'});
+        });
+
+        $('.debug_class').mouseenter(function(e) {
+            self.svg.change(this, {'fill': 'yellow'});
+            if(goog.array.contains(self.nchart.debug.features, 'nodes')) {
+                var sink = self.svg.getElementById($(this).data('sink'));
+                self.svg.change(sink, {'r': 40, 'stroke': 'black', 'stroke-width': 7});
+            }
+        }).mouseleave(function(e) {
+            self.svg.change(this, {'fill': 'green'});
+            if(goog.array.contains(self.nchart.debug.features, 'nodes')) {
+                var sink = self.svg.getElementById($(this).data('sink'));
+                self.svg.change(sink, {'r': 15, 'stroke': 'none'});
+            }
         });
     };
 
@@ -1987,6 +2026,7 @@
         this.nchart.paper.svg({
             'onLoad': function(svg) {
                 self.svg = svg;
+                svg.defs('path_defs');
                 var g = svg.group('graph');
                 self.svg.change(g, {'transform': 'translate(' + self.start_x + ',' + self.start_y + '), scale(' + self.start_scale + ')'});
 
@@ -1997,6 +2037,10 @@
                 }
 
                 if(self.nchart.debug) {
+                    var defs = svg.defs('debug_defs');
+                    var inner_glow = svg.filter(defs, 'inner_glow');
+                    svg.filters.gaussianBlur(inner_glow, 'blur', null, 6);
+                    svg.filters.composite(inner_glow, 'composite_blur', 'arithmetic', 'blur', 'SourceGraphic', 0, -1, 1);
                     goog.array.forEach(self.nchart.debug.features, function(feature) {
                         if(self['debug_' + feature]) {
                             self['debug_' + feature]();

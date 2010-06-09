@@ -1,8 +1,8 @@
 window.asoiaf = {};
 
 $(function() {
-    var debug = {'direction': 4, 'features': ['nodes', 'classes', 'blocks'], 'wireframe': false};
+    var debug = {'direction': 3, 'features': ['nodes', 'classes', 'blocks'], 'wireframe': false};
     var conf = {'group_styles': {'pov': {'stroke-width': 3}},
-                'debug': debug};
+                'debug': null};
     var chart = new NChart('paper', asoiaf.characters, asoiaf.layers, conf).calc().plot().draw();
 });
