@@ -88,8 +88,8 @@
             delete this.debug.direction;
         }
 
-        this.plotter = conf.plotter ? new conf.plotter(this) : new Plotter(this);
-        this.drawer = conf.drawer ? new conf.drawer(this) : new SvgDrawer(this);
+        this.plotter = conf.plotter ? new conf.plotter(this) : new NChart.Plotter(this);
+        this.drawer = conf.drawer ? new conf.drawer(this) : new NChart.SvgDrawer(this);
 
         this.graph = this.parse_layers(layers);
     };
@@ -1170,11 +1170,11 @@
         this.sort_sub_nodes();
     };
 
-    function Plotter(nchart) {
+    NChart.Plotter = function(nchart) {
         this.nchart = nchart;
     }
 
-    Plotter.prototype.align_horizontally = function(left_right, up_down) {
+    NChart.Plotter.prototype.align_horizontally = function(left_right, up_down) {
         var align_to = left_right ? 'children' : 'parents';
         for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
             var L = this.nchart.graph.e_compaction[i];
@@ -1221,7 +1221,7 @@
         }
     };
 
-    Plotter.prototype.place_block = function(v, left_right, up_down) {
+    NChart.Plotter.prototype.place_block = function(v, left_right, up_down) {
         if(v.y == null) {
             v.y = 0;
             var w = v;
@@ -1245,7 +1245,7 @@
         }
     };
 
-    Plotter.prototype.get_delta = function(u, v, w, left_right, up_down) {
+    NChart.Plotter.prototype.get_delta = function(u, v, w, left_right, up_down) {
         var seg_start = left_right ? 'q' : 'p';
         if(!up_down && v[seg_start]) {
             var u_align = u;
@@ -1271,7 +1271,7 @@
     // isolated from another, and thus will not be shifted.  This can result in overlapping
     // classes. To solve, we build up a hash of previously shifted sinks, and shift them all
     // again whenever a shift happens.
-    Plotter.prototype.shift_all = function(u, v, w, left_right, up_down) {
+    NChart.Plotter.prototype.shift_all = function(u, v, w, left_right, up_down) {
         this.shift(u, v, w, left_right, up_down);
 
         var self = this;
@@ -1287,7 +1287,7 @@
         goog.object.setIfUndefined(this.shifted[u.id], v.id, [u, v, w]);
     };
 
-    Plotter.prototype.shift = function(u, v, w, left_right, up_down) {
+    NChart.Plotter.prototype.shift = function(u, v, w, left_right, up_down) {
         var delta = this.get_delta(u, v, w, left_right, up_down);
         var prev_shift = 0;
         if((up_down && v.sink.shift > -Infinity) || (!up_down && v.sink.shift < Infinity)) {
@@ -1296,7 +1296,7 @@
         u.sink.shift = this.dir.shift_func(u.sink.shift, v.y - u.y - delta + prev_shift);
     };
 
-    Plotter.prototype.compact_vertically = function(left_right, up_down) {
+    NChart.Plotter.prototype.compact_vertically = function(left_right, up_down) {
         this.shifted = {};
 
         for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
@@ -1340,7 +1340,7 @@
         return {'y_coords': y_coords, 'width': width, 'max_coord': max_coord, 'min_coord': min_coord};
     };
 
-    Plotter.prototype.place_nodes = function() {
+    NChart.Plotter.prototype.place_nodes = function() {
         this.alignments = [];
         var u_alignments = [];
         var d_alignments = [];
@@ -1386,7 +1386,7 @@
         this.place_x();
     };
 
-    Plotter.prototype.right_reverse = function(left_right) {
+    NChart.Plotter.prototype.right_reverse = function(left_right) {
         if(left_right) {
             this.nchart.graph.compaction.reverse();
             this.nchart.graph.e_compaction.reverse();
@@ -1394,7 +1394,7 @@
         }
     };
 
-    Plotter.prototype.normalize_alignments = function(u_alignments, d_alignments) {
+    NChart.Plotter.prototype.normalize_alignments = function(u_alignments, d_alignments) {
         // Choose narrowest alignment
         var narrowest = {'width': Infinity};
         for(var i=0; i<this.alignments.length; i++) {
@@ -1423,7 +1423,7 @@
         }
     };
 
-    Plotter.prototype.place_y = function() {
+    NChart.Plotter.prototype.place_y = function() {
         // Set y coordinates
         var min_y = Infinity;
         var max_y = -Infinity;
@@ -1459,7 +1459,7 @@
         this.nchart.graph.max_y = max_y;
     };
 
-    Plotter.prototype.place_x = function() {
+    NChart.Plotter.prototype.place_x = function() {
         var last_x = 0;
         for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
             var L = this.nchart.graph.e_compaction[i];
@@ -1488,7 +1488,7 @@
         this.nchart.graph.max_x = this.nchart.graph.e_compaction[this.nchart.graph.e_compaction.length - 1][0].x
     };
 
-    Plotter.prototype.initialize = function(up_down) {
+    NChart.Plotter.prototype.initialize = function(up_down) {
         this.dir = {};
         if(up_down) {
             this.dir.pos = 'r_pos';
@@ -1636,11 +1636,11 @@
         });
     }
 
-    function SvgDrawer(nchart) {
+    NChart.SvgDrawer = function(nchart) {
         this.nchart = nchart;
     }
 
-    SvgDrawer.prototype.draw_curvy = function() {
+    NChart.SvgDrawer.prototype.draw_curvy = function() {
         var self = this;
         var g = this.svg.getElementById('graph');
         var groups = {};
@@ -1811,7 +1811,7 @@
         }
     };
 
-    SvgDrawer.prototype.figure_scale = function() {
+    NChart.SvgDrawer.prototype.figure_scale = function() {
         if(this.nchart.start_scale) {
             this.start_scale = this.nchart.start_scale;
         } else {
@@ -1832,7 +1832,7 @@
         }
     };
 
-    SvgDrawer.prototype.wireframe = function() {
+    NChart.SvgDrawer.prototype.wireframe = function() {
         var g = this.svg.getElementById('graph');
         for(var i=0; i<this.nchart.graph.layers.length; i++) {
             var layer = this.nchart.graph.layers[i];
@@ -1857,7 +1857,7 @@
         }
     };
 
-    SvgDrawer.prototype.debug_nodes = function() {
+    NChart.SvgDrawer.prototype.debug_nodes = function() {
         var g = this.svg.getElementById('graph');
         var node_fill;
         for(var i=0; i<this.nchart.graph.layers.length; i++) {
@@ -1880,7 +1880,7 @@
         }
     };
 
-    SvgDrawer.prototype.debug_blocks = function() {
+    NChart.SvgDrawer.prototype.debug_blocks = function() {
         var g = this.svg.getElementById('graph');
 
         for(var i=0; i<this.nchart.graph.layers.length; i++) {
@@ -1908,7 +1908,7 @@
         }
     };
 
-    SvgDrawer.prototype.debug_classes = function() {
+    NChart.SvgDrawer.prototype.debug_classes = function() {
         var g = this.svg.getElementById('graph');
 
         var sinks = {};
@@ -1979,7 +1979,7 @@
         });
     };
 
-    SvgDrawer.prototype.draw_graph = function() {
+    NChart.SvgDrawer.prototype.draw_graph = function() {
         this.figure_scale();
         this.nchart.paper.children().remove();
         this.scale = this.start_scale;
@@ -2014,7 +2014,7 @@
         this.attach_events();
     };
 
-    SvgDrawer.prototype.point_and_length_at_x = function(seg, x) {
+    NChart.SvgDrawer.prototype.point_and_length_at_x = function(seg, x) {
         var tol = this.nchart.length_tolerance;
         var mid_x = (seg.x_range[0] + seg.x_range[1]) / 2;
         var mid_len, left, right;
@@ -2046,7 +2046,7 @@
         }
     };
 
-    SvgDrawer.prototype.point_and_length_at_y = function(seg, y) {
+    NChart.SvgDrawer.prototype.point_and_length_at_y = function(seg, y) {
         var tol = this.nchart.length_tolerance;
         var mid_y = (seg.y_range[0] + seg.y_range[1]) / 2;
         var mid_len, left, right;
@@ -2078,7 +2078,7 @@
         }
     };
 
-    SvgDrawer.prototype.point_and_length_at_y_neg = function(seg, y) {
+    NChart.SvgDrawer.prototype.point_and_length_at_y_neg = function(seg, y) {
         var tol = this.nchart.length_tolerance;
         var mid_y = (seg.y_range[0] + seg.y_range[1]) / 2;
         var mid_len, left, right;
@@ -2110,7 +2110,7 @@
         }
     };
 
-    SvgDrawer.prototype.adjust_graph = function() {
+    NChart.SvgDrawer.prototype.adjust_graph = function() {
         var g = this.svg.getElementById('graph');
 
         this.svg.change(g, {'transform': 'translate(' + this.translate.x + ',' + this.translate.y + '), scale(' + this.scale + ')'});
@@ -2122,7 +2122,7 @@
     };
 
 
-    SvgDrawer.prototype.attach_events = function() {
+    NChart.SvgDrawer.prototype.attach_events = function() {
         var self = this;
 
         this.nchart.paper.mousewheel(this.zoom_graph());
@@ -2155,7 +2155,7 @@
         });
     };
 
-    SvgDrawer.prototype.zoom_graph = function() {
+    NChart.SvgDrawer.prototype.zoom_graph = function() {
         var self = this;
         return function(e, delta) {
             var old_scale = self.scale;
@@ -2181,7 +2181,7 @@
         }
     };
 
-    SvgDrawer.prototype.move_name = function(left_x, right_x, top_y, bottom_y) {
+    NChart.SvgDrawer.prototype.move_name = function(left_x, right_x, top_y, bottom_y) {
         var self = this;
         left_x += this.nchart.name_padding.left;
         top_y += this.nchart.name_padding.top;
@@ -2277,7 +2277,7 @@
         };
     };
 
-    SvgDrawer.prototype.segment_search = function(a, b) {
+    NChart.SvgDrawer.prototype.segment_search = function(a, b) {
         return a > b.x_range[1] ? 1 : a < b.x_range[0] ? -1 : 0;
     };
 
