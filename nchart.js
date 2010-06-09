@@ -1663,7 +1663,9 @@
             var deaths = [];
             var undeaths = [];
             var dead = false;
-            var segments = [];
+            var use_segments = [];
+            var default_segments = [['M', last.x, last.y]];
+            var dead_segments = [];
             var horiz = false;
             var last_horiz = false;
             for(var j=0; j<c_nodes.nodes.length; j++) {
@@ -1672,8 +1674,7 @@
                 var end_x = node.x + node.duration;
                 var this_seg = [];
                 if(j) {
-                    var bend = this.nchart.bendiness(last.x, last.y, node.x, edge_y);
-                    var last_segment = segments[segments.length - 1];
+                    var last_segment = use_segments[use_segments.length - 1];
                     last_horiz = horiz;
                     horiz = last.y == edge_y;
                     if(horiz) {
@@ -1682,37 +1683,49 @@
                             last_segment.d[1] = end_x;
                         } else {
                             this_seg = ['H', end_x];
-                            segments.push({'x_range': [last.x, end_x],
-                                           'y_range': [edge_y, edge_y],
-                                           'type': 'H',
-                                           'd': this_seg});
+                            use_segments.push({'x_range': [last.x, end_x],
+                                               'y_range': [edge_y, edge_y],
+                                               'type': 'H',
+                                               'd': this_seg});
                         }
                     } else {
+                        var bend = this.nchart.bendiness(last.x, last.y, node.x, edge_y);
                         this_seg = ['C', last.x + bend, last.y, node.x - bend, edge_y, node.x, edge_y];
-                        segments.push({'x_range': [last.x, node.x],
-                                       'y_range': [last.y, edge_y],
-                                       'type': 'C',
-                                       'd': this_seg,
-                                       'bezier': new goog.math.Bezier(last.x, last.y, last.x + bend, last.y, node.x - bend, edge_y, node.x, edge_y)});
+                        use_segments.push({'x_range': [last.x, node.x],
+                                           'y_range': [last.y, edge_y],
+                                           'type': 'C',
+                                           'd': this_seg,
+                                           'bezier': new goog.math.Bezier(last.x, last.y,
+                                                                          last.x + bend, last.y,
+                                                                          node.x - bend, edge_y,
+                                                                          node.x, edge_y)});
                         last_horiz = false;
                     }
 
                     if(dead) {
-                        if(last_horiz) {
-                            dead_arr[dead_arr.length - 1] = end_x;
+                        if(horiz && last_horiz) {
+                            dead_segments[dead_segments.length - 1][1] = end_x;
                         } else {
-                            dead_arr = dead_arr.concat(this_seg);
+                            dead_segments.push(this_seg);
+                        }
+                    } else {
+                        if(horiz && last_horiz) {
+                            default_segments[default_segments.length - 1][1] = end_x;
+                        } else {
+                            default_segments.push(this_seg);
                         }
                     }
                 }
                 if(node.duration && !horiz) {
                     if(dead) {
-                        dead_arr.push('H', end_x);
+                        dead_segments.push(['H', end_x]);
+                    } else {
+                        default_segments.push(['H', end_x]);
                     }
-                    segments.push({'x_range': [node.x, end_x],
-                                   'y_range': [edge_y, edge_y],
-                                   'type': 'H',
-                                   'd': ['H', end_x]});
+                    use_segments.push({'x_range': [node.x, end_x],
+                                       'y_range': [edge_y, edge_y],
+                                       'type': 'H',
+                                       'd': ['H', end_x]});
                     horiz = true;
                 }
                 last = {'x': end_x, 'y': edge_y};
@@ -1720,13 +1733,16 @@
                 if(node.deaths && goog.array.contains(node.deaths, short_name)) {
                     deaths.push([end_x, edge_y, this.nchart.death_radius]);
                     if(!dead) {
-                        dead_arr.push('M', end_x, edge_y);
+                        dead_segments.push(['M', end_x, edge_y]);
                         dead = true;
                     }
                 }
                 if(node.undeaths && goog.array.contains(node.undeaths, short_name)) {
                     undeaths.push([end_x, edge_y, this.nchart.undeath_radius]);
-                    dead = false;
+                    if(dead) {
+                        default_segments.push(['M', end_x, edge_y]);
+                        dead = false;
+                    }
                 }
             }
             var group = groups[c_nodes.character.group] || groups['default_group'];
@@ -1734,19 +1750,15 @@
             var char_group = this.svg.group(group,
                                             short_name + '_group',
                                             {'stroke-width': 'inherit'});
-            var p = this.svg.path(char_group,
+            var p = this.svg.path(defs,
                                   start,
                                   {'id': short_name,
                                    'class': 'character',
-                                   'stroke': c_nodes.character.color,
-                                   'stroke-width': 'inherit',
-                                   'stroke-linecap': 'round',
-                                   'stroke-linejoin': 'round',
                                    'fill': 'none'});
 
             var last_len = 0;
-            for(var j=0; j<segments.length; j++) {
-                var seg = segments[j];
+            for(var j=0; j<use_segments.length; j++) {
+                var seg = use_segments[j];
                 var d = $(p).attr('d') || '';
                 this.svg.change(p, {'d': d + seg.d.join(' ')});
                 if(seg.type == 'C') {
@@ -1760,22 +1772,37 @@
                 }
             }
 
-            var p_jq = $(p);
-            p_jq.data('segments', segments);
-            p_jq.data('length', last_len);
-            var skip_points = [];
-            p_jq.data('skip_points', skip_points);
-            if(dead_arr.length > 1) {
+            this.svg.use(char_group, '#' + short_name, {'stroke': 'white', //*** Should be background color
+                                                        'stroke-width': 8, //*** Should be configurable, this and next 2
+                                                        'stroke-linecap': 'round',
+                                                        'stroke-linejoin': 'round'});
+
+            if(default_segments.length > 1) {
+                var def_unseg = goog.array.map(default_segments, function(segment) {
+                    return [segment[0], segment.slice(1).join(',')].join('');
+                });
                 this.svg.path(char_group,
-                              dead_arr.join(' '),
-                              {'id': short_name + '_dead_background',
-                               'stroke': 'white', //*** Should match background color
-                               'stroke-width': '4', //*** really ought to be whatever plus 1
+                              def_unseg.join(' '),
+                              {'id': short_name + '_default',
+                               'class': 'character',
+                               'stroke': c_nodes.character.color,
+                               'stroke-width': 'inherit',
                                'stroke-linecap': 'round',
                                'stroke-linejoin': 'round',
                                'fill': 'none'});
+            }
+
+            var p_jq = $(p);
+            p_jq.data('use_segments', use_segments);
+            p_jq.data('length', last_len);
+            var skip_points = [];
+            p_jq.data('skip_points', skip_points);
+            if(dead_segments.length > 1) {
+                var dead_unseg = goog.array.map(dead_segments, function(segment) {
+                    return [segment[0], segment.slice(1).join(',')].join('');
+                });
                 this.svg.path(char_group,
-                              dead_arr.join(' '),
+                              dead_unseg.join(' '),
                               {'id': short_name + '_dead',
                                'stroke': c_nodes.character.color,
                                'stroke-width': 'inherit',
@@ -2232,7 +2259,7 @@
         bottom_y -= this.nchart.name_padding.bottom;
         return function() {
             var p = $(this);
-            var segments = p.data('segments');
+            var segments = p.data('use_segments');
             var last_index = segments.length - 1;
 
             if(left_x > segments[last_index].x_range[1]) {
