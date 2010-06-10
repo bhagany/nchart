@@ -92,6 +92,43 @@
             delete this.debug.direction;
         }
 
+
+        this.path_styles = {'default': {'stroke-width': 'inherit',
+                                        'stroke-linecap': 'round',
+                                        'stroke-linejoin': 'round',
+                                        'fill': 'none'},
+                            'dead': {'stroke-width': 'inherit',
+                                     'stroke-linecap': 'round',
+                                     'stroke-linejoin': 'round',
+                                     'stroke-dasharray': '10',
+                                     'fill': 'none'},
+                            'disappeared': null
+                           };
+
+        this.states = {'default': {'icon': null,
+                                   'noun': null,
+                                   'following_style': 'default'},
+                       'dead': {'icon': {'circle': {'r': 5,
+                                                    'fill': 'black'},
+                                         'skip_radius': 7},
+                                'noun': 'deaths',
+                                'following_style': 'dead',
+                                'reverses': 'default'},
+                       'undead': {'icon': {'circle': {'r': 5,
+                                                      'fill': 'white',
+                                                      'stroke': 'black'},
+                                           'skip_radius': 7},
+                                  'noun': 'undeaths',
+                                  'reverses': 'dead'},
+                       'disappeared': {'icon': {'path': {'d': ''}},
+                                       'noun': 'disappearances',
+                                       'following_style': 'disappeared',
+                                       'reverses': 'default'},
+                       'reappeared': {'icon': {'path': {'d': ''}},
+                                      'noun': 'reappearances',
+                                      'reverses': 'disappeared'}
+                      };
+
         this.plotter = conf.plotter ? new conf.plotter(this) : new NChart.Plotter(this);
         this.drawer = conf.drawer ? new conf.drawer(this) : new NChart.SvgDrawer(this);
 
@@ -1654,18 +1691,29 @@
         });
         for(var i=0; i<this.nchart.graph.char_nodes.length; i++) {
             var c_nodes = this.nchart.graph.char_nodes[i];
-            var dead_arr = [];
             var short_name = c_nodes.character.short_name;
             var last = {'x': c_nodes.nodes[0].x,
                         'y': c_nodes.nodes[0].y + c_nodes.nodes[0].sub_node_order[short_name]
                         * this.nchart.sub_node_spacing};
-            var start = 'M' + last.x + ' ' + last.y;
-            var deaths = [];
-            var undeaths = [];
-            var dead = false;
+            var start = 'M' + last.x + ',' + last.y;
+
+            var states = {};
+            var icon_places = {};
+            var segments = {};
+            goog.object.forEach(this.nchart.states, function(info, state) {
+                icon_places[state] = [];
+                if(info.following_style) {
+                    states[info.following_style] = !!(c_nodes.nodes[0][info.following_style] &&
+                                                      goog.array.contains(c_nodes.nodes[0][info.following_style], short_name));
+                    segments[info.following_style] = [];
+                }
+            });
+
+            if(!goog.object.contains(states, true)) {
+                states['default'] = true;
+            }
+
             var use_segments = [];
-            var default_segments = [['M', last.x, last.y]];
-            var dead_segments = [];
             var horiz = false;
             var last_horiz = false;
             for(var j=0; j<c_nodes.nodes.length; j++) {
@@ -1673,6 +1721,12 @@
                 var edge_y = node.y + (node.sub_node_order[short_name] * this.nchart.sub_node_spacing);
                 var end_x = node.x + node.duration;
                 var this_seg = [];
+
+                var active_states = goog.object.getKeys(goog.object.filter(states,
+                                                                           function(state) { return state; }));
+                var non_default_states = goog.object.clone(states);
+                delete non_default_states['default'];
+
                 if(j) {
                     var last_segment = use_segments[use_segments.length - 1];
                     last_horiz = horiz;
@@ -1702,26 +1756,24 @@
                         last_horiz = false;
                     }
 
-                    if(dead) {
+                    goog.array.forEach(active_states, function(state) {
+                        var s_segments  = segments[state];
                         if(horiz && last_horiz) {
-                            dead_segments[dead_segments.length - 1][1] = end_x;
+                            s_segments[s_segments.length - 1][1] = end_x;
                         } else {
-                            dead_segments.push(this_seg);
+                            s_segments.push(this_seg);
                         }
-                    } else {
-                        if(horiz && last_horiz) {
-                            default_segments[default_segments.length - 1][1] = end_x;
-                        } else {
-                            default_segments.push(this_seg);
-                        }
-                    }
+                    });
+                } else {
+                    goog.array.forEach(active_states, function(state) {
+                        segments[state].push(['M', last.x, last.y]);
+                    });
                 }
+
                 if(node.duration && !horiz) {
-                    if(dead) {
-                        dead_segments.push(['H', end_x]);
-                    } else {
-                        default_segments.push(['H', end_x]);
-                    }
+                    goog.array.forEach(active_states, function(state) {
+                        segments[state].push(['H', end_x]);
+                    });
                     use_segments.push({'x_range': [node.x, end_x],
                                        'y_range': [edge_y, edge_y],
                                        'type': 'H',
@@ -1730,20 +1782,31 @@
                 }
                 last = {'x': end_x, 'y': edge_y};
 
-                if(node.deaths && goog.array.contains(node.deaths, short_name)) {
-                    deaths.push([end_x, edge_y, this.nchart.death_radius]);
-                    if(!dead) {
-                        dead_segments.push(['M', end_x, edge_y]);
-                        dead = true;
+                goog.object.forEach(this.nchart.states, function(info, state) {
+                    var noun = info.noun;
+                    var icon = info.icon;
+                    var fs = info.following_style;
+                    var rev = info.reverses;
+                    if(noun && node[noun] && goog.array.contains(node[noun], short_name)) {
+                        icon_places[state].push([icon, end_x, edge_y]);
+                        if(fs && !states[fs]) {
+                            segments[fs].push(['M', end_x, edge_y]);
+                            states[fs] = true;
+                            non_default_states[fs] = true;
+                        }
+                        if(rev && states[rev]) {
+                            states[rev] = false;
+                            if(rev != 'default') {
+                                non_default_states[rev] = false;
+                            }
+                            if(!states['default'] && !goog.object.some(non_default_states,
+                                                                       function(state) { return state; })) {
+                                states['default'] = true;
+                                segments['default'].push(['M', end_x, edge_y]);
+                            }
+                        }
                     }
-                }
-                if(node.undeaths && goog.array.contains(node.undeaths, short_name)) {
-                    undeaths.push([end_x, edge_y, this.nchart.undeath_radius]);
-                    if(dead) {
-                        default_segments.push(['M', end_x, edge_y]);
-                        dead = false;
-                    }
-                }
+                });
             }
             var group = groups[c_nodes.character.group] || groups['default_group'];
             
@@ -1760,7 +1823,7 @@
             for(var j=0; j<use_segments.length; j++) {
                 var seg = use_segments[j];
                 var d = $(p).attr('d') || '';
-                this.svg.change(p, {'d': d + seg.d.join(' ')});
+                this.svg.change(p, {'d': [d, [seg.d[0], seg.d.slice(1).join(',')].join('')].join(' ')});
                 if(seg.type == 'C') {
                     var p_len = p.getTotalLength();
                     seg.len_range = [last_len, p_len];
@@ -1772,56 +1835,52 @@
                 }
             }
 
-            this.svg.use(char_group, '#' + short_name, {'stroke': 'white', //*** Should be background color
-                                                        'stroke-width': 8, //*** Should be configurable, this and next 2
-                                                        'stroke-linecap': 'round',
-                                                        'stroke-linejoin': 'round'});
-
-            if(default_segments.length > 1) {
-                var def_unseg = goog.array.map(default_segments, function(segment) {
-                    return [segment[0], segment.slice(1).join(',')].join('');
-                });
-                this.svg.path(char_group,
-                              def_unseg.join(' '),
-                              {'id': short_name + '_default',
-                               'class': 'character',
-                               'stroke': c_nodes.character.color,
-                               'stroke-width': 'inherit',
-                               'stroke-linecap': 'round',
-                               'stroke-linejoin': 'round',
-                               'fill': 'none'});
-            }
-
             var p_jq = $(p);
             p_jq.data('use_segments', use_segments);
             p_jq.data('length', last_len);
             var skip_points = [];
             p_jq.data('skip_points', skip_points);
-            if(dead_segments.length > 1) {
-                var dead_unseg = goog.array.map(dead_segments, function(segment) {
-                    return [segment[0], segment.slice(1).join(',')].join('');
-                });
-                this.svg.path(char_group,
-                              dead_unseg.join(' '),
-                              {'id': short_name + '_dead',
-                               'stroke': c_nodes.character.color,
-                               'stroke-width': 'inherit',
-                               'stroke-linecap': 'round',
-                               'stroke-linejoin': 'round',
-                               'stroke-dasharray': '10',
-                               'fill': 'none'});
-            }
-            for(var j=0; j<deaths.length; j++) {
-                var death = deaths[j];
-                this.svg.circle(char_group, death[0], death[1], this.nchart.death_radius, this.nchart.death_style);
-                skip_points.push(death);
-            }
-            for(var j=0; j<undeaths.length; j++) {
-                var undeath = undeaths[j];
-                this.svg.circle(char_group, undeath[0], undeath[1], this.nchart.undeath_radius,
-                                this.nchart.undeath_style);
-                skip_points.push(undeath);
-            }
+
+            this.svg.use(char_group, '#' + short_name, {'stroke': 'white', //*** Should be background color
+                                                        'stroke-width': 8, //*** Should be configurable, this and next 2
+                                                        'stroke-linecap': 'round',
+                                                        'stroke-linejoin': 'round'});
+
+            goog.object.forEach(segments, function(segs, state) {
+                if(segs.length > 1) {
+                    var unseg = goog.array.map(segs, function(seg) {
+                        return [seg[0], seg.slice(1).join(',')].join('');
+                    });
+                    var settings = {'id': short_name + '_' + state,
+                                    'class': 'character',
+                                    'stroke': c_nodes.character.color};
+                    goog.object.extend(settings, self.nchart.path_styles[state]);
+                    self.svg.path(char_group,
+                                  unseg.join(' '),
+                                  settings);
+                }
+            });                    
+
+            goog.object.forEach(icon_places, function(places, state) {
+                for(var j=0; j<places.length; j++) {
+                    var place = places[j];
+                    goog.object.forEach(place[0], function(settings, shape) {
+                        if(shape != 'skip_radius') {
+                            var set = goog.object.clone(settings);
+                            var args;
+                            if(shape == 'circle') {
+                                goog.object.extend(set, {'cx': place[1], 'cy': place[2]});
+                                args = [char_group, null, null, null, set];
+                            } else if(shape == 'path') {
+                                set.d = ['M' + place[1] + ',' + place[2], set.d].join(' ');
+                                args = [char_group, null, set];
+                            }
+                            self.svg[shape].apply(self.svg, args);
+                        }
+                    });
+                    skip_points.push([place[1], place[2], place[0].skip_radius || 0]);
+                }
+            });
 
             var name_text = this.svg.text(char_group, null, null, '', this.nchart.name_style);
             // if(text_len > path_len) {
