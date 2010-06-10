@@ -16,7 +16,6 @@
 //  Show anchors
 //  Step-through of crossing reduction
 // If we're going to reorder paths, they can't be in a group for each type (default, pov, etc)
-// Rejigger paths - put one in the defs, use an invisible one for the name sliding
 
 (function(window) {
 
@@ -120,14 +119,40 @@
                                            'skip_radius': 7},
                                   'noun': 'undeaths',
                                   'reverses': 'dead'},
-                       'disappeared': {'icon': {'path': {'d': ''}},
+                       'disappeared': {'icon': {'path': {'d': ['m2,0',
+                                                               'm-3.5,-6.06218', 'l-4,-6.92822',
+                                                               'm7.5,12.9904',
+                                                               'm-3.5,6.06218', 'l-4,6.92822',
+                                                               'm7.5,-12.9904',
+                                                               'm3.5,-6.06218', 'l4,-6.92822',
+                                                               'm-7.5,12.9904',
+                                                               'm3.5,6.06218', 'l4,6.92822',
+                                                               'm-7.5,-12.9904',
+                                                               'm7,0', 'l8,0'].join(' '),
+                                                         'stroke': 'black',
+                                                         'stroke-width': 2,
+                                                         'stroke-linecap': 'round'}},
                                        'noun': 'disappearances',
                                        'following_style': 'disappeared',
                                        'reverses': 'default'},
-                       'reappeared': {'icon': {'path': {'d': ''}},
+                       'reappeared': {'icon': {'path': {'d': ['m2,0',
+                                                              'm-3.5,-6.06218', 'l-4,-6.92822',
+                                                              'm7.5,12.9904',
+                                                              'm-3.5,6.06218', 'l-4,6.92822',
+                                                              'm7.5,-12.9904',
+                                                              'm3.5,-6.06218', 'l4,-6.92822',
+                                                              'm-7.5,12.9904',
+                                                              'm3.5,6.06218', 'l4,6.92822',
+                                                              'm-7.5,-12.9904',
+                                                              'm-7,0', 'l-8,0'].join(' '),
+                                                         'stroke': 'black',
+                                                         'stroke-width': 2,
+                                                        'stroke-linecap': 'round'}},
                                       'noun': 'reappearances',
                                       'reverses': 'disappeared'}
                       };
+
+        this.path_breakers = ['disappearances'];
 
         this.plotter = conf.plotter ? new conf.plotter(this) : new NChart.Plotter(this);
         this.drawer = conf.drawer ? new conf.drawer(this) : new NChart.SvgDrawer(this);
@@ -282,6 +307,20 @@
                     }
                     c_nodes[name].push(node);
                     last_nodes[name] = node;
+                }
+
+                for(var k=0; k<this.path_breakers.length; k++) {
+                    var path_breaker = this.path_breakers.length[k];
+                    if(node[path_breaker] && node[path_breaker].length) {
+                        for(var l=0; l<node[path_breaker].length; l++) {
+                            var name = node[path_breaker][l];
+                            var character = this.characters[name];
+                            character.short_name = name;
+                            char_nodes.push({'character': character, 'nodes': c_nodes[name]});
+                            delete c_nodes[name];
+                            delete last_nodes[name];
+                        }
+                    }
                 }
             }
         }
@@ -1679,7 +1718,7 @@
 
     NChart.SvgDrawer = function(nchart) {
         this.nchart = nchart;
-    }
+    };
 
     NChart.SvgDrawer.prototype.draw_curvy = function() {
         var self = this;
@@ -1695,7 +1734,6 @@
             var last = {'x': c_nodes.nodes[0].x,
                         'y': c_nodes.nodes[0].y + c_nodes.nodes[0].sub_node_order[short_name]
                         * this.nchart.sub_node_spacing};
-            var start = 'M' + last.x + ',' + last.y;
 
             var states = {};
             var icon_places = {};
@@ -1713,7 +1751,7 @@
                 states['default'] = true;
             }
 
-            var use_segments = [];
+            var use_segments = ['M' + last.x + ',' + last.y];
             var horiz = false;
             var last_horiz = false;
             for(var j=0; j<c_nodes.nodes.length; j++) {
@@ -1814,7 +1852,7 @@
                                             short_name + '_group',
                                             {'stroke-width': 'inherit'});
             var p = this.svg.path(defs,
-                                  start,
+                                  use_segments.shift(),
                                   {'id': short_name,
                                    'class': 'character',
                                    'fill': 'none'});
@@ -1873,7 +1911,7 @@
                                 args = [char_group, null, null, null, set];
                             } else if(shape == 'path') {
                                 set.d = ['M' + place[1] + ',' + place[2], set.d].join(' ');
-                                args = [char_group, null, set];
+                                args = [char_group, '', set];
                             }
                             self.svg[shape].apply(self.svg, args);
                         }

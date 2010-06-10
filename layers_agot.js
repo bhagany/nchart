@@ -126,8 +126,10 @@
          'nodes': [
              {'sub_nodes': ['ned', 'sansa', 'arya', 'robert_b', 'cersei', 'jaime', 'joffrey', 'myrcella',
                             'tommen', 'sandor', 'renly', 'barristan', 'ilyn', 'cat', 'petyr', 'varys',
-                            'pycelle']}
-         ]
+                            'pycelle']},
+             {'sub_nodes': ['benjen'],
+              'disappearances': ['benjen']}
+         ],
         },
         // 25. Bran IV
         {'duration': 10,
@@ -143,7 +145,7 @@
              {'sub_nodes': ['jon', 'ghost', 'jeor', 'aemon', 'sam']},
              // Character Intro
              {'sub_nodes': ['gendry']}
-         ]
+         ],
         },
         // 28. Eddard VI
         {'duration': 10,
@@ -349,7 +351,6 @@
              {'sub_nodes': ['illyrio']},
              {'sub_nodes': ['beric']},
              {'sub_nodes': ['nymeria']},
-             {'sub_nodes': ['benjen']},
              {'sub_nodes': ['loras', 'renly']},
              {'sub_nodes': ['bran', 'rickon', 'summer', 'shaggydog']},
              {'sub_nodes': ['lysa', 'robert_a']},
