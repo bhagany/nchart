@@ -144,6 +144,8 @@
          'nodes': [
              {'sub_nodes': ['jon', 'ghost', 'jeor', 'aemon', 'sam']},
              // Character Intro
+             {'sub_nodes': ['benjen'],
+              'reappearances': ['benjen']},
              {'sub_nodes': ['gendry']}
          ],
         },
@@ -155,6 +157,7 @@
                             'pycelle', 'gendry'],
               'event': 'Hand\'s Tourney'
              },
+             {'sub_nodes': ['benjen']},
          ],
         },
         // 29. Catelyn V
