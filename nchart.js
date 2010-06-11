@@ -1844,10 +1844,12 @@
                     var fs = info.following_style;
                     var rev = info.reverses;
                     if(noun && node[noun] && goog.array.contains(node[noun], short_name)) {
-                        if(icon.placement == 'start') {
-                            icon_places[state].push([icon, last.x, last.y]);
-                        } else {
-                            icon_places[state].push([icon, end_x, edge_y]);
+                        if(icon) {
+                            if(icon.placement == 'start') {
+                                icon_places[state].push([icon, last.x, last.y]);
+                            } else {
+                                icon_places[state].push([icon, end_x, edge_y]);
+                            }
                         }
                         if(fs && !states[fs]) {
                             segments[fs].push(['M', end_x, edge_y]);
@@ -1871,10 +1873,6 @@
             }
             var group = groups[c_nodes.character.group] || groups['default_group'];
             
-            var char_group = this.svg.group(group,
-                                            short_name + '_group',
-                                            {'stroke-width': 'inherit'});
-
             var p_id;
             if(used_names.p[short_name]) {
                 used_names.p[short_name]++;
@@ -1883,6 +1881,11 @@
                 p_id = short_name;
                 used_names.p[short_name] = 1;
             }
+
+            var char_group = this.svg.group(group,
+                                            p_id + '_group',
+                                            {'stroke-width': 'inherit'});
+
             var p = this.svg.path(defs,
                                   use_segments.shift(),
                                   {'id': p_id,
@@ -1914,7 +1917,8 @@
             this.svg.use(char_group, '#' + p_id, {'stroke': 'white', //*** Should be background color
                                                   'stroke-width': 8, //*** Should be configurable, this and next 2
                                                   'stroke-linecap': 'round',
-                                                  'stroke-linejoin': 'round'});
+                                                  'stroke-linejoin': 'round',
+                                                  'class': 'background'});
 
             goog.object.forEach(segments, function(segs, state) {
                 var sub_p_id;
@@ -1930,7 +1934,6 @@
                         return [seg[0], seg.slice(1).join(',')].join('');
                     });
                     var settings = {'id': sub_p_id,
-                                    'class': 'character',
                                     'stroke': c_nodes.character.color};
                     goog.object.extend(settings, self.nchart.path_styles[state]);
                     self.svg.path(char_group,
@@ -1939,9 +1942,14 @@
                 }
             });                    
 
+            var min_offset = 0;
             goog.object.forEach(icon_places, function(places, state) {
                 for(var j=0; j<places.length; j++) {
                     var place = places[j];
+                    if(use_segments[0].x_range[0] == place[1]) {
+                        min_offset = Math.max(min_offset, place[0].skip_radius);
+                    }
+
                     goog.object.forEach(place[0], function(settings, shape) {
                         if(shape != 'skip_radius' && shape != 'placement') {
                             var set = goog.object.clone(settings);
@@ -1959,6 +1967,7 @@
                     skip_points.push([place[1], place[2], place[0].skip_radius || 0]);
                 }
             });
+            p_jq.data('min_offset', min_offset);
 
             var name_text = this.svg.text(char_group, null, null, '', this.nchart.name_style);
             // if(text_len > path_len) {
@@ -1969,7 +1978,8 @@
             // }
             p_jq.data('name_path', this.svg.textpath(name_text,
                                                      '#' + p_id,
-                                                     c_nodes.character.name));
+                                                     c_nodes.character.name,
+                                                     {'startOffset': min_offset}));
             p_jq.data('name_len', name_text.getComputedTextLength());
         }
     };
@@ -2409,6 +2419,7 @@
             var p_len = p.data('length');
             var name_len = p.data('name_len');
             var skip_points = p.data('skip_points');
+            var min_offset = p.data('min_offset');
             var max_offset = p_len - name_len;
             var seg, start_offset, index;
             var right_of_left = false;
@@ -2433,7 +2444,7 @@
             }
 
             if(crossing_y >= top_y && crossing_y <= bottom_y) {
-                start_offset = right_of_left ? 0 : Math.min(p_and_l.length, max_offset);
+                start_offset = right_of_left ? min_offset : Math.min(p_and_l.length, max_offset);
             } else {
                 while(!start_offset && seg && seg.x_range[0] < right_x) {
                     if(seg.type == 'C') {
@@ -2452,7 +2463,7 @@
                 }
             }
 
-            if(!start_offset) {
+            if(!start_offset || start_offset == min_offset) {
                 self.svg.change(p.data('name_path'), {'startOffset': start_offset});
                 return;
             }
