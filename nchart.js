@@ -2364,6 +2364,7 @@
     };
 
     NChart.SvgDrawer.prototype.zoom_graph = function() {
+        var off = this.nchart.paper.offset();
         var self = this;
         return function(e, delta) {
             var old_scale = self.scale;
@@ -2376,8 +2377,8 @@
                                          self.nchart.max_scale);
             if(self.scale != old_scale) {
                 var k = self.scale / old_scale;
-                self.translate = {'x': e.pageX + (k * (self.translate.x - e.pageX)),
-                                  'y': e.pageY + (k * (self.translate.y - e.pageY))};
+                self.translate = {'x': e.pageX - off.left + (k * (self.translate.x - e.pageX + off.left)),
+                                  'y': e.pageY - off.top + (k * (self.translate.y - e.pageY + off.top))};
                 if(self.scale > 1) {
                     goog.object.forEach(self.nchart.group_styles, function(style, group) {
                         self.svg.change(groups[group], {'stroke-width': style['stroke-width'] / self.scale});
