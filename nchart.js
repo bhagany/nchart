@@ -2377,8 +2377,10 @@
                                          self.nchart.max_scale);
             if(self.scale != old_scale) {
                 var k = self.scale / old_scale;
-                self.translate = {'x': e.pageX - off.left + (k * (self.translate.x - e.pageX + off.left)),
-                                  'y': e.pageY - off.top + (k * (self.translate.y - e.pageY + off.top))};
+                var mouse_x = e.pageX - off.left;
+                var mouse_y = e.pageY - off.top;
+                self.translate = {'x': mouse_x + (k * (self.translate.x - mouse_x)),
+                                  'y': mouse_y + (k * (self.translate.y - mouse_y))};
                 if(self.scale > 1) {
                     goog.object.forEach(self.nchart.group_styles, function(style, group) {
                         self.svg.change(groups[group], {'stroke-width': style['stroke-width'] / self.scale});
