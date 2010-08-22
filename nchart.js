@@ -1,10 +1,7 @@
 // TODO:
 // Hinting for where you'd like to see nodes sorted
 // Show events
-// Test speed of alternate getting of segment lengths (not actually drawing, use tags, etc)
 // Support flipping x and y
-// Add name sliding to the straight line graph
-// Add centering to the straight line graph
 // Deal with names that are too long for their paths
 // Do only half bezier curves for r nodes
 // Take out unnecessary stableSorts
@@ -18,6 +15,9 @@
 // If we're going to reorder paths, they can't be in a group for each type (default, pov, etc)
 // What if you disappear while dead?
 // Beginning the story in a non-default state
+// Spreading out paths on steep runs
+// Can I replace a sort with a filter somewhere?
+
 
 (function(window) {
 
@@ -32,7 +32,7 @@
         conf = conf || {};
         this.node_spacing = conf.node_spacing ? conf.node_spacing : 50;
         this.sub_node_spacing = conf.sub_node_spacing ? conf.sub_node_spacing : 15;
-        this.slope_func = conf.slope_func ? conf.slope_func : function(edge) { return Math.max(1.5, 3.5 - (edge.weight / 7)); };
+        this.max_slope_func = conf.max_slope_func ? conf.max_slope_func : NChart.max_slope_func;
         this.group_styles = conf.group_styles ? conf.group_styles : {};
         if(!this.group_styles.default_group) {
             this.group_styles.default_group = {'stroke-width': 1};
@@ -162,10 +162,16 @@
 
         this.path_breakers = ['disappearances'];
 
+        this.straight = true;
+
         this.plotter = conf.plotter ? new conf.plotter(this) : new NChart.Plotter(this);
         this.drawer = conf.drawer ? new conf.drawer(this) : new NChart.SvgDrawer(this);
 
         this.graph = this.parse_layers(layers);
+    };
+
+    NChart.max_slope_func = function(edge) {
+        return 15 / Math.pow(edge.weight, 1.05);
     };
 
     NChart.prototype.calc = function() {
@@ -206,7 +212,7 @@
             for(var j=0; j<layer.nodes.length; j++) {
                 var node = layer.nodes[j];
                 node.id = i + '-' + j;
-                node.duration = layer.duration;
+                node.duration = layer.duration || 0;
                 node.parents = [];
                 node.children = [];
                 node.layer = layer;
@@ -954,6 +960,7 @@
         this.graph.e_compaction = [];
         for(var i=0; i<this.graph.compaction.length; i++) {
             var L = this.graph.compaction[i].slice(0);
+            var nodes = [];
             for(var j=0; j<L.length; j++) {
                 var v = L[j];
                 if(v.segs) {
@@ -972,8 +979,11 @@
                     L.splice(j, 1);
                     v.children[0].parents = [];
                     j--;
+                } else {
+                    nodes.push(v);
                 }
             }
+            this.graph.layers[i].nodes = nodes;
             this.graph.layers[i].L = L;
             this.graph.e_compaction.push(L);
         }
@@ -1540,7 +1550,15 @@
             for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
                 var L = this.nchart.graph.e_compaction[i];
                 for(var j=0; j<L.length; j++) {
-                    L[j].y += shift;
+                    var v = L[j];
+                    v.y += shift;
+                    if(!v.nodes) {
+                        v.ys = {};
+                        for(var k=0; k<v.sub_nodes.length; k++) {
+                            var sub_node = v.sub_nodes[k];
+                            v.ys[sub_node] = v.y + (v.sub_node_order[sub_node] * this.nchart.sub_node_spacing);
+                        }
+                    }
                 }
             }
         }
@@ -1548,32 +1566,163 @@
     };
 
     NChart.Plotter.prototype.place_x = function() {
+
+        function node_sort(a, b) {
+            if(a.node.pos == b.node.pos) {
+                return a.node.sub_node_order[a.edge.sub_nodes[0]] - b.node.sub_node_order[b.edge.sub_nodes[0]];
+            } else {
+                return a.node.pos - b.node.pos;
+            }
+        }
+
         var last_x = 0;
-        for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
-            var L = this.nchart.graph.e_compaction[i];
-            var max_y_diff = 0;
-            var use_slope = Infinity;
-            for(var j=0; j<L.length; j++) {
-                var v = L[j];
+        var last_last_x;
+        for(var i=0; i<this.nchart.graph.layers.length; i++) {
+            var layer = this.nchart.graph.layers[i];
+            var v_seps = [];
+            var c_seps = [];
+            for(var j=0; j<layer.nodes.length; j++) {
+                var v = layer.nodes[j];
                 v.x = last_x;
+                goog.object.setIfUndefined(v, 'xs', {});
+                for(var k=0; k<v.sub_nodes.length; k++) {
+                    var sub_node = v.sub_nodes[k];
+                    var xs = v.xs[sub_node];
+                    if(xs) {
+                        var c_shift = v.c_shift || 0;
+                        v.xs[sub_node] = [v.x + xs[0] + c_shift, v.x + xs[1]];
+                    } else {
+                        v.xs[sub_node] = [v.x, v.x + v.duration];
+                    }
+                }
+
+                if(v.p) continue;
+
                 for(var k=0; k<v.children.length; k++) {
                     var c = v.children[k];
-                    if(v.y != c.y) {
-                        var edge = v.edges[c.id];
-                        var slope = this.nchart.slope_func(edge);
-                        var y_diff = Math.abs(v.y - c.y) + v.layer.duration * slope;
-                        if(y_diff > max_y_diff) {
-                            max_y_diff = y_diff;
+                    goog.object.setIfUndefined(c, 'xs', {});
+
+                    var edge = v.edges[c.id];
+
+                    // Get a properly sorted version of edge.sub_nodes
+                    edge.sub_nodes = goog.array.filter(v.sub_nodes, function(sub_node) {
+                        return goog.array.contains(c.sub_nodes, sub_node);
+                    });
+
+                    var last_order = -Infinity;
+                    var last_dir = null;
+                    var max_slope = this.nchart.max_slope_func(edge);
+                    var sub_node, order, dir, func;
+                    for(var l=0; l<edge.sub_nodes.length; l++) {
+                        // Need to know if the sub_node's edge goes up or down,
+                        // and if the previous edge in v matches that direction
+                        sub_node = edge.sub_nodes[l];
+                        order = v.sub_node_order[sub_node];
+
+                        c.xs[sub_node] = [0, c.duration];
+
+                        if(v.ys[sub_node] > c.ys[sub_node]) {
+                            dir = 'up';
+                            func = Array.prototype.push;
+                        } else if(v.ys[sub_node] < c.ys[sub_node]) {
+                            dir = 'down';
+                            func = Array.prototype.unshift;
+                        } else {
+                            dir = null;
                         }
-                        if(slope < use_slope) {
-                            use_slope = slope;
+
+                        if(dir) {
+                            if(dir != last_dir) {
+                                var current = [];
+                                var slope_x_diff = Math.round((Math.abs(v.ys[sub_node] - c.ys[sub_node]) / max_slope * 100) / 100);
+                                var x_step = this.extra_x_length(max_slope);
+                                goog.array.binaryInsert(v_seps,
+                                                        {'dir': dir,
+                                                         'node': edge.source,
+                                                         'edge': edge,
+                                                         'sub_nodes': current,
+                                                         'slope_x_diff': slope_x_diff,
+                                                         'x_step': x_step},
+                                                        node_sort);
+                                goog.array.binaryInsert(c_seps,
+                                                        {'dir': dir,
+                                                         'node': edge.target,
+                                                         'edge': edge,
+                                                         'sub_nodes': current,
+                                                         'slope_x_diff': slope_x_diff,
+                                                         'x_step': x_step},
+                                                        node_sort);
+                            }
+
+                            func.call(current, sub_node);
                         }
+
+                        last_order = order;
+                        last_dir = dir;
                     }
                 }
             }
-            last_x += Math.floor(Math.max(max_y_diff / use_slope, 100));
+
+            // Loop through v_seps and c_seps, determine the longest
+            for(var j=0; j<v_seps.length; j++) {
+
+
+            var last_sep = null;
+            layer.v_sub_x = 0;
+            layer.v_shift = 0;
+            for(var j=0; j<v_seps.length; j++) {
+                var v_sep = v_seps[j];
+                var v = v_sep.node;
+                var slope = Math.abs(v.ys[v_sep.sub_nodes[0]] - c.ys[v_sep.sub_nodes[0]]) / x_diff;
+                var extra_x = this.extra_x_length(slope);
+
+                var sub_factor = v_sep.sub_nodes.length;
+                var extra_step = 1;
+                if(!last_sep || last_sep.node != v || v_sep.edge == last_sep.edge) {
+                    sub_factor--;
+                    extra_step--;
+                }
+                var sep_width = sub_factor * extra_x;
+
+                if(v_sep.dir == "down") {
+                    layer.v_sub_x -= sep_width;
+                    if(layer.v_sub_x < 0) {
+                        layer.v_shift = Math.max(layer.v_shift, -layer.v_sub_x);
+                    }
+                }
+
+                for(var l=0; l<v_sep.sub_nodes.length; l++) {
+                    var sub_node = v_sep.sub_nodes[l];
+                    var v_factor = l + extra_step;
+                    var v_extra_x = v_factor * extra_x;
+                    v.xs[sub_node][1] = v.x + v.duration + v_extra_x + layer.v_sub_x;
+                }
+
+                if(v_sep.dir == "up") {
+                    v.v_sub_x += sep_width;
+                }
+                last_sep = v_sep;
+            }
+
+            if(layer.v_shift) {
+                for(var j=0; j<layer.nodes.length; j++) {
+                    v = layer.nodes[j];
+                    if(v.p) continue;
+                    for(var k=0; k<v.sub_nodes.length; k++) {
+                        var sub_node = v.sub_nodes[k];
+                        v.xs[sub_node][1] += layer.v_shift;
+                    }
+                }
+            }
+
+            last_last_x = last_x;
+            last_x += x_diff;
         }
-        this.nchart.graph.max_x = this.nchart.graph.e_compaction[this.nchart.graph.e_compaction.length - 1][0].x
+        this.nchart.graph.max_x = last_last_x;
+    };
+
+    NChart.Plotter.prototype.extra_x_length = function(slope) {
+        return Math.round(this.nchart.sub_node_spacing * (1 / Math.tan((Math.PI - Math.atan(slope)) / 2)) * 100) / 100;
     };
 
     NChart.Plotter.prototype.initialize = function(up_down) {
@@ -1743,9 +1892,8 @@
         for(var i=0; i<this.nchart.graph.char_nodes.length; i++) {
             var c_nodes = this.nchart.graph.char_nodes[i];
             var short_name = c_nodes.character.short_name;
-            var last = {'x': c_nodes.nodes[0].x,
-                        'y': c_nodes.nodes[0].y + c_nodes.nodes[0].sub_node_order[short_name]
-                        * this.nchart.sub_node_spacing};
+            var last = {'x': c_nodes.nodes[0].xs[short_name][0],
+                        'y': c_nodes.nodes[0].ys[short_name]};
 
             var states = {};
             var icon_places = {};
@@ -1768,8 +1916,8 @@
             var last_horiz = false;
             for(var j=0; j<c_nodes.nodes.length; j++) {
                 var node = c_nodes.nodes[j];
-                var edge_y = node.y + (node.sub_node_order[short_name] * this.nchart.sub_node_spacing);
-                var end_x = node.x + node.duration;
+                var edge_y = node.ys[short_name];
+                var end_x = node.xs[short_name][1];
                 var this_seg = [];
 
                 var active_states = goog.object.getKeys(goog.object.filter(states,
@@ -1796,16 +1944,24 @@
                                                    'd': this_seg});
                             }
                         } else {
-                            var bend = this.nchart.bendiness(last.x, last.y, node.x, edge_y);
-                            this_seg = ['C', last.x + bend, last.y, node.x - bend, edge_y, node.x, edge_y];
-                            use_segments.push({'x_range': [last.x, node.x],
-                                               'y_range': [last.y, edge_y],
-                                               'type': 'C',
-                                               'd': this_seg,
-                                               'bezier': new goog.math.Bezier(last.x, last.y,
-                                                                              last.x + bend, last.y,
-                                                                              node.x - bend, edge_y,
-                                                                              node.x, edge_y)});
+                            if(this.nchart.curvy) {
+                                var bend = this.nchart.bendiness(last.x, last.y, node.xs[short_name][0], edge_y);
+                                this_seg = ['C', last.x + bend, last.y, node.xs[short_name][0] - bend, edge_y, node.xs[short_name][0], edge_y];
+                                use_segments.push({'x_range': [last.x, node.xs[short_name][0]],
+                                                   'y_range': [last.y, edge_y],
+                                                   'type': 'C',
+                                                   'd': this_seg,
+                                                   'bezier': new goog.math.Bezier(last.x, last.y,
+                                                                                  last.x + bend, last.y,
+                                                                                  node.xs[short_name][0] - bend, edge_y,
+                                                                                  node.xs[short_name][0], edge_y)});
+                            } else if(this.nchart.straight) {
+                                this_seg = ['L', node.xs[short_name][0], edge_y];
+                                use_segments.push({'x_range': [last.x, node.xs[short_name][0]],
+                                                   'y_range': [last.y, edge_y],
+                                                   'type': 'L',
+                                                   'd': this_seg});
+                            }
                             last_horiz = false;
                         }
 
@@ -1826,11 +1982,11 @@
                         });
                     }
 
-                    if(node.duration && !horiz) {
+                    if(node.xs[short_name][0] != node.xs[short_name][1] && !horiz) {
                         goog.array.forEach(active_states, function(state) {
                             segments[state].push(['H', end_x]);
                         });
-                        use_segments.push({'x_range': [node.x, end_x],
+                        use_segments.push({'x_range': [node.xs[short_name][0], end_x],
                                            'y_range': [edge_y, edge_y],
                                            'type': 'H',
                                            'd': ['H', end_x]});
@@ -1897,7 +2053,7 @@
                 var seg = use_segments[j];
                 var d = $(p).attr('d') || '';
                 this.svg.change(p, {'d': [d, [seg.d[0], seg.d.slice(1).join(',')].join('')].join(' ')});
-                if(seg.type == 'C') {
+                if(seg.type == 'C' || seg.type == 'L') {
                     var p_len = p.getTotalLength();
                     seg.len_range = [last_len, p_len];
                     last_len = p_len;
@@ -2212,9 +2368,6 @@
 
                 if(self.nchart.debug) {
                     var defs = svg.defs('debug_defs');
-                    var inner_glow = svg.filter(defs, 'inner_glow');
-                    svg.filters.gaussianBlur(inner_glow, 'blur', null, 6);
-                    svg.filters.composite(inner_glow, 'composite_blur', 'arithmetic', 'blur', 'SourceGraphic', 0, -1, 1);
                     goog.array.forEach(self.nchart.debug.features, function(feature) {
                         if(self['debug_' + feature]) {
                             self['debug_' + feature]();
@@ -2441,6 +2594,7 @@
             } else if(seg.type == 'C') {
                 p_and_l = self.point_and_length_at_x(seg, left_x);
                 crossing_y = p_and_l.point.y;
+            } else if(seg.type == 'L') {
             }
 
             if(crossing_y >= top_y && crossing_y <= bottom_y) {
@@ -2457,6 +2611,7 @@
                         if(y_p_and_l) {
                             start_offset = Math.min(y_p_and_l.length, max_offset);
                         }
+                    } else if(seg.type == 'L') {
                     }
                     index++;
                     seg = segments[index];
