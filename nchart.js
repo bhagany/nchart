@@ -450,8 +450,11 @@
                 layer.sub_nodes = layer.sub_nodes.concat(v.sub_nodes);
             }
         }
+        var cycles_in_progress = [];
+        var potential_cycles = {};
+        var crossing_results = [];
+        var done = false;
         do {
-            var old_total_crossings = total_crossings;
             total_crossings = 0;
             var compaction = [layer.nodes.slice(0)];
             layer.L = compaction[0];
@@ -469,43 +472,86 @@
                 compaction = compaction.concat([layer.L]);
             }
             console.log(a, total_crossings);
-            var difference = Math.abs(total_crossings - old_total_crossings);
-            if(total_crossings < best.crossings) {
-                best.crossings = total_crossings;
-                best.compaction = compaction;
-                best.marked = {};
-                best.sub_nodes = {};
-                for(var i=0; i<this.graph.layers.length; i++) {
-                    layer = this.graph.layers[i];
-                    for(var j=0; j<layer.nodes.length; j++) {
-                        var node = layer.nodes[j];
-                        best.sub_nodes[node.id] = node.sub_nodes.slice(0);
-
-                        best.marked[node.id] = {};
-                        for(var target_id in node.edges) {
-                            var edge = node.edges[target_id];
-                            best.marked[node.id][target_id] = edge.marked;
+            for(var i=0; i<cycles_in_progress.length; i++) {
+                var cycle = cycles_in_progress[i];
+                if(cycle.next == total_crossings) {
+                    cycle.run++;
+                    next_index = cycle.run % cycle.pattern.length;
+                    if(next_index == 0) {
+                        // This is the last number in the cycle
+                        if(cycle.run / cycle.pattern.length == 3) {
+                            // This is the end of the third cycle
+                            done = true;
+                            break;
                         }
                     }
-                }
-                if(reverse) {
-                    best.compaction.reverse();
+                    cycle.next = cycle.pattern[next_index];
+                    // We are guaranteed that this is the shortest active cycle, and it's the only
+                    // one we want to keep track of until it completes 3 times, or fails
+                    cycles_in_progress.splice(1);
+                } else {
+                    // Cycle failed; remove it
+                    cycles_in_progress.splice(i, 1);
+                    i--;
                 }
             }
 
-            // Go backwards
-            reverse = !reverse;
-            this.graph.layers.reverse();
-            layer = this.graph.layers[0];
-            layer.sub_nodes = [];
-            for(var i=0; i<layer.L.length; i++) {
-                var v = layer.nodes[i];
-                if(v.sub_nodes) {
-                    layer.sub_nodes = layer.sub_nodes.concat(v.sub_nodes);
+            if(!done) {
+                var entry = goog.object.setIfUndefined(potential_cycles, total_crossings, []);
+                // We don't need to guess at potential cycles if there's an active one
+                if(!cycles_in_progress.length) {
+                    // Add each start point to cycles_in_progress
+                    for(var i=0; i<entry.length; i++) {
+                        var start_idx = entry[i];
+                        var pattern = crossing_results.slice(start_idx);
+                        cycles_in_progress.unshift({
+                            'next': pattern[1],
+                            'run': pattern.length + 1,
+                            'pattern': pattern
+                        });
+                    }
                 }
+                // Add this number to potential_cycles
+                entry.push(crossing_results.length);
+                crossing_results.push(total_crossings);
+
+                if(total_crossings < best.crossings) {
+                    best.crossings = total_crossings;
+                    best.compaction = compaction;
+                    best.marked = {};
+                    best.sub_nodes = {};
+                    for(var i=0; i<this.graph.layers.length; i++) {
+                        layer = this.graph.layers[i];
+                        for(var j=0; j<layer.nodes.length; j++) {
+                            var node = layer.nodes[j];
+                            best.sub_nodes[node.id] = node.sub_nodes.slice(0);
+
+                            best.marked[node.id] = {};
+                            for(var target_id in node.edges) {
+                                var edge = node.edges[target_id];
+                                best.marked[node.id][target_id] = edge.marked;
+                            }
+                        }
+                    }
+                    if(reverse) {
+                        best.compaction.reverse();
+                    }
+                }
+
+                // Go backwards
+                reverse = !reverse;
+                this.graph.layers.reverse();
+                layer = this.graph.layers[0];
+                layer.sub_nodes = [];
+                for(var i=0; i<layer.L.length; i++) {
+                    var v = layer.nodes[i];
+                    if(v.sub_nodes) {
+                        layer.sub_nodes = layer.sub_nodes.concat(v.sub_nodes);
+                    }
+                }
+                a++;
             }
-            a++;
-        } while(a < 21);
+        } while(!done && a <= 30);
 
         if(reverse) {
             this.graph.layers.reverse();
@@ -876,7 +922,7 @@
             tree[t] = 0;
             seg_tree[t] = 0;
         }
-        
+
         var cross_count = 0; /* number of crossings */
         for(var k=0; k<lower_positions.length; k++) { /* insert edge k */
             var index = lower_positions[k] + first_index;
@@ -932,7 +978,7 @@
         for(var t=0; t<tree_size; t++) {
             tree[t] = 0;
         }
-        
+
         var cross_count = 0;
         for(var k=0; k<lower_positions.length; k++) {
             var index = lower_positions[k] + first_index;
@@ -986,7 +1032,7 @@
 
         for(var i=0; i<this.graph.e_compaction.length; i++) {
             var L = this.graph.e_compaction[i];
-            
+
             var last_childrens = childrens;
             childrens = [];
             for(var j=0; j<L.length; j++) {
@@ -1048,7 +1094,7 @@
                 }
 
                 if(node.parents.length == 0 &&
-                   node.children.length == 1 && 
+                   node.children.length == 1 &&
                    child.parents.length > 1 &&
                    !goog.array.contains(grouped_already, child.id)) {
                     var groups = [];
@@ -1240,7 +1286,7 @@
                         node.sub_node_order[sub_node] = k;
                         last_pos[sub_node] = [j,k,0];
                     }
-                    
+
                     // Reset markedness
                     for(var target_id in node.edges) {
                         var edge = node.edges[target_id];
@@ -1463,7 +1509,7 @@
                 if(up_down) {
                     d_alignments.push(alignment);
                 } else {
-                    u_alignments.push(alignment);                    
+                    u_alignments.push(alignment);
                 }
             });
             self.right_reverse(left_right);
@@ -1669,7 +1715,7 @@
             var group = c_nodes.character.pov ? pov : non_pov;
             box_arr.push('v8');
             back_box_arr.reverse();
-            
+
             var char_group = svg.group(group,
                                        short_name + '_group',
                                        {'stroke-width': 'inherit'});
@@ -1872,7 +1918,7 @@
                 last = {'x': end_x, 'y': edge_y};
             }
             var group = groups[c_nodes.character.group] || groups['default_group'];
-            
+
             var p_id;
             if(used_names.p[short_name]) {
                 used_names.p[short_name]++;
@@ -1940,7 +1986,7 @@
                                   unseg.join(' '),
                                   settings);
                 }
-            });                    
+            });
 
             var min_offset = 0;
             goog.object.forEach(icon_places, function(places, state) {
@@ -2161,7 +2207,7 @@
                 backward.push([left, bottom]);
                 last_vs = vs;
             });
-            
+
             var right = last_vs[0].x + 22;
             forward.push([right, last_vs[0].y - 22]);
             backward.push([right, last_vs[1].y + 22]);
@@ -2249,7 +2295,7 @@
             return {'point': {'x': mid_x, 'y': (seg.y_range[0] + seg.y_range[1]) / 2},
                     'length': (seg.len_range[0] + seg.len_range[1]) / 2};
         }
-        
+
         while(true) {
             mid_len = (left + right) / 2;
             var mid_result = seg.bezier.getPoint(mid_len);
@@ -2281,7 +2327,7 @@
             return {'point': {'x': (seg.x_range[0] + seg.x_range[1]) / 2, 'y': mid_y},
                     'length': (seg.len_range[0] + seg.len_range[1]) / 2};
         }
-        
+
         while(true) {
             mid_len = (left + right) / 2;
             var mid_result = seg.bezier.getPoint(mid_len);
@@ -2313,7 +2359,7 @@
             return {'point': {'x': (seg.x_range[0] + seg.x_range[1]) / 2, 'y': mid_y},
                     'length': (seg.len_range[0] + seg.len_range[1]) / 2};
         }
-        
+
         while(true) {
             mid_len = (left + right) / 2;
             var mid_result = seg.bezier.getPoint(mid_len);
