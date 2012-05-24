@@ -34,8 +34,8 @@ Nchart certainly is not completed yet - there are bugs, browser inconsistencies,
 
 ## Examples
 
-- [A Game of Thrones](http://bhagany.github.com/nchart/agot.html)
-- [A Clash of Kings](http://bhagany.github.com/nchart/acok.html)
-- [A Storm of Swords](http://bhagany.github.com/nchart/asos.html)
-- [A Song of Ice and Fire, the first 3 books](http://bhagany.github.com/nchart/agot.html) (this is all three of the preceding graphs, put together)
-- [Star Wars](http://bhagany.github.com/nchart/starwars.html) (For direct comparison with the xkcd version)
+- [A Game of Thrones](http://bhagany.github.com/nchart/examples/asoiaf/agot.html)
+- [A Clash of Kings](http://bhagany.github.com/nchart/examples/asoiaf/acok.html)
+- [A Storm of Swords](http://bhagany.github.com/nchart/examples/asoiaf/asos.html)
+- [A Song of Ice and Fire, the first 3 books](http://bhagany.github.com/nchart/examples/asoiaf/asoiaf.html) (this is all three of the preceding graphs, put together)
+- [Star Wars](http://bhagany.github.com/nchart/examples/starwars/starwars.html) (For direct comparison with the xkcd version)
