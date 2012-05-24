@@ -238,7 +238,7 @@
                         var span = i - last_node.layer.num;
                         var sub_nodes = intersect(node.sub_nodes, last_node.sub_nodes);
                         if(span > 2) {
-                            //Add two new vertices at layers last_node.layer.num + 1 and i - 1
+                            // Add two new vertices at layers last_node.layer.num + 1 and i - 1
                             var p_layer = layers[last_node.layer.num + 1];
                             var q_layer = layers[i - 1];
                             var p_node = {'id': (last_node.layer.num + 1) + '-' + p_layer.nodes.length,
@@ -923,8 +923,8 @@
             seg_tree[t] = 0;
         }
 
-        var cross_count = 0; /* number of crossings */
-        for(var k=0; k<lower_positions.length; k++) { /* insert edge k */
+        var cross_count = 0;
+        for(var k=0; k<lower_positions.length; k++) {  // insert edge k
             var index = lower_positions[k] + first_index;
             var edge = layer_edges[k];
             tree[index] += lower_weights[k];
@@ -971,8 +971,8 @@
 
     NChart.prototype.count_sub_crossings = function(q, lower_positions) {
         var first_index = next2power(q);
-        var tree_size = 2 * first_index - 1; /* number of tree nodes */
-        first_index--; /* index of leftmost leaf */
+        var tree_size = 2 * first_index - 1;
+        first_index--;  // index of leftmost leaf
 
         var tree = [];
         for(var t=0; t<tree_size; t++) {
@@ -996,7 +996,7 @@
     };
 
     NChart.prototype.expand_compaction = function() {
-        //Un-segmentify the compaction
+        // Un-segmentify the compaction
         this.graph.e_compaction = [];
         for(var i=0; i<this.graph.compaction.length; i++) {
             var L = this.graph.compaction[i].slice(0);
