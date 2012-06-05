@@ -218,23 +218,7 @@
 
                     goog.object.setIfUndefined(c_nodes, name, []);
 
-                    if(i && !last_node) {
-                        var all_new = true;
-                        for(var l=0; l<node.sub_nodes.length; l++) {
-                            if(last_nodes[node.sub_nodes[l]]) {
-                                all_new = false;
-                            }
-                        }
-                        if(!all_new) {
-                            last_node = node;
-                        } else {
-                            last_node = this.copy_node(node, layers[0]);
-                            last_node.draw = false;
-                            layers[0].nodes.unshift(last_node);
-                            update_last_nodes(last_node, node.sub_nodes);
-                        }
-                    }
-                    if(i && last_node != node) {
+                    if(last_node && last_node != node) {
                         var span = i - last_node.layer.num;
                         var sub_nodes = intersect(node.sub_nodes, last_node.sub_nodes);
                         if(span > 2) {
@@ -261,11 +245,14 @@
                                           'edges': {},
                                           'parents': [],
                                           'children': []};
+                            // We should place these nodes more intelligently, so that all subnodes in last_node.layer
+                            // that came before last_node are still before p_node, and all subnodes in last_node.layer
+                            // that came after last_node are still after p_node
                             p_layer.nodes.push(p_node);
                             q_layer.nodes.push(q_node);
 
-                            //Add two new edges last_node.layer -> p_layer, p_layer -> q_layer
-                            //for each name in this node
+                            // Add two new edges last_node.layer -> p_layer, p_layer -> q_layer
+                            // for each name in this node
                             for(var n=0; n<sub_nodes.length; n++) {
                                 var seg_name = sub_nodes[n];
                                 if(last_node == last_nodes[seg_name]) {
@@ -348,7 +335,7 @@
         return {'id': dest_layer.num + '-' + dest_layer.nodes.length,
                 'sub_nodes': node.sub_nodes.slice(0),
                 'x': dest_layer.nodes[0].x,
-                'duration': 0,
+                'duration': 10,
                 'parents': [],
                 'children': [],
                 'layer': dest_layer,
@@ -588,7 +575,7 @@
 
         // Step 2
         var LS = [];
-        var pos = 0;
+        var pos;
         for(var j=0; j<layer.alt_L.length; j+=2) {
             var S = this.copy_segment_container(layer.alt_L[j], next_layer);
             pos = j ? pos + 1 : 0;
@@ -626,21 +613,22 @@
             }
             node.measure = num_parents > 0 ? total_pos / num_parents : node.measure ? node.measure : 0;
             goog.object.setIfUndefined(used_measures, node.measure, []);
+            // Track nodes with duplicate measures
             used_measures[node.measure].push(node);
         }
 
+        // If we have any nodes with duplicate measures, we can further refine
+        // the node's measure by taking into account where the sub nodes came from in
+        // the previous layer
         goog.object.forEach(used_measures, function(nodes) {
             if(nodes.length > 1) {
                 for(var i=0; i<nodes.length; i++) {
                     var node = nodes[i];
                     var sub_pos = 0;
-                    // var sub_pos = Infinity;
                     for(var j=0; j<node.sub_nodes.length; j++) {
                         sub_pos += goog.array.indexOf(layer.sub_nodes, node.sub_nodes[j]);
-                        // sub_pos = Math.min(sub_pos, goog.array.indexOf(layer.sub_nodes, node.sub_nodes[j]));
                     }
                     node.sub_measure = sub_pos / node.sub_nodes.length;
-                    // node.sub_measure = sub_pos;
                 }
             }
         });
@@ -680,7 +668,8 @@
 
     NChart.prototype.replace_p_nodes = function(alt_L, p) {
         // Step 1
-        for(var j=0; j<alt_L.length; j++) {
+        // Nodes are always have odd indices in alternating layers
+        for(var j=1; j<alt_L.length; j+=2) {
             var item = alt_L[j];
             if(item[p]) {
                 // Join segment container alt_L[j-1], this p_node's segment, and alt_L[j+1]
@@ -688,7 +677,7 @@
                                                          alt_L.splice(j+1, 1)[0].segs);
                 // Remove the p-node
                 alt_L.splice(j, 1);
-                j--;
+                j -= 2;
             }
         }
     };
