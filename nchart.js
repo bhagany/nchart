@@ -26,7 +26,7 @@
     goog.require('goog.math.Bezier');
 
     var NChart = function(paper_id, characters, layers, conf) {
-        this.paper = $('#' + paper_id);
+        this.paper_id = paper_id;
         this.characters = characters;
 
         conf = conf || {};
@@ -180,7 +180,11 @@
     };
 
     NChart.prototype.draw = function() {
-        this.drawer.draw_graph();
+        var self = this;
+        $(function() {
+            self.paper = $('#' + self.paper_id);
+            self.drawer.draw_graph();
+        });
         return this;
     };
 
@@ -212,9 +216,11 @@
                 node.layer = layer;
                 node.draw = true;
                 node.edges = {};
+                node.sub_node_positions = {}
                 for(var k=0; k<node.sub_nodes.length; k++) {
                     var name = node.sub_nodes[k];
                     var last_node = last_nodes[name];
+                    node.sub_node_positions[name] = k
 
                     goog.object.setIfUndefined(c_nodes, name, []);
 
@@ -268,7 +274,7 @@
 
                             this.add_pq_edges(last_node, p_node, q_node, node, sub_nodes);
                         } else if(span == 2) {
-                            //Add one new vertex at layer i - 1
+                            // Add one new vertex at layer i - 1
                             var r_layer = layers[i - 1];
                             var r_node = {'id': (i - 1) + '-' + r_layer.nodes.length,
                                           'sub_nodes': sub_nodes,
@@ -280,8 +286,8 @@
                                           'parents': [],
                                           'children': []};
                             r_layer.nodes.push(r_node);
-                            //Add two new edges last_node.layer -> r_layer
-                            //for each name in this node
+                            // Add two new edges last_node.layer -> r_layer
+                            // for each name in this node
                             for(var n=0; n<sub_nodes.length; n++) {
                                 var seg_name = sub_nodes[n];
                                 if(last_node == last_nodes[seg_name]) {
@@ -295,7 +301,7 @@
                             }
                             this.add_r_edges(last_node, r_node, node, sub_nodes);
                         } else {
-                            //Add one edge normally
+                            // Add one edge normally
                             this.add_simple_edges(last_node, node, sub_nodes);
                         }
 
@@ -303,6 +309,17 @@
                     }
                     c_nodes[name].push(node);
                     last_nodes[name] = node;
+                }
+
+                // Dangling nodes don't need to be positioned
+                node.dangle = node.dangle_left = !!node.children.length;
+                if(node.dangle) {
+                    for(var k=0; k<node.parents.length; k++) {
+                        if(node.parents[k].dangle_left == false) {
+                            node.dangle = node.dangle_left = false;
+                            break;
+                        }
+                    }
                 }
 
                 for(var k=0; k<this.path_breakers.length; k++) {

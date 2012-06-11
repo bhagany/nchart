@@ -30,5 +30,8 @@
                    'color': '#74c477'},
     };
 
+    if(window.starwars == undefined) {
+        window.starwars = {};
+    }
     window.starwars.characters = characters;
 })(window);

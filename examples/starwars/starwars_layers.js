@@ -179,5 +179,8 @@
         },
     ];
 
+    if(window.starwars == undefined) {
+        window.starwars = {};
+    }
     window.starwars.layers = layers;
 })(window);

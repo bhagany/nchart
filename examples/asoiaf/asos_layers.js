@@ -349,5 +349,8 @@
     //*** When is Petyr sent to the Vale?
     //*** Guess at all of Beric's deaths?
 
+    if(window.asoiaf == undefined) {
+        window.asoiaf = {};
+    }
     window.asoiaf.layers = layers;
 })(window);

@@ -121,9 +121,13 @@
         'victarion': {'name': 'Victarion Greyjoy',
                       'group': 'pov',
                       'family': 'greyjoy'},
+        'euron': {'name': 'Euron Greyjoy',
+                  'family': 'greyjoy'},
 
         'barristan': {'name': 'Barristan Selmy',
-                      'family': 'kingsguard'},
+                      'family': 'baratheon'},
+        'arys': {'name': 'Arys Oakheart',
+                 'family': 'baratheon'},
 
         'petyr': {'name': 'Petyr Baelish',
                   'family': 'other'},
@@ -147,6 +151,10 @@
                   'family': 'other'},
         'coldhands': {'name': 'Coldhands',
                       'family': 'other'},
+        'pate': {'name': 'Pate',
+                 'family': 'other'},
+        'varamyr': {'name': 'Varamyr',
+                    'family': 'other'},
 
         'loras': {'name': 'Loras Tyrell',
                   'family': 'tyrell'},
@@ -154,6 +162,17 @@
                      'family': 'tyrell'},
         'beric': {'name': 'Beric Dondarrion',
                   'family': 'tyrell'},
+
+        'areo': {'name': 'Areo Hotah',
+                 'family': 'martell'},
+        'doran': {'name': 'Doran Martell',
+                  'family': 'martell'},
+        'arianne': {'name': 'Arianne Martell',
+                    'family': 'martell'},
+        'alleras': {'name': 'Alleras',
+                    'family': 'martell'},
+        'quentyn': {'name': 'Quentyn Martell',
+                    'family': 'martell'},
 
         'brynden': {'name': 'Brynden Tully',
                     'family': 'arryn'},
@@ -179,10 +198,10 @@
         'dragon': '#ac1717',
         'night\'s watch': '#000000',
         'greyjoy': '#b15bc9',
-        'other': '#ff7a32',
+        'martell': '#ff7a32',
+        'other': '#4940ff',
         'tyrell': '#31c105',
         'arryn': '#23d0f5',
-        'kingsguard': '#ff7a32'
     };
 
     for(var i in characters) {
@@ -191,5 +210,8 @@
         delete c.family;
     }
 
-     window.asoiaf.characters = characters;
+    if(window.asoiaf == undefined) {
+        window.asoiaf = {};
+    }
+    window.asoiaf.characters = characters;
 })(window);

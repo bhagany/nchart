@@ -129,7 +129,7 @@
              }
          ],
         },
-        // 44. Jon V (Establish togetherness as Fist of First Men)
+        // 44. Jon V (Establish togetherness at Fist of First Men)
         {'duration': 10,
          'nodes': [
              {'sub_nodes': ['jon', 'ghost', 'jeor', 'sam']}
@@ -239,5 +239,8 @@
     //*** When is Petyr sent to the Vale?
     //*** Guess at all of Beric's deaths?
 
+    if(window.asoiaf == undefined) {
+        window.asoiaf = {};
+    }
     window.asoiaf.layers = layers;
 })(window);
