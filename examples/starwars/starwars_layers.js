@@ -2,179 +2,179 @@
     var layers = [
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['vader']},
-             {'sub_nodes': ['leia', 'r2-d2', 'c-3po']},
-             {'sub_nodes': ['obi-wan']},
-             {'sub_nodes': ['luke']},
-             {'sub_nodes': ['han', 'chewie']},
-             {'sub_nodes': ['jabba']}
+             {'subnodes': ['vader']},
+             {'subnodes': ['leia', 'r2-d2', 'c-3po']},
+             {'subnodes': ['obi-wan']},
+             {'subnodes': ['luke']},
+             {'subnodes': ['han', 'chewie']},
+             {'subnodes': ['jabba']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['vader', 'leia']},
-             {'sub_nodes': ['r2-d2', 'c-3po', 'luke']}
+             {'subnodes': ['vader', 'leia']},
+             {'subnodes': ['r2-d2', 'c-3po', 'luke']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['r2-d2', 'c-3po', 'luke', 'obi-wan']},
-             {'sub_nodes': ['greedo']}
+             {'subnodes': ['r2-d2', 'c-3po', 'luke', 'obi-wan']},
+             {'subnodes': ['greedo']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['r2-d2', 'c-3po', 'luke', 'obi-wan', 'han', 'chewie', 'greedo'],
+             {'subnodes': ['r2-d2', 'c-3po', 'luke', 'obi-wan', 'han', 'chewie', 'greedo'],
               'deaths': ['greedo']
              },
          ],
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['luke', 'han', 'chewie', 'leia']},
-             {'sub_nodes': ['r2-d2', 'c-3po']},
+             {'subnodes': ['luke', 'han', 'chewie', 'leia']},
+             {'subnodes': ['r2-d2', 'c-3po']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['obi-wan', 'vader'],
+             {'subnodes': ['obi-wan', 'vader'],
               'deaths': ['obi-wan']
              },
-             {'sub_nodes': ['r2-d2', 'c-3po', 'luke', 'han', 'chewie', 'leia']},
+             {'subnodes': ['r2-d2', 'c-3po', 'luke', 'han', 'chewie', 'leia']},
          ],
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['luke', 'vader', 'r2-d2']},
-             {'sub_nodes': ['han', 'chewie']},
+             {'subnodes': ['luke', 'vader', 'r2-d2']},
+             {'subnodes': ['han', 'chewie']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['luke', 'vader', 'r2-d2', 'han', 'chewie']},
+             {'subnodes': ['luke', 'vader', 'r2-d2', 'han', 'chewie']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['luke', 'r2-d2', 'han', 'chewie', 'leia', 'c-3po']},
+             {'subnodes': ['luke', 'r2-d2', 'han', 'chewie', 'leia', 'c-3po']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['luke']}
+             {'subnodes': ['luke']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['luke', 'han']}
+             {'subnodes': ['luke', 'han']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['luke', 'han', 'r2-d2', 'chewie', 'leia', 'c-3po']}
+             {'subnodes': ['luke', 'han', 'r2-d2', 'chewie', 'leia', 'c-3po']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['luke', 'han', 'r2-d2', 'chewie', 'leia', 'c-3po', 'vader']},
-             {'sub_nodes': ['lando']}
+             {'subnodes': ['luke', 'han', 'r2-d2', 'chewie', 'leia', 'c-3po', 'vader']},
+             {'subnodes': ['lando']}
 
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['luke', 'r2-d2']},
-             {'sub_nodes': ['vader', 'lando']},
-             {'sub_nodes': ['boba']},
-             {'sub_nodes': ['yoda']}
+             {'subnodes': ['luke', 'r2-d2']},
+             {'subnodes': ['vader', 'lando']},
+             {'subnodes': ['boba']},
+             {'subnodes': ['yoda']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['luke', 'r2-d2', 'yoda']},
-             {'sub_nodes': ['vader', 'boba']},
-             {'sub_nodes': ['han', 'chewie', 'leia', 'c-3po', 'lando']},
+             {'subnodes': ['luke', 'r2-d2', 'yoda']},
+             {'subnodes': ['vader', 'boba']},
+             {'subnodes': ['han', 'chewie', 'leia', 'c-3po', 'lando']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['luke', 'r2-d2', 'yoda']},
-             {'sub_nodes': ['vader', 'boba', 'han', 'chewie', 'leia', 'c-3po', 'lando']},
+             {'subnodes': ['luke', 'r2-d2', 'yoda']},
+             {'subnodes': ['vader', 'boba', 'han', 'chewie', 'leia', 'c-3po', 'lando']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['boba', 'han', 'jabba']},
-             {'sub_nodes': ['r2-d2', 'chewie', 'leia', 'c-3po', 'lando']},
-             {'sub_nodes': ['luke', 'vader']},
+             {'subnodes': ['boba', 'han', 'jabba']},
+             {'subnodes': ['r2-d2', 'chewie', 'leia', 'c-3po', 'lando']},
+             {'subnodes': ['luke', 'vader']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['r2-d2', 'chewie', 'leia', 'c-3po', 'lando', 'luke']},
+             {'subnodes': ['r2-d2', 'chewie', 'leia', 'c-3po', 'lando', 'luke']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['boba', 'han', 'jabba', 'lando']},
+             {'subnodes': ['boba', 'han', 'jabba', 'lando']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['boba', 'han', 'jabba', 'lando', 'r2-d2', 'c-3po']},
+             {'subnodes': ['boba', 'han', 'jabba', 'lando', 'r2-d2', 'c-3po']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['boba', 'han', 'jabba', 'lando', 'r2-d2', 'c-3po', 'chewie', 'leia']},
+             {'subnodes': ['boba', 'han', 'jabba', 'lando', 'r2-d2', 'c-3po', 'chewie', 'leia']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['boba', 'han', 'jabba', 'lando', 'r2-d2', 'c-3po', 'chewie', 'leia', 'luke'],
+             {'subnodes': ['boba', 'han', 'jabba', 'lando', 'r2-d2', 'c-3po', 'chewie', 'leia', 'luke'],
               'deaths': ['boba', 'jabba']
              },
          ],
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['luke', 'yoda'],
+             {'subnodes': ['luke', 'yoda'],
               'deaths': ['yoda']
              }
          ],
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['han', 'lando', 'r2-d2', 'c-3po', 'chewie', 'leia', 'luke']},
-             {'sub_nodes': ['emperor']}
+             {'subnodes': ['han', 'lando', 'r2-d2', 'c-3po', 'chewie', 'leia', 'luke']},
+             {'subnodes': ['emperor']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['han', 'r2-d2', 'c-3po', 'chewie', 'leia', 'luke']},
-             {'sub_nodes': ['emperor', 'vader']}
+             {'subnodes': ['han', 'r2-d2', 'c-3po', 'chewie', 'leia', 'luke']},
+             {'subnodes': ['emperor', 'vader']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['luke', 'vader']}
+             {'subnodes': ['luke', 'vader']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['luke', 'vader', 'emperor']}
+             {'subnodes': ['luke', 'vader', 'emperor']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['luke', 'vader', 'emperor', 'lando'],
+             {'subnodes': ['luke', 'vader', 'emperor', 'lando'],
               'deaths': ['emperor', 'vader']
              }
          ],
         },
         {'duration': 10,
          'nodes': [
-             {'sub_nodes': ['luke', 'lando', 'chewie', 'leia', 'r2-d2', 'c-3po', 'han']}
+             {'subnodes': ['luke', 'lando', 'chewie', 'leia', 'r2-d2', 'c-3po', 'han']}
          ],
         },
     ];

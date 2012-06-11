@@ -31,7 +31,7 @@
 
         conf = conf || {};
         this.node_spacing = conf.node_spacing ? conf.node_spacing : 50;
-        this.sub_node_spacing = conf.sub_node_spacing ? conf.sub_node_spacing : 15;
+        this.subnode_spacing = conf.subnode_spacing ? conf.subnode_spacing : 15;
         this.slope_func = conf.slope_func ? conf.slope_func : function(edge) { return Math.max(1.5, 3.5 - (edge.weight / 7)); };
         this.group_styles = conf.group_styles ? conf.group_styles : {};
         if(!this.group_styles.default_group) {
@@ -203,9 +203,9 @@
             var layer = layers[i];
             layer.segs = {};
             layer.num = i;
-
             layer.prev = layers[i - 1];
             layer.next = layers[i + 1];
+            layer.node_positions = {};
 
             for(var j=0; j<layer.nodes.length; j++) {
                 var node = layer.nodes[j];
@@ -216,23 +216,24 @@
                 node.layer = layer;
                 node.draw = true;
                 node.edges = {};
-                node.sub_node_positions = {}
-                for(var k=0; k<node.sub_nodes.length; k++) {
-                    var name = node.sub_nodes[k];
+                node.subnode_positions = {};
+                layer.node_positions[node.id] = j;
+                for(var k=0; k<node.subnodes.length; k++) {
+                    var name = node.subnodes[k];
                     var last_node = last_nodes[name];
-                    node.sub_node_positions[name] = k
+                    node.subnode_positions[name] = k
 
                     goog.object.setIfUndefined(c_nodes, name, []);
 
                     if(last_node && last_node != node) {
                         var span = i - last_node.layer.num;
-                        var sub_nodes = intersect(node.sub_nodes, last_node.sub_nodes);
+                        var subnodes = intersect(node.subnodes, last_node.subnodes);
                         if(span > 2) {
                             // Add two new vertices at layers last_node.layer.num + 1 and i - 1
                             var p_layer = layers[last_node.layer.num + 1];
                             var q_layer = layers[i - 1];
                             var p_node = {'id': (last_node.layer.num + 1) + '-' + p_layer.nodes.length,
-                                          'sub_nodes': sub_nodes,
+                                          'subnodes': subnodes,
                                           'duration': 0,
                                           'layer': p_layer,
                                           'p': true,
@@ -242,7 +243,7 @@
                                           'parents': [],
                                           'children': []};
                             var q_node = {'id': (i - 1) + '-' + q_layer.nodes.length,
-                                          'sub_nodes': sub_nodes,
+                                          'subnodes': subnodes,
                                           'duration': 0,
                                           'layer': q_layer,
                                           'q': true,
@@ -259,25 +260,25 @@
 
                             // Add two new edges last_node.layer -> p_layer, p_layer -> q_layer
                             // for each name in this node
-                            for(var n=0; n<sub_nodes.length; n++) {
-                                var seg_name = sub_nodes[n];
+                            for(var n=0; n<subnodes.length; n++) {
+                                var seg_name = subnodes[n];
                                 if(last_node == last_nodes[seg_name]) {
                                     if(last_node.draw) {
                                         c_nodes[seg_name].push(p_node);
                                         c_nodes[seg_name].push(q_node);
                                     }
                                 } else {
-                                    sub_nodes.splice(n, 1);
+                                    subnodes.splice(n, 1);
                                     n--;
                                 }
                             }
 
-                            this.add_pq_edges(last_node, p_node, q_node, node, sub_nodes);
+                            this.add_pq_edges(last_node, p_node, q_node, node, subnodes);
                         } else if(span == 2) {
                             // Add one new vertex at layer i - 1
                             var r_layer = layers[i - 1];
                             var r_node = {'id': (i - 1) + '-' + r_layer.nodes.length,
-                                          'sub_nodes': sub_nodes,
+                                          'subnodes': subnodes,
                                           'duration': 0,
                                           'layer': r_layer,
                                           'r': true,
@@ -288,24 +289,24 @@
                             r_layer.nodes.push(r_node);
                             // Add two new edges last_node.layer -> r_layer
                             // for each name in this node
-                            for(var n=0; n<sub_nodes.length; n++) {
-                                var seg_name = sub_nodes[n];
+                            for(var n=0; n<subnodes.length; n++) {
+                                var seg_name = subnodes[n];
                                 if(last_node == last_nodes[seg_name]) {
                                     if(last_node.draw) {
                                         c_nodes[seg_name].push(r_node);
                                     }
                                 } else {
-                                    sub_nodes.splice(n, 1);
+                                    subnodes.splice(n, 1);
                                     n--;
                                 }
                             }
-                            this.add_r_edges(last_node, r_node, node, sub_nodes);
+                            this.add_r_edges(last_node, r_node, node, subnodes);
                         } else {
                             // Add one edge normally
-                            this.add_simple_edges(last_node, node, sub_nodes);
+                            this.add_simple_edges(last_node, node, subnodes);
                         }
 
-                        update_last_nodes(node, sub_nodes);
+                        update_last_nodes(node, subnodes);
                     }
                     c_nodes[name].push(node);
                     last_nodes[name] = node;
@@ -350,7 +351,7 @@
 
     NChart.prototype.copy_node = function(node, dest_layer) {
         return {'id': dest_layer.num + '-' + dest_layer.nodes.length,
-                'sub_nodes': node.sub_nodes.slice(0),
+                'subnodes': node.subnodes.slice(0),
                 'x': dest_layer.nodes[0].x,
                 'duration': 10,
                 'parents': [],
@@ -359,7 +360,7 @@
                 'edges': {}};
     };
 
-    NChart.prototype.add_simple_edges = function(node1, node2, sub_nodes) {
+    NChart.prototype.add_simple_edges = function(node1, node2, subnodes) {
         node1.children.push(node2);
         node2.parents.push(node1);
 
@@ -368,27 +369,27 @@
         node1.edges[node2.id] = {'source': node1,
                                  'target': node2,
                                  'is_seg': is_seg,
-                                 'sub_nodes': sub_nodes,
-                                 'weight': sub_nodes.length};
+                                 'subnodes': subnodes,
+                                 'weight': subnodes.length};
         node2.edges[node1.id] = {'source': node2,
                                  'target': node1,
                                  'is_seg': is_seg,
-                                 'sub_nodes': sub_nodes,
-                                 'weight': sub_nodes.length};
+                                 'subnodes': subnodes,
+                                 'weight': subnodes.length};
     };
 
-    NChart.prototype.add_r_edges = function(last_node, r_node, node, sub_nodes) {
-        this.add_simple_edges(last_node, r_node, sub_nodes);
-        this.add_simple_edges(r_node, node, sub_nodes);
+    NChart.prototype.add_r_edges = function(last_node, r_node, node, subnodes) {
+        this.add_simple_edges(last_node, r_node, subnodes);
+        this.add_simple_edges(r_node, node, subnodes);
     };
 
-    NChart.prototype.add_pq_edges = function(last_node, p_node, q_node, node, sub_nodes) {
-        this.add_simple_edges(last_node, p_node, sub_nodes);
-        this.add_simple_edges(q_node, node, sub_nodes);
+    NChart.prototype.add_pq_edges = function(last_node, p_node, q_node, node, subnodes) {
+        this.add_simple_edges(last_node, p_node, subnodes);
+        this.add_simple_edges(q_node, node, subnodes);
 
         var segment = {'id': p_node.id + '-' + q_node.id,
                        'nodes': [p_node, q_node],
-                       'sub_nodes': sub_nodes,
+                       'subnodes': subnodes,
                        'draw': last_node.draw,
                        'layer': p_node.layer.next,
                        'edges': {},
@@ -400,10 +401,10 @@
 
         var span = q_node.layer.num - p_node.layer.num;
         if(span == 1) {
-            this.add_simple_edges(p_node, q_node, sub_nodes);
+            this.add_simple_edges(p_node, q_node, subnodes);
         } else if(span == 2) {
-            this.add_simple_edges(p_node, segment, sub_nodes);
-            this.add_simple_edges(segment, q_node, sub_nodes);
+            this.add_simple_edges(p_node, segment, subnodes);
+            this.add_simple_edges(segment, q_node, subnodes);
 
             segment.layer.segs[segment.id] = segment;
         } else {
@@ -411,7 +412,7 @@
             var v_2 = this.copy_segment(segment, p_node.layer.next.next);
 
             for(var i=p_node.layer.num + 1; i<q_node.layer.num - 1; i++) {
-                this.add_simple_edges(v_1, v_2, sub_nodes);
+                this.add_simple_edges(v_1, v_2, subnodes);
 
                 v_1.layer.segs[v_1.id] = v_1;
                 v_2.layer.segs[v_2.id] = v_2;
@@ -420,15 +421,15 @@
                 v_2 = this.copy_segment(segment, v_2.layer.next);
             }
 
-            this.add_simple_edges(p_node, segment, sub_nodes);
-            this.add_simple_edges(v_1, q_node, sub_nodes);
+            this.add_simple_edges(p_node, segment, subnodes);
+            this.add_simple_edges(v_1, q_node, subnodes);
         }
     };
 
     NChart.prototype.copy_segment = function(segment, dest_layer) {
         return {'id': segment.id,
                 'nodes': segment.nodes.slice(0),
-                'sub_nodes': segment.sub_nodes.slice(0),
+                'subnodes': segment.subnodes.slice(0),
                 'draw': segment.draw,
                 'layer': dest_layer,
                 'edges': {},
@@ -445,13 +446,13 @@
         var reverse = false;
         var layer = this.graph.layers[0];
         layer.alt_L = [{'segs': []}];
-        layer.sub_nodes = [];
+        layer.subnodes = [];
         for(var i=0; i<layer.nodes.length; i++) {
             var v = layer.nodes[i];
             layer.alt_L.push(v);
             layer.alt_L.push({'segs': []});
-            if(v.sub_nodes) {
-                layer.sub_nodes = layer.sub_nodes.concat(v.sub_nodes);
+            if(v.subnodes) {
+                layer.subnodes = layer.subnodes.concat(v.subnodes);
             }
         }
         var cycles_in_progress = [];
@@ -466,11 +467,11 @@
                 var results = this.minimize_crossings(layer, reverse);
                 total_crossings += results[0];
                 layer = results[1];
-                layer.sub_nodes = [];
+                layer.subnodes = [];
                 for(var j=0; j<layer.L.length; j++) {
                     var v = layer.L[j];
-                    if(v.sub_nodes) {
-                        layer.sub_nodes = layer.sub_nodes.concat(v.sub_nodes);
+                    if(v.subnodes) {
+                        layer.subnodes = layer.subnodes.concat(v.subnodes);
                     }
                 }
                 compaction = compaction.concat([layer.L]);
@@ -523,12 +524,12 @@
                     best.crossings = total_crossings;
                     best.compaction = compaction;
                     best.marked = {};
-                    best.sub_nodes = {};
+                    best.subnodes = {};
                     for(var i=0; i<this.graph.layers.length; i++) {
                         layer = this.graph.layers[i];
                         for(var j=0; j<layer.nodes.length; j++) {
                             var node = layer.nodes[j];
-                            best.sub_nodes[node.id] = node.sub_nodes.slice(0);
+                            best.subnodes[node.id] = node.subnodes.slice(0);
 
                             best.marked[node.id] = {};
                             for(var target_id in node.edges) {
@@ -546,11 +547,11 @@
                 reverse = !reverse;
                 this.graph.layers.reverse();
                 layer = this.graph.layers[0];
-                layer.sub_nodes = [];
+                layer.subnodes = [];
                 for(var i=0; i<layer.L.length; i++) {
                     var v = layer.nodes[i];
-                    if(v.sub_nodes) {
-                        layer.sub_nodes = layer.sub_nodes.concat(v.sub_nodes);
+                    if(v.subnodes) {
+                        layer.subnodes = layer.subnodes.concat(v.subnodes);
                     }
                 }
                 a++;
@@ -642,10 +643,10 @@
                 for(var i=0; i<nodes.length; i++) {
                     var node = nodes[i];
                     var sub_pos = 0;
-                    for(var j=0; j<node.sub_nodes.length; j++) {
-                        sub_pos += goog.array.indexOf(layer.sub_nodes, node.sub_nodes[j]);
+                    for(var j=0; j<node.subnodes.length; j++) {
+                        sub_pos += goog.array.indexOf(layer.subnodes, node.subnodes[j]);
                     }
-                    node.sub_measure = sub_pos / node.sub_nodes.length;
+                    node.sub_measure = sub_pos / node.subnodes.length;
                 }
             }
         });
@@ -733,7 +734,7 @@
         var last = 'node';
         for(var j=0; j<alt_L.length; j++) {
             var item = alt_L[j];
-            if(last == 'node' && item.sub_nodes) {
+            if(last == 'node' && item.subnodes) {
                 alt_L.splice(j, 0, {'segs': []});
                 last = 'segment';
             } else if(last == 'segment' && item.segs) {
@@ -811,13 +812,13 @@
     };
 
     NChart.prototype.get_crossings = function(layer, L, children, parents) {
-        var sub_node_map = {};
-        for(var i=0; i<layer.sub_nodes.length; i++) {
-            sub_node_map[layer.sub_nodes[i]] = i;
+        var subnode_map = {};
+        for(var i=0; i<layer.subnodes.length; i++) {
+            subnode_map[layer.subnodes[i]] = i;
         }
 
-        function sub_node_compare(a, b) {
-            return sub_node_map[a] - sub_node_map[b];
+        function subnode_compare(a, b) {
+            return subnode_map[a] - subnode_map[b];
         }
 
         var prev_L = layer.L
@@ -828,13 +829,13 @@
         var position = 0;
         for(var j=0; j<L.length; j++) {
             var node = L[j];
-            if(node.sub_nodes) {
+            if(node.subnodes) {
                 if(node[parents] && node.draw) {
-                    node.sub_nodes.sort(sub_node_compare);
-                    for(var k=0; k<node.sub_nodes.length; k++) {
-                        var sub_node = node.sub_nodes[k];
-                        if(sub_node_map[sub_node]) {
-                            L_sub_map[sub_node] = position;
+                    node.subnodes.sort(subnode_compare);
+                    for(var k=0; k<node.subnodes.length; k++) {
+                        var subnode = node.subnodes[k];
+                        if(subnode_map[subnode]) {
+                            L_sub_map[subnode] = position;
                         }
                     }
                     L_map[node.id] = position;
@@ -848,10 +849,10 @@
                         L_map[seg.id] = position;
                         drew_one = true;
                     }
-                    for(var l=0; l<seg.sub_nodes.length; l++) {
-                        var sub_node = seg.sub_nodes[l];
+                    for(var l=0; l<seg.subnodes.length; l++) {
+                        var subnode = seg.subnodes[l];
                         if(seg.draw) {
-                            L_sub_map[sub_node] = position;
+                            L_sub_map[subnode] = position;
                         }
                     }
                 }
@@ -897,16 +898,16 @@
                     lower_positions.push(L_map[edge.target.id]);
                     edge_weights.push(edge.weight);
                     if(count_subs) {
-                        for(var m=0; m<edge.sub_nodes.length; m++) {
-                            L_sub_map[edge.sub_nodes[m]] = sub_position;
+                        for(var m=0; m<edge.subnodes.length; m++) {
+                            L_sub_map[edge.subnodes[m]] = sub_position;
                         }
                         sub_position++;
                     }
                 }
                 if(count_subs) {
                     var lower_sub_positions = [];
-                    for(var l=0; l<node.sub_nodes.length; l++) {
-                        lower_sub_positions.push(L_sub_map[node.sub_nodes[l]]);
+                    for(var l=0; l<node.subnodes.length; l++) {
+                        lower_sub_positions.push(L_sub_map[node.subnodes[l]]);
                     }
                     crossings += this.count_sub_crossings(sub_position, lower_sub_positions);
                 }
@@ -1087,7 +1088,7 @@
                             if(group.length == 1) {
                                 continue;
                             }
-                            var intersection = intersect(group, node.sub_nodes);
+                            var intersection = intersect(group, node.subnodes);
                             if(intersection.length && intersection.length != group.length) {
                                 for(var m=0; m<intersection.length; m++) {
                                     group.splice(goog.array.indexOf(group, intersection[m]), 1);
@@ -1105,8 +1106,8 @@
                    !goog.array.contains(grouped_already, child.id)) {
                     var groups = [];
                     for(var k=0; k<child.parents.length; k++) {
-                        groups = groups.concat(intersect(child.sub_nodes,
-                                                         child.parents[k].sub_nodes));;
+                        groups = groups.concat(intersect(child.subnodes,
+                                                         child.parents[k].subnodes));;
                     }
                     current_groups.push({'node': child, 'groups': [groups]});
 
@@ -1120,9 +1121,9 @@
             for(var j=0; j<cg.node.parents.length; j++) {
                 var parent = cg.node.parents[j];
                 parent.lowest_sub_pos = Infinity;
-                for(var k=0; k<parent.sub_nodes.length; k++) {
+                for(var k=0; k<parent.subnodes.length; k++) {
                     parent.lowest_sub_pos = Math.min(parent.lowest_sub_pos,
-                                                     goog.array.indexOf(groupage, parent.sub_nodes[k]));
+                                                     goog.array.indexOf(groupage, parent.subnodes[k]));
                 }
             }
             goog.array.stableSort(cg.node.parents, this.lowest_sub_pos_sort);
@@ -1179,7 +1180,7 @@
         }
     };
 
-    NChart.prototype.group_sub_nodes = function() {
+    NChart.prototype.group_subnodes = function() {
         var grouped_already = [];
         var current_groups = [];
         for(var i=0; i<this.graph.e_compaction.length; i++) {
@@ -1194,7 +1195,7 @@
                         if(group.length == 1) {
                             continue;
                         }
-                        var intersection = intersect(group, node.sub_nodes);
+                        var intersection = intersect(group, node.subnodes);
                         if(intersection.length && intersection.length != group.length) {
                             for(var m=0; m<intersection.length; m++) {
                                 group.splice(goog.array.indexOf(group, intersection[m]), 1);
@@ -1206,15 +1207,15 @@
                 }
 
                 var initials = [];
-                for(var k=0; k<node.sub_nodes.length; k++) {
-                    var sub_node = node.sub_nodes[k];
-                    if(!goog.array.contains(grouped_already, sub_node)) {
-                        initials.push(sub_node);
+                for(var k=0; k<node.subnodes.length; k++) {
+                    var subnode = node.subnodes[k];
+                    if(!goog.array.contains(grouped_already, subnode)) {
+                        initials.push(subnode);
                     }
                 }
 
                 if(initials.length) {
-                    current_groups.push({'node': node, 'groups': [node.sub_nodes.slice(0)]});
+                    current_groups.push({'node': node, 'groups': [node.subnodes.slice(0)]});
                     grouped_already = grouped_already.concat(initials);
                 }
             }
@@ -1222,75 +1223,75 @@
 
         for(var i=0; i<current_groups.length; i++) {
             current_groups[i].node.initial_ordering = current_groups[i].groups;
-            current_groups[i].node.sub_nodes = goog.array.flatten(current_groups[i].groups);
+            current_groups[i].node.subnodes = goog.array.flatten(current_groups[i].groups);
         }
     };
 
-    NChart.prototype.sort_sub_nodes = function() {
-        this.group_sub_nodes();
+    NChart.prototype.sort_subnodes = function() {
+        this.group_subnodes();
         var last_pos = {};
         for(var i=0; i<this.graph.layers.length; i++) {
             var layer = this.graph.layers[i];
             var L = layer.L;
 
-            function sub_node_compare(a, b) {
-                if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
-                    return node.sub_node_pos[b][0] - node.sub_node_pos[a][0];
+            function subnode_compare(a, b) {
+                if(node.subnode_pos[a][0] != node.subnode_pos[b][0]) {
+                    return node.subnode_pos[b][0] - node.subnode_pos[a][0];
                 } else {
-                    return node.sub_node_pos[b][1] - node.sub_node_pos[a][1];
+                    return node.subnode_pos[b][1] - node.subnode_pos[a][1];
                 }
             }
 
             // Reset the graph sub node order
             for(var j=0; j<L.length; j++) {
                 var node = L[j];
-                node.sub_node_pos = {};
+                node.subnode_pos = {};
 
                 if(!node.nodes) {
                     var initials = [];
-                    for(var k=0; k<node.sub_nodes.length; k++) {
-                        var sub_node = node.sub_nodes[k];
-                        if(last_pos[sub_node]) {
-                            node.sub_node_pos[sub_node] = last_pos[sub_node];
+                    for(var k=0; k<node.subnodes.length; k++) {
+                        var subnode = node.subnodes[k];
+                        if(last_pos[subnode]) {
+                            node.subnode_pos[subnode] = last_pos[subnode];
                         } else {
-                            node.sub_node_pos[sub_node] = [j,k,0];
-                            initials.push(sub_node);
+                            node.subnode_pos[subnode] = [j,k,0];
+                            initials.push(subnode);
                         }
                     }
-                    if(initials.length && initials.length != node.sub_nodes.length) {
+                    if(initials.length && initials.length != node.subnodes.length) {
                         for(var k=0; k<node.initial_ordering.length; k++) {
                             var group = node.initial_ordering[k];
                             var initials_in_group = intersect(group, initials);
                             if(initials_in_group.length && initials_in_group.length < group.length) {
-                                var non_initials_in_group = goog.array.filter(group, function(sub_node) {
-                                    return !goog.array.contains(initials_in_group, sub_node);
+                                var non_initials_in_group = goog.array.filter(group, function(subnode) {
+                                    return !goog.array.contains(initials_in_group, subnode);
                                 });
-                                goog.array.stableSort(non_initials_in_group, sub_node_compare);
-                                var lowest_pos = node.sub_node_pos[non_initials_in_group[0]];
+                                goog.array.stableSort(non_initials_in_group, subnode_compare);
+                                var lowest_pos = node.subnode_pos[non_initials_in_group[0]];
                                 for(var l=0; l<initials_in_group.length; l++) {
                                     var initial = initials_in_group[l];
-                                    node.sub_node_pos[initial] = lowest_pos.slice(0);
-                                    node.sub_node_pos[initial][2] = l + 1;
+                                    node.subnode_pos[initial] = lowest_pos.slice(0);
+                                    node.subnode_pos[initial][2] = l + 1;
                                 }
                             }
                         }
                     }
 
-                    goog.array.stableSort(node.sub_nodes, function(a, b) {
-                        if(node.sub_node_pos[a][0] != node.sub_node_pos[b][0]) {
-                            return node.sub_node_pos[a][0] - node.sub_node_pos[b][0];
-                        } else if(node.sub_node_pos[a][1] != node.sub_node_pos[b][1]) {
-                            return node.sub_node_pos[a][1] - node.sub_node_pos[b][1];
+                    goog.array.stableSort(node.subnodes, function(a, b) {
+                        if(node.subnode_pos[a][0] != node.subnode_pos[b][0]) {
+                            return node.subnode_pos[a][0] - node.subnode_pos[b][0];
+                        } else if(node.subnode_pos[a][1] != node.subnode_pos[b][1]) {
+                            return node.subnode_pos[a][1] - node.subnode_pos[b][1];
                         } else {
-                            return node.sub_node_pos[a][2] - node.sub_node_pos[b][2];
+                            return node.subnode_pos[a][2] - node.subnode_pos[b][2];
                         }
                     });
 
-                    node.sub_node_order = {};
-                    for(var k=0; k<node.sub_nodes.length; k++) {
-                        var sub_node = node.sub_nodes[k];
-                        node.sub_node_order[sub_node] = k;
-                        last_pos[sub_node] = [j,k,0];
+                    node.subnode_order = {};
+                    for(var k=0; k<node.subnodes.length; k++) {
+                        var subnode = node.subnodes[k];
+                        node.subnode_order[subnode] = k;
+                        last_pos[subnode] = [j,k,0];
                     }
 
                     // Reset markedness
@@ -1307,7 +1308,7 @@
         this.expand_compaction();
         //this.group_initial_nodes();
         this.neighborify();
-        this.sort_sub_nodes();
+        this.sort_subnodes();
     };
 
     NChart.Plotter = function(nchart) {
@@ -1401,8 +1402,8 @@
             u_size = w[this.dir.pred].size;
         }
 
-        return up_down ? this.nchart.sub_node_spacing * -w.size - this.nchart.node_spacing
-            : this.nchart.sub_node_spacing * u_size + this.nchart.node_spacing;
+        return up_down ? this.nchart.subnode_spacing * -w.size - this.nchart.node_spacing
+            : this.nchart.subnode_spacing * u_size + this.nchart.node_spacing;
     };
 
 
@@ -1581,7 +1582,7 @@
                     v.y = Math.round((v_coords[1] + v_coords[2]) / 2);
                 }
                 min_y = Math.min(v.y, min_y);
-                max_y = Math.max(v.y + ((v.size - 1) * this.nchart.sub_node_spacing), max_y);
+                max_y = Math.max(v.y + ((v.size - 1) * this.nchart.subnode_spacing), max_y);
             }
         }
 
@@ -1650,7 +1651,7 @@
                 v.align = v;
                 v.sink = v;
                 v.shift = up_down ? -Infinity : Infinity;
-                v.size = v.sub_nodes.length;
+                v.size = v.subnodes.length;
                 v.y = null;
             }
         }
@@ -1684,7 +1685,7 @@
                         box_arr.push('L');
                     }
                 }
-                var edge_y = node.y + (node.sub_node_order[short_name] * this.nchart.sub_node_spacing);
+                var edge_y = node.y + (node.subnode_order[short_name] * this.nchart.subnode_spacing);
                 var box_y = edge_y - 4;
                 var back_box_y = edge_y + 4;
                 edge_arr.push(node.x + ' ' + edge_y);
@@ -1796,8 +1797,8 @@
             var c_nodes = this.nchart.graph.char_nodes[i];
             var short_name = c_nodes.character.short_name;
             var last = {'x': c_nodes.nodes[0].x,
-                        'y': c_nodes.nodes[0].y + c_nodes.nodes[0].sub_node_order[short_name]
-                        * this.nchart.sub_node_spacing};
+                        'y': c_nodes.nodes[0].y + c_nodes.nodes[0].subnode_order[short_name]
+                        * this.nchart.subnode_spacing};
 
             var states = {};
             var icon_places = {};
@@ -1820,7 +1821,7 @@
             var last_horiz = false;
             for(var j=0; j<c_nodes.nodes.length; j++) {
                 var node = c_nodes.nodes[j];
-                var edge_y = node.y + (node.sub_node_order[short_name] * this.nchart.sub_node_spacing);
+                var edge_y = node.y + (node.subnode_order[short_name] * this.nchart.subnode_spacing);
                 var end_x = node.x + node.duration;
                 var this_seg = [];
 
