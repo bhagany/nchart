@@ -480,13 +480,13 @@
         var reverse = false;
         var layer = this.graph.layers[0];
         layer.alt_L = [{'segs': []}];
-        layer.subnodes = [];
+        layer.characters = [];
         for(var i=0; i<layer.nodes.length; i++) {
             var v = layer.nodes[i];
             layer.alt_L.push(v);
             layer.alt_L.push({'segs': []});
             if(v.subnodes) {
-                layer.subnodes = layer.subnodes.concat(v.subnodes);
+                layer.characters = layer.characters.concat(v.characters);
             }
         }
         var cycles_in_progress = [];
@@ -501,11 +501,11 @@
                 var results = this.minimize_crossings(layer, reverse);
                 total_crossings += results[0];
                 layer = results[1];
-                layer.subnodes = [];
+                layer.characters = [];
                 for(var j=0; j<layer.L.length; j++) {
                     var v = layer.L[j];
                     if(v.subnodes) {
-                        layer.subnodes = layer.subnodes.concat(v.subnodes);
+                        layer.characters = layer.characters.concat(v.characters);
                     }
                 }
                 compaction = compaction.concat([layer.L]);
@@ -581,11 +581,11 @@
                 reverse = !reverse;
                 this.graph.layers.reverse();
                 layer = this.graph.layers[0];
-                layer.subnodes = [];
+                layer.characters = [];
                 for(var i=0; i<layer.L.length; i++) {
                     var v = layer.nodes[i];
                     if(v.subnodes) {
-                        layer.subnodes = layer.subnodes.concat(v.subnodes);
+                        layer.characters = layer.characters.concat(v.characters);
                     }
                 }
                 a++;
@@ -681,7 +681,7 @@
                     var node = nodes[i];
                     var sub_pos = 0;
                     for(var j=0; j<node.characters.length; j++) {
-                        sub_pos += goog.array.indexOf(layer.subnodes, node.characters[j]);
+                        sub_pos += goog.array.indexOf(layer.characters, node.characters[j]);
                     }
                     node.sub_measure = sub_pos / node.characters.length;
                 }
@@ -875,8 +875,8 @@
 
     NChart.prototype.get_crossings = function(layer, L, children, parents) {
         var subnode_map = {};
-        for(var i=0; i<layer.subnodes.length; i++) {
-            subnode_map[layer.subnodes[i]] = i;
+        for(var i=0; i<layer.characters.length; i++) {
+            subnode_map[layer.characters[i]] = i;
         }
 
         function subnode_compare(a, b) {
