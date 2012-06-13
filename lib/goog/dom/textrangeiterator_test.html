@@ -1,23 +1,13 @@
 <!DOCTYPE html>
-<!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
 <!--
-Copyright 2008 Google Inc. All Rights Reserved.
+Copyright 2008 The Closure Library Authors. All Rights Reserved.
+
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
 -->
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>goog.dom.TextRangeIterator Tests</title>
 <script src="../base.js"></script>
 <script>
@@ -38,8 +28,8 @@ Copyright 2008 Google Inc. All Rights Reserved.
 <ul id="test2">foo<br>bar</ul>
 
 <script>
-  var test = goog.dom.$('test');
-  var test2 = goog.dom.$('test2');
+  var test = goog.dom.getElement('test');
+  var test2 = goog.dom.getElement('test2');
 
   function testBasic() {
     goog.testing.dom.assertNodesMatch(
@@ -50,7 +40,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
 
   function testAdjustStart() {
     var iterator = new goog.dom.TextRangeIterator(test, 0, test, 2);
-    iterator.setStartNode(goog.dom.$('span1'));
+    iterator.setStartNode(goog.dom.getElement('span1'));
 
     goog.testing.dom.assertNodesMatch(iterator,
         ['#span1', '#span1', '#p1']);
@@ -58,7 +48,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
 
   function testAdjustEnd() {
     var iterator = new goog.dom.TextRangeIterator(test, 0, test, 2);
-    iterator.setEndNode(goog.dom.$('span1'));
+    iterator.setEndNode(goog.dom.getElement('span1'));
 
     goog.testing.dom.assertNodesMatch(iterator,
         ['#a1', 'T', '#b1', 'e', '#b1', 'xt', '#a1', '#span1']);
@@ -108,7 +98,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
 
   function testEndNodeOffsetAtEnd() {
     var iterator = new goog.dom.TextRangeIterator(
-        goog.dom.$('b1').firstChild, 0, goog.dom.$('b1'), 1);
+        goog.dom.getElement('b1').firstChild, 0, goog.dom.getElement('b1'), 1);
     goog.testing.dom.assertNodesMatch(iterator, ['e', '#b1']);
   }
 
@@ -142,12 +132,10 @@ Copyright 2008 Google Inc. All Rights Reserved.
     node = iterator.next();
     assertEquals(goog.dom.TagName.B, node.tagName);
 
-    try {
+    var ex = assertThrows('Should stop iteration when skipping B', function() {
       iterator.skipTag();
-      fail('Should stop iteration when skipping B');
-    } catch (ex) {
-      assertEquals(goog.iter.StopIteration, ex);
-    }
+    });
+    assertEquals(goog.iter.StopIteration, ex);
   }
 </script>
 </body>

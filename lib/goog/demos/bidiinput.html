@@ -1,21 +1,11 @@
 <!DOCTYPE html>
-<!--
-Copyright 2009 Google Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
+<!--
+Copyright 2010 The Closure Library Authors. All Rights Reserved.
+
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
 <head>
   <title>goog.ui.BidiInput</title>
   <script type="text/javascript" src="../base.js"></script>
@@ -37,7 +27,7 @@ limitations under the License.
     Text: <input type='text' id='c1' />
     <script type='text/javascript'>
       var c1 = new goog.ui.BidiInput();
-      c1.decorate(goog.dom.$('c1'));
+      c1.decorate(goog.dom.getElement('c1'));
     </script>
   </fieldset>
 
@@ -49,7 +39,7 @@ limitations under the License.
 
     <script type='text/javascript'>
       var c2 = new goog.ui.BidiInput();
-      c2.render(goog.dom.$('c2'));
+      c2.render(goog.dom.getElement('c2'));
     </script>
   </fieldset>
 
@@ -61,7 +51,7 @@ limitations under the License.
     <textarea id='c3'></textarea>
     <script type='text/javascript'>
       var c3 = new goog.ui.BidiInput();
-      c3.decorate(goog.dom.$('c3'));
+      c3.decorate(goog.dom.getElement('c3'));
     </script>
   </fieldset>
 
@@ -73,7 +63,7 @@ limitations under the License.
     <textarea id='c4'></textarea>
     <script type='text/javascript'>
       var c4 = new goog.ui.BidiInput();
-      c4.decorate(goog.dom.$('c4'));
+      c4.decorate(goog.dom.getElement('c4'));
     </script>
   </fieldset>
   </div>

@@ -1,25 +1,21 @@
 <!DOCTYPE html>
-<!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
 <!--
-  Copyright 2008 Google Inc. All Rights Reserved.
+Copyright 2008 The Closure Library Authors. All Rights Reserved.
 
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
+<!--
 
+  @author andybons@google.com (Andrew Boneventre)
 -->
 <head>
+<!--
+This test has not yet been updated to run on IE8. See http://b/hotlist?id=36311
+-->
+<!--meta http-equiv="X-UA-Compatible" content="IE=edge"-->
+<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7">
 <title>Closure Unit Tests - goog.userAgent.product</title>
 <script src="../base.js"></script>
 <script>
@@ -74,6 +70,7 @@ limitations under the License.
     goog.userAgent.product.FIREFOX = goog.userAgent.product.detectedFirefox_;
     goog.userAgent.product.CAMINO = goog.userAgent.product.detectedCamino_;
     goog.userAgent.product.IPHONE = goog.userAgent.product.detectedIphone_;
+    goog.userAgent.product.IPAD = goog.userAgent.product.detectedIpad_;
     goog.userAgent.product.ANDROID = goog.userAgent.product.detectedAndroid_;
     goog.userAgent.product.CHROME = goog.userAgent.product.detectedChrome_;
     goog.userAgent.product.SAFARI = goog.userAgent.product.detectedSafari_;
@@ -83,7 +80,7 @@ limitations under the License.
   // The set of products whose corresponding goog.userAgent.product value is set
   // in goog.userAgent.product.init_().
   var DETECTED_BROWSER_KEYS =
-      ['FIREFOX', 'CAMINO', 'IPHONE', 'ANDROID', 'CHROME', 'SAFARI'];
+      ['FIREFOX', 'CAMINO', 'IPHONE', 'IPAD', 'ANDROID', 'CHROME', 'SAFARI'];
 
   function assertIsBrowser(browser) {
     function createDetectedBrowserKey(browser) {
@@ -91,6 +88,7 @@ limitations under the License.
         case 'FIREFOX': return 'detectedFirefox_';
         case 'CAMINO': return 'detectedCamino_';
         case 'IPHONE': return 'detectedIphone_';
+        case 'IPAD': return 'detectedIpad_';
         case 'ANDROID': return 'detectedAndroid_';
         case 'CHROME': return 'detectedChrome_';
         case 'SAFARI': return 'detectedSafari_';
@@ -244,17 +242,42 @@ limitations under the License.
 
   function testSafari() {
     var userAgents = [
+      {ua: 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_7; de-de) ' +
+           'AppleWebKit/534.16+ (KHTML, like Gecko) Version/5.0.3 ' +
+           'Safari/533.19.4',
+       versions: [
+         {num: 5, truth: true},
+         {num: '5.0.3', truth: true},
+         {num: '5.0.4', truth: false},
+         {num: '533', truth: false}
+       ]},
       {ua: 'Mozilla/5.0 (Windows; U; Windows NT 6.0; pl-PL) ' +
            'AppleWebKit/525.19 (KHTML, like Gecko) Version/3.1.2 Safari/525.21',
        versions: [
-         {num: 525, truth: true},
-         {num: '532.3', truth: false}
+         {num: 3, truth: true},
+         {num: '3.0', truth: true},
+         {num: '3.1.2', truth: true}
        ]},
       {ua: 'Mozilla/5.0 (Macintosh; U; PPC Mac OS X 10_5_3; en-us) ' +
            'AppleWebKit/525.18 (KHTML, like Gecko) Version/3.1.1 Safari/525.20',
        versions: [
-         {num: '525.21', truth: false},
-         {num: 518, truth: true}
+         {num: 3, truth: true},
+         {num: '3.1.1', truth: true},
+         {num: '3.1.2', truth: false},
+         {num: '525.21', truth: false}
+       ]},
+
+       // Safari 1 and 2 do not report product version numbers in their
+       // user-agent strings. VERSION for these browsers will be set to ''.
+       {ua: 'Mozilla/5.0 (Macintosh; U; PPC Mac OS X; ja-jp) ' +
+            'AppleWebKit/418.9.1 (KHTML, like Gecko) Safari/419.3',
+       versions: [
+         {num: 3, truth: false},
+         {num: 2, truth: false},
+         {num: 1, truth: false},
+         {num: 0, truth: true},
+         {num: '0', truth: true},
+         {num: '', truth: true}
        ]}
     ];
     checkEachUserAgentDetected(userAgents, 'SAFARI');
@@ -280,6 +303,23 @@ limitations under the License.
        ]}
     ];
     checkEachUserAgentDetected(userAgents, 'IPHONE');
+  }
+
+  function testIpad() {
+    var userAgents = [
+      {ua: 'Mozilla/5.0 (iPad; U; CPU OS 3_2 like Mac OS X; en-us) ' +
+           'AppleWebKit/531.21.10 (KHTML, like Gecko) Version/4.0.4 ' +
+           'Mobile/7B334b Safari/531.21.10',
+       versions: [
+        {num: '4.0.4.7B334b', truth: true},
+        {num: '4.0', truth: true},
+        {num: '4.0.4.7C334b', truth: false},
+        {num: '4.1.7B334b', truth: false},
+        {num: '4.0.4.7B320c', truth: true},
+        {num: '4.0.4.8B334b', truth: false}
+       ]}
+    ];
+    checkEachUserAgentDetected(userAgents, 'IPAD');
   }
 
   function testAndroid() {

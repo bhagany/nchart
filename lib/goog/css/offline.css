@@ -1,10 +1,11 @@
 /*
-Use of this source code is governed by an Apache 2.0 License.
-See the COPYING file for details.
-*/
+ * Copyright 2007 The Closure Library Authors. All Rights Reserved.
+ *
+ * Use of this source code is governed by the Apache License, Version 2.0.
+ * See the COPYING file for details.
+ */
 
-/* Copyright 2007 Google Inc.  All Rights Reserved. */
-/**/
+/* Author: ssaviano@google.com (Steven Saviano) */
 
 /* We need the dialog CSS from dialog.css. */
 @import url(dialog.css);
@@ -22,27 +23,27 @@ See the COPYING file for details.
 }
 
 .goog-offlinestatus-offline {
-  background: url("../images/gears_offline.gif") no-repeat 50% 50%;
+  background: url(//ssl.gstatic.com/closure/gears_offline.gif) no-repeat 50% 50%;
   text-decoration: none;
 }
 
 .goog-offlinestatus-online {
-  background: url("../images/gears_online.gif") no-repeat 50% 50%;
+  background: url(//ssl.gstatic.com/closure/gears_online.gif) no-repeat 50% 50%;
   text-decoration: none;
 }
 
 .goog-offlinestatus-paused {
-  background: url("../images/gears_paused.gif") no-repeat 50% 50%;
+  background: url(//ssl.gstatic.com/closure/gears_paused.gif) no-repeat 50% 50%;
   text-decoration: none;
 }
 
 .goog-offlinestatus-syncing {
-  background: url("../images/gears_syncing.gif") no-repeat 50% 50%;
+  background: url(//ssl.gstatic.com/closure/gears_syncing.gif) no-repeat 50% 50%;
   text-decoration: none;
 }
 
 .goog-offlinestatus-error {
-  background: url("../images/gears_syncing.gif") no-repeat 50% 50%;
+  background: url(//ssl.gstatic.com/closure/gears_syncing.gif) no-repeat 50% 50%;
   text-decoration: none;
 }
 
@@ -90,7 +91,7 @@ See the COPYING file for details.
   cursor: pointer;
   width: 11px;
   height: 11px;
-  background-image: url("../images/close_box.gif");
+  background-image: url(//ssl.gstatic.com/closure/close_box.gif);
 }
 
 
@@ -111,7 +112,7 @@ See the COPYING file for details.
   color: #ffffff;
   font-weight: bold;
   padding: 10px;
-  background: url("../images/gears_bluedot.gif") no-repeat 50% 50%;
+  background: url(//ssl.gstatic.com/closure/gears_bluedot.gif) no-repeat 50% 50%;
 }
 
 .goog-offlinedialog-step-description {

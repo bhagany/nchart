@@ -1,14 +1,14 @@
 /*
-Use of this source code is governed by an Apache 2.0 License.
-See the COPYING file for details.
-*/
+ * Copyright 2009 The Closure Library Authors. All Rights Reserved.
+ *
+ * Use of this source code is governed by the Apache License, Version 2.0.
+ * See the COPYING file for details.
+ */
 
 /*
- * Copyright 2009 Google Inc.  All Rights Reserved.
- *
  * Styling for flat buttons created by goog.ui.FlatButtonRenderer.
  *
-
+ * @author brianp@google.com (Brian Peterson)
  */
 
 .goog-flat-button {

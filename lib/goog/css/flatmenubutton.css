@@ -1,15 +1,15 @@
 /*
-Use of this source code is governed by an Apache 2.0 License.
-See the COPYING file for details.
-*/
+ * Copyright 2009 The Closure Library Authors. All Rights Reserved.
+ *
+ * Use of this source code is governed by the Apache License, Version 2.0.
+ * See the COPYING file for details.
+ */
 
 /*
- * Copyright 2009 Google Inc.  All Rights Reserved.
- *
  * Standard styling for buttons created by goog.ui.FlatMenuButtonRenderer.
  *
-
-
+ * @author attila@google.com (Attila Bodis)
+ * @author tlb@google.com (Thierry Le Boulenge)
  */
 
 
@@ -54,7 +54,7 @@ See the COPYING file for details.
 
 .goog-flat-menu-button-dropdown {
   /* Client apps may override the URL at which they serve the sprite. */
-  background: url(https://ssl.gstatic.com/editor/editortoolbar.png) no-repeat -388px;
+  background: url(//ssl.gstatic.com/editor/editortoolbar.png) no-repeat -388px 0;
   position: absolute;
   right: 2px;
   top: 0;

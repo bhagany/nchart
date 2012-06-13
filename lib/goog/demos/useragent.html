@@ -1,21 +1,11 @@
 <!DOCTYPE html>
-<!--
-Copyright 2009 Google Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
+<!--
+Copyright 2010 The Closure Library Authors. All Rights Reserved.
+
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
 <head>
   <title>goog.userAgent</title>
   <link rel="stylesheet" href="css/demo.css">
@@ -32,6 +22,11 @@ limitations under the License.
 
     tbody td {
       text-align: center;
+    }
+
+    .container {
+      margin: 1em 3em 1em 0;
+      vertical-align: top;
     }
 
     .section {
@@ -59,17 +54,30 @@ limitations under the License.
     goog.require('goog.userAgent.adobeReader');
     goog.require('goog.userAgent.flash');
     goog.require('goog.userAgent.iphoto');
+    goog.require('goog.userAgent.jscript');
     goog.require('goog.userAgent.picasa');
+    goog.require('goog.userAgent.product');
+    goog.require('goog.userAgent.product.isVersion');
   </script>
 
 </head>
 <body>
   <h1>goog.userAgent</h1>
 
-  <table>
-    <tbody id="fields">
-    </tbody>
-  </table>
+  <div class="goog-inline-block container">
+    <table>
+      <tbody id="browserFields">
+      </tbody>
+    </table>
+  </div>
+
+  <div class="goog-inline-block container">
+    <table style="display:inline-table">
+      <tbody id="featureFields">
+      </tbody>
+    </table>
+  </div>
+
 
   <script>
 
@@ -81,11 +89,24 @@ limitations under the License.
     'PLATFORM'
   ];
 
-  var browserFields = [
+  var rendererFields = [
     'GECKO',
     'IE',
     'OPERA',
     'WEBKIT',
+    'VERSION'
+  ];
+
+  var productFields = [
+    'ANDROID',
+    'CAMINO',
+    'CHROME',
+    'FIREFOX',
+    'IE',
+    'IPAD',
+    'IPHONE',
+    'OPERA',
+    'SAFARI',
     'VERSION'
   ];
 
@@ -107,11 +128,17 @@ limitations under the License.
     'VERSION'
   ];
 
+  // Public members in goog.userAgent.jscript
+  var jscriptFields = [
+    'HAS_JSCRIPT',
+    'VERSION'
+  ];
+
   // Public members in goog.userAgent.adobeReader
   var adobeReaderFields = [
     'HAS_READER',
-    'VERSION',
-    'SILENT_PRINT'
+    'SILENT_PRINT',
+    'VERSION'
   ];
 
   /**
@@ -167,15 +194,19 @@ limitations under the License.
   }
 
 
-  var fields = goog.dom.getElement('fields');
+  var browser = goog.dom.getElement('browserFields');
+  addSection(browser, 'Hardware Platform', goog.userAgent, platformFields);
+  addSection(browser, 'Renderer', goog.userAgent, rendererFields);
+  addSection(browser, 'Product', goog.userAgent.product, productFields);
 
-  addSection(fields, 'Hardware Platform', goog.userAgent, platformFields);
-  addSection(fields, 'Browser Info', goog.userAgent, browserFields);
-  addSection(fields, 'Flash Plugin', goog.userAgent.flash, flashFields);
-  addSection(fields, 'Picasa Detection', goog.userAgent.picasa, picasaFields);
-  addSection(fields, 'iPhoto Detection', goog.userAgent.iphoto, iphotoFields);
-  addSection(fields, 'Adobe Reader Detection', goog.userAgent.adobeReader,
+  var features = goog.dom.getElement('featureFields');
+  addSection(features, 'Adobe Reader Detection', goog.userAgent.adobeReader,
       adobeReaderFields);
+  addSection(features, 'Flash Plugin', goog.userAgent.flash, flashFields);
+  addSection(features, 'iPhoto Detection', goog.userAgent.iphoto, iphotoFields);
+  addSection(features, 'Microsoft JScript', goog.userAgent.jscript,
+      jscriptFields);
+  addSection(features, 'Picasa Detection', goog.userAgent.picasa, picasaFields);
 
   </script>
 

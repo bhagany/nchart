@@ -1,41 +1,35 @@
 <!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
-<!--
-  Copyright 2008 Google Inc.
   All Rights Reserved.
 
   Tests for goog.editor.Field
 
-
-
+  @author nicksantos@google.com (Nick Santos)
+  @author jparent@google.com (Julie Parent)
 --><html>
+<!--
+Copyright 2008 The Closure Library Authors. All Rights Reserved.
+
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>Editor Unit Tests - goog.editor.Field</title>
 <script src='../base.js'></script>
-<script src='deps.js'></script>
 <script>
+  goog.require('goog.dom.Range');
   goog.require('goog.editor.Field');
   goog.require('goog.editor.Plugin');
   goog.require('goog.editor.Command');
   goog.require('goog.events');
   goog.require('goog.events.KeyCodes');
   goog.require('goog.functions');
-  goog.require('goog.testing.dom');
-  goog.require('goog.testing.jsunit');
   goog.require('goog.testing.LooseMock');
   goog.require('goog.testing.MockClock');
+  goog.require('goog.testing.dom');
+  goog.require('goog.testing.jsunit');
+  goog.require('goog.testing.recordFunction');
+  goog.require('goog.userAgent');
 </script>
 </head>
 <body>
@@ -47,13 +41,13 @@ limitations under the License.
 var HTML;
 
 function setUp() {
-  HTML = goog.dom.$('parent').innerHTML;
+  HTML = goog.dom.getElement('parent').innerHTML;
 }
 
 function tearDown() {
-  goog.dom.$('parent').innerHTML = HTML;
+  goog.dom.getElement('parent').innerHTML = HTML;
 
-  // NOTE: I think IE is blowing up on this call because
+  // NOTE(nicksantos): I think IE is blowing up on this call because
   // it is lame. It manifests its lameness by throwing an exception.
   // Kudos to XT for helping me to figure this out.
   try {
@@ -90,7 +84,6 @@ goog.inherits(TestPlugin, goog.editor.Plugin);
  * Tests that calling registerPlugin will add the plugin to the
  * plugin map.
  */
-
 function testRegisterPlugin() {
   var editableField = new goog.editor.Field('testField');
   var plugin = new TestPlugin();
@@ -208,6 +201,32 @@ function getBrowserEvent() {
   e.metaKey = true;
   e.charCode = goog.events.KeyCodes.A;
   return e;
+}
+
+/**
+ * Tests that plugins are disabled when the field is made uneditable.
+ */
+
+function testMakeUneditableDisablesPlugins() {
+  var editableField = new goog.editor.Field('testField');
+  var plugin = new TestPlugin();
+
+  var calls = 0;
+  plugin.disable = function(field) {
+    assertEquals(editableField, field);
+    assertTrue(field.isUneditable());
+    calls++;
+  };
+
+  editableField.registerPlugin(plugin);
+  editableField.makeEditable();
+
+  assertEquals(0, calls);
+  editableField.makeUneditable();
+
+  assertEquals(1, calls);
+
+  editableField.dispose();
 }
 
 /**
@@ -642,7 +661,7 @@ function testHandledSelectionChange() {
   mockPlugin1.getTrogClassId().$returns('mockPlugin1');
   mockPlugin1.registerFieldObject(editableField);
   mockPlugin1.isEnabled(editableField).$anyTimes().$returns(true);
-  mockPlugin1.handleSelectionChange(e).$returns(true);
+  mockPlugin1.handleSelectionChange(e, undefined).$returns(true);
   mockPlugin1.$replay();
 
   var mockPlugin2 = new goog.testing.LooseMock(plugin);
@@ -673,14 +692,14 @@ function testNotHandledSelectionChange() {
   mockPlugin1.getTrogClassId().$returns('mockPlugin1');
   mockPlugin1.registerFieldObject(editableField);
   mockPlugin1.isEnabled(editableField).$anyTimes().$returns(true);
-  mockPlugin1.handleSelectionChange(e).$returns(false);
+  mockPlugin1.handleSelectionChange(e, undefined).$returns(false);
   mockPlugin1.$replay();
 
   var mockPlugin2 = new goog.testing.LooseMock(plugin);
   mockPlugin2.getTrogClassId().$returns('mockPlugin2');
   mockPlugin2.registerFieldObject(editableField);
   mockPlugin2.isEnabled(editableField).$anyTimes().$returns(true);
-  mockPlugin2.handleSelectionChange(e).$returns(true);
+  mockPlugin2.handleSelectionChange(e, undefined).$returns(true);
   mockPlugin2.$replay();
 
   editableField.registerPlugin(mockPlugin1);
@@ -698,24 +717,82 @@ function testNotHandledSelectionChange() {
 function testSelectionChange() {
   var editableField = new goog.editor.Field('testField', document);
   var clock = new goog.testing.MockClock(true);
-  var selectionChanges = 0;
+  var selectionChanges = goog.testing.recordFunction();
   goog.events.listen(editableField, goog.editor.Field.EventType.SELECTIONCHANGE,
-      function() {
-        selectionChanges++;
-      });
+      selectionChanges);
 
   editableField.makeEditable();
 
   // Emulate pressing left arrow key, this should result in SELECTIONCHANGE
   // event after a short timeout.
   editableField.handleKeyUp_({keyCode: goog.events.KeyCodes.LEFT});
-  assertEquals('Selection change should be on a timer', 0, selectionChanges);
+  assertEquals('Selection change should be on a timer', 0,
+      selectionChanges.getCallCount());
   clock.tick(1000);
-  assertEquals('Selection change should fire within 1s', 1, selectionChanges);
+  assertEquals('Selection change should fire within 1s', 1,
+      selectionChanges.getCallCount());
 
   // Programically place cursor at start. SELECTIONCHANGE event should be fired.
   editableField.placeCursorAtStart();
-  assertEquals('Selection change should fire', 2, selectionChanges);
+  assertEquals('Selection change should fire', 2,
+      selectionChanges.getCallCount());
+
+  clock.dispose();
+  editableField.dispose();
+}
+
+function testSelectionChangeOnMouseUp() {
+  var fakeEvent =
+      new goog.events.BrowserEvent({type: 'mouseup', target: 'fakeTarget'});
+  var editableField = new goog.editor.Field('testField', document);
+  var clock = new goog.testing.MockClock(true);
+  var selectionChanges = goog.testing.recordFunction();
+  goog.events.listen(editableField, goog.editor.Field.EventType.SELECTIONCHANGE,
+      selectionChanges);
+
+  var plugin = new TestPlugin();
+  plugin.handleSelectionChange = goog.testing.recordFunction();
+  editableField.registerPlugin(plugin);
+
+  editableField.makeEditable();
+
+  // Emulate a mouseup event, this should result in an immediate
+  // SELECTIONCHANGE, plus a second one in IE after a short timeout.
+  editableField.handleMouseUp_(fakeEvent);
+  assertEquals('Selection change should fire immediately', 1,
+      selectionChanges.getCallCount());
+  assertEquals('Plugin should have handled selection change immediately', 1,
+      plugin.handleSelectionChange.getCallCount());
+  assertEquals('Plugin should have received original browser event to handle',
+      fakeEvent, plugin.handleSelectionChange.getLastCall().getArguments()[0]);
+
+  // Pretend another plugin fired a SELECTIONCHANGE in the meantime.
+  editableField.dispatchSelectionChangeEvent();
+  assertEquals('Second selection change should fire immediately', 2,
+      selectionChanges.getCallCount());
+  assertEquals('Plugin should have handled second selection change immediately',
+       2,  plugin.handleSelectionChange.getCallCount());
+  var args = plugin.handleSelectionChange.getLastCall().getArguments();
+  assertTrue('Plugin should not have received data from extra firing',
+      args.length == 0 ||
+      !args[0] && (args.length == 1 || !args[1]));
+
+  // Now check for the extra call in IE.
+  clock.tick(1000);
+  if (goog.userAgent.IE) {
+    assertEquals('Additional selection change should fire within 1s', 3,
+        selectionChanges.getCallCount());
+    assertEquals('Plugin should have handled selection change within 1s', 3,
+        plugin.handleSelectionChange.getCallCount());
+    assertEquals('Plugin should have received target of original browser event',
+        fakeEvent.target,
+        plugin.handleSelectionChange.getLastCall().getArguments().pop());
+  } else {
+    assertEquals('No additional selection change should fire', 2,
+        selectionChanges.getCallCount());
+    assertEquals('Plugin should not have handled selection change again', 2,
+        plugin.handleSelectionChange.getCallCount());
+  }
 
   clock.dispose();
   editableField.dispose();
@@ -724,21 +801,20 @@ function testSelectionChange() {
 function testSelectionChangeBeforeUneditable() {
   var editableField = new goog.editor.Field('testField', document);
   var clock = new goog.testing.MockClock(true);
-  var selectionChanges = 0;
+  var selectionChanges = goog.testing.recordFunction();
   goog.events.listen(editableField, goog.editor.Field.EventType.SELECTIONCHANGE,
-      function() {
-        selectionChanges++;
-      });
+      selectionChanges);
 
   editableField.makeEditable();
   editableField.handleKeyUp_({keyCode: goog.events.KeyCodes.LEFT});
-  assertEquals('Selection change should be on a timer', 0, selectionChanges);
+  assertEquals('Selection change should be on a timer', 0,
+      selectionChanges.getCallCount());
   editableField.makeUneditable();
   assertEquals('Selection change should fire during make uneditable', 1,
-      selectionChanges);
+      selectionChanges.getCallCount());
   clock.tick(1000);
   assertEquals('No additional selection change should fire', 1,
-      selectionChanges);
+      selectionChanges.getCallCount());
 
   clock.dispose();
   editableField.dispose();
@@ -807,9 +883,67 @@ function testSetHtml() {
   }
 }
 
+/**
+ * Helper to test that the cursor is placed at the beginning of the editable
+ * field's contents.
+ * @param {string=} opt_html Html to replace the test file default field
+ *     contents with.
+ * @param {string=} opt_parentId Id of the parent of the node where the cursor
+ *     is expected to be placed. If omitted, will expect cursor to be placed in
+ *     the first child of the field element (or, if the field has no content, in
+ *     the field element itself).
+ */
+function doTestPlaceCursorAtStart(opt_html, opt_parentId) {
+  var editableField = new goog.editor.Field('testField', document);
+  editableField.makeEditable();
+  // Initially place selection not at the start of the editable field.
+  var textNode = editableField.getElement().firstChild;
+  goog.dom.Range.createFromNodes(textNode, 1, textNode, 2).select();
+  if (opt_html != null) {
+    editableField.getElement().innerHTML = opt_html;
+  }
+
+  editableField.placeCursorAtStart();
+  var range = editableField.getRange();
+  assertNotNull(
+      'Placing the cursor should result in a range object being available',
+      range);
+  assertTrue('The range should be collapsed', range.isCollapsed());
+  textNode = editableField.getElement().firstChild;
+  var startNode = opt_parentId ?
+      editableField.getEditableDomHelper().getElement(opt_parentId).firstChild :
+      textNode ? textNode : editableField.getElement();
+  if (goog.userAgent.WEBKIT && !goog.userAgent.isVersion('528')) {
+    // Safari 3 seems to normalize the selection to the shallowest endpoint (in
+    // this case the editable element) in all cases tested below. This is OK
+    // because when you start typing it magically inserts the text at the
+    // deepest endpoint, and even behaves as desired in the case tested by
+    // testPlaceCursorAtStartNonImportantTextNode.
+    startNode = editableField.getElement();
+  }
+  assertEquals('The range should start at the specified expected node',
+      startNode, range.getStartNode());
+  assertEquals('The range should start at the beginning of the node',
+      0, range.getStartOffset());
+}
+
+function testPlaceCursorAtStart() {
+  doTestPlaceCursorAtStart();
+}
+
+function testPlaceCursorAtStartEmptyField() {
+  doTestPlaceCursorAtStart('');
+}
+
+function testPlaceCursorAtStartNonImportantTextNode() {
+  doTestPlaceCursorAtStart(
+      '\n<span id="important">important text</span>', 'important');
+}
+
 // Tests related to change/delayed change events.
 
 function testClearDelayedChange() {
+  var clock = new goog.testing.MockClock(true);
   var editableField = new goog.editor.Field('testField', document);
   editableField.makeEditable();
 
@@ -839,6 +973,7 @@ function testClearDelayedChange() {
     }
     assertFalse(editableField.delayedChangeTimer_.isActive());
   }
+  clock.dispose();
 }
 
 function testHandleChange() {

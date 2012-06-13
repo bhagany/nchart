@@ -1,46 +1,47 @@
 <!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
-<!--
-  Copyright 2009 Google Inc. All Rights Reserved.
 
   A regression test for goog.module.ModuleLoader.
 
   Unlike the unit tests for goog.module.ModuleManager, this uses
   asynchronous test cases and real XHRs.
 
-
+  Author: nicksantos@google.com (Nick Santos)
 -->
 
 <html>
+<!--
+Copyright 2009 The Closure Library Authors. All Rights Reserved.
+
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>JsUnit tests for goog.module.ModuleLoader</title>
 <script src='../base.js'></script>
 <script src='../../../third_party/closure/goog/deps.js'></script>
 <script>
 
+goog.require('goog.array');
+goog.require('goog.dom');
 goog.require('goog.functions');
 goog.require('goog.module.ModuleLoader');
 goog.require('goog.module.ModuleManager');
+goog.require('goog.module.ModuleManager.CallbackType');
 goog.require('goog.object');
 goog.require('goog.testing.AsyncTestCase');
-goog.require('goog.testing.jsunit');
 goog.require('goog.testing.PropertyReplacer');
+goog.require('goog.testing.jsunit');
+
 
 </script>
 </head>
 <body>
+
+<b>Note:</b>: If you're running this test off local disk on Chrome, it
+will fail unless you start Chrome with
+<code>--allow-file-access-from-files</code>.
+
 <script>
 
 var moduleLoader = null;
@@ -51,6 +52,7 @@ var testCase = goog.testing.AsyncTestCase.createAndInstall(document.title);
 testCase.stepTimeout = 5 * 1000; // 5 seconds
 
 testCase.setUp = function() {
+  goog.provide = goog.nullFunction;
   moduleManager = goog.module.ModuleManager.getInstance();
   moduleLoader = new goog.module.ModuleLoader();
 
@@ -78,6 +80,15 @@ testCase.tearDown = function() {
 
   // tear down the module loaded flag.
   window.modA_1 = false;
+
+  // Remove all the fake scripts.
+  var scripts = goog.array.clone(
+      document.getElementsByTagName('SCRIPT'));
+  for (var i = 0; i < scripts.length; i++) {
+    if (scripts[i].src.indexOf('testdata') != -1) {
+      goog.dom.removeNode(scripts[i]);
+    }
+  }
 };
 
 function testLoadModuleA() {
@@ -119,6 +130,34 @@ function testLoadDebugModuleB() {
     assertLoaded('modA');
     assertLoaded('modB');
     assertTrue(window.modA_1);
+  });
+}
+
+function testLoadDebugModuleAThenB() {
+  // Swap the script tags of module A, to introduce a race condition.
+  // See the comments on this in ModuleLoader's debug loader.
+  moduleManager.setModuleUris({
+      'modA': ['testdata/modA_2.js', 'testdata/modA_1.js'],
+      'modB': ['testdata/modB_1.js']
+  });
+  testCase.waitForAsync('wait for module B load');
+  moduleLoader.setDebugMode(true);
+  moduleManager.execOnLoad('modB', function() {
+    testCase.continueTesting();
+    assertLoaded('modA');
+    assertLoaded('modB');
+
+    var scripts = goog.array.clone(
+        document.getElementsByTagName('SCRIPT'));
+    var seenLastScriptOfModuleA = false;
+    for (var i = 0; i < scripts.length; i++) {
+      var uri = scripts[i].src;
+      if (uri.indexOf('modA_1.js') >= 0) {
+        seenLastScriptOfModuleA = true;
+      } else if (uri.indexOf('modB') >= 0) {
+        assertTrue(seenLastScriptOfModuleA);
+      }
+    }
   });
 }
 

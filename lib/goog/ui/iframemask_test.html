@@ -1,26 +1,18 @@
 <!DOCTYPE html>
-<!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
 <!--
-  Copyright 2008 Google Inc. All Rights Reserved.
+Copyright 2008 The Closure Library Authors. All Rights Reserved.
 
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
+<!--
 
-
+  @author gboyer@google.com (Garrett Boyer)
+  @author nicksantos@google.com (Nick Santos) (Ported to Closure)
 -->
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>goog.ui.IframeMask Unit Test</title>
 <script src="../base.js"></script>
 <script>
@@ -51,7 +43,7 @@ var iframeMask;
 var mockClock;
 
 function setUp() {
-  goog.dom.$('sandbox').innerHTML = '<div id="popup"></div>';
+  goog.dom.getElement('sandbox').innerHTML = '<div id="popup"></div>';
   mockClock = new goog.testing.MockClock(true);
 
   iframeMask = new goog.ui.IframeMask();
@@ -65,7 +57,7 @@ function tearDown() {
 }
 
 function findOneAndOnlyIframe() {
-  var iframes = goog.dom.$$(goog.dom.TagName.IFRAME);
+  var iframes = document.getElementsByTagName(goog.dom.TagName.IFRAME);
   assertEquals('There should be exactly 1 iframe in the document',
       1, iframes.length);
   return iframes[0];
@@ -73,7 +65,7 @@ function findOneAndOnlyIframe() {
 
 function assertNoIframes() {
   assertEquals('Expected no iframes in the document', 0,
-      goog.dom.$$(goog.dom.TagName.IFRAME).length);
+      goog.dom.getElementsByTagNameAndClass(goog.dom.TagName.IFRAME).length);
 }
 
 function testApplyFullScreenMask() {
@@ -112,7 +104,7 @@ function testApplyZIndex() {
 }
 
 function testSnapElement() {
-  iframeMask.setSnapElement(goog.dom.$('popup'));
+  iframeMask.setSnapElement(goog.dom.getElement('popup'));
   iframeMask.applyMask();
 
   var iframe = findOneAndOnlyIframe();
@@ -130,9 +122,9 @@ function testSnapElement() {
 }
 
 function testAttachToPopup() {
-  var popup = new goog.ui.Popup(goog.dom.$('popup'));
+  var popup = new goog.ui.Popup(goog.dom.getElement('popup'));
   iframeMask.listenOnTarget(popup, goog.ui.PopupBase.EventType.SHOW,
-      goog.ui.PopupBase.EventType.HIDE, goog.dom.$('popup'));
+      goog.ui.PopupBase.EventType.HIDE, goog.dom.getElement('popup'));
 
   assertNoIframes();
   popup.setVisible(true);
@@ -154,7 +146,7 @@ function testAttachToPopup() {
 }
 
 function testQuickHidingPopup() {
-  var popup = new goog.ui.Popup(goog.dom.$('popup'));
+  var popup = new goog.ui.Popup(goog.dom.getElement('popup'));
   iframeMask.listenOnTarget(popup, goog.ui.PopupBase.EventType.SHOW,
       goog.ui.PopupBase.EventType.HIDE);
 
@@ -172,7 +164,7 @@ function testQuickHidingPopup() {
 }
 
 function testRemoveHandlers() {
-  var popup = new goog.ui.Popup(goog.dom.$('popup'));
+  var popup = new goog.ui.Popup(goog.dom.getElement('popup'));
   iframeMask.listenOnTarget(popup, goog.ui.PopupBase.EventType.SHOW,
       goog.ui.PopupBase.EventType.HIDE);
   iframeMask.removeHandlers();

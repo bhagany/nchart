@@ -1,28 +1,20 @@
 <!DOCTYPE html>
-<!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 
 <!--
-Copyright 2008 Google Inc.
 All Rights Reserved.
 
-
+@author nicksantos@google.com (Nick Santos)
 -->
 
 <html>
+<!--
+Copyright 2008 The Closure Library Authors. All Rights Reserved.
+
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>goog.editor.plugins.LoremIpsum Tests</title>
 <script type="text/javascript" src="../../base.js"></script>
 <script type="text/javascript">
@@ -46,7 +38,7 @@ var HTML;
 var UPPERCASE_CONTENTS = '<P>THE OWLS ARE NOT WHAT THEY SEEM.</P>';
 
 function setUp() {
-  HTML = goog.dom.$('root').innerHTML;
+  HTML = goog.dom.getElement('root').innerHTML;
 
   FIELD = new goog.editor.Field('field');
 
@@ -57,7 +49,7 @@ function setUp() {
 
 function tearDown() {
   FIELD.dispose();
-  goog.dom.$('root').innerHTML = HTML;
+  goog.dom.getElement('root').innerHTML = HTML;
 }
 
 function testQueryUsingLorem() {
@@ -69,7 +61,7 @@ function testQueryUsingLorem() {
 }
 
 function testUpdateLoremIpsum() {
-  goog.dom.$('field').innerHTML = 'stuff';
+  goog.dom.getElement('field').innerHTML = 'stuff';
 
   var loremPlugin = FIELD.getPluginByClassId('LoremIpsum');
   FIELD.makeEditable();
@@ -111,7 +103,7 @@ function testUpdateLoremIpsum() {
 }
 
 function testLoremIpsumAndGetCleanContents() {
-  goog.dom.$('field').innerHTML = 'This is a field';
+  goog.dom.getElement('field').innerHTML = 'This is a field';
   FIELD.makeEditable();
 
   // test direct getCleanContents
@@ -141,7 +133,7 @@ function testLoremIpsumAndGetCleanContents2() {
   // make a field blank before we make it editable, and then check
   // that making it editable activates lorem.
   assert('field is editable', FIELD.isUneditable());
-  goog.dom.$('field').innerHTML = '   ';
+  goog.dom.getElement('field').innerHTML = '   ';
 
   FIELD.makeEditable();
   assertEquals('field contains unexpected contents',
@@ -149,7 +141,7 @@ function testLoremIpsumAndGetCleanContents2() {
 
   FIELD.makeUneditable();
   assertEquals('field contains unexpected contents',
-      UPPERCASE_CONTENTS, goog.dom.$('field').innerHTML.toUpperCase());
+      UPPERCASE_CONTENTS, goog.dom.getElement('field').innerHTML.toUpperCase());
 }
 
 function testLoremIpsumInClickToEditMode() {
@@ -162,7 +154,7 @@ function testLoremIpsumInClickToEditMode() {
 
   FIELD.makeUneditable();
   assertEquals('field contains unexpected contents',
-      UPPERCASE_CONTENTS, goog.dom.$('field').innerHTML.toUpperCase());
+      UPPERCASE_CONTENTS, goog.dom.getElement('field').innerHTML.toUpperCase());
 }
 
 function getNbsp() {

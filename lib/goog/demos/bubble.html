@@ -1,22 +1,12 @@
 <!DOCTYPE html>
-<!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
 <!--
-  Copyright 2007 Google Inc. All Rights Reserved.
+Copyright 2007 The Closure Library Authors. All Rights Reserved.
 
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
+<!--
 
   File for testing bubble control.
 -->
@@ -88,7 +78,7 @@ limitations under the License.
               <tr><td>Y:</td>
                   <td><input type="text" id="ycoord" value="100"/></td>
               </tr>
-              <tr><td>Corner orientation(1-4):</td>
+              <tr><td>Corner orientation(0-3):</td>
                   <td><input type="text" id="corner" value="1"/></td>
               </tr>
               <tr><td>Auto-hide (true or false):</td>
@@ -196,7 +186,7 @@ limitations under the License.
           parseInt(corner.value) == NaN ||
           parseInt(timeout.value) == NaN ||
           (autoHide.value != "true" && autoHide.value != "false") ||
-          (corner.value < 1 || corner.value > 4)) {
+          (corner.value < 0 || corner.value > 3)) {
         alert('Incorrect input!');
         return;
       }

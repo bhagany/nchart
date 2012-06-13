@@ -1,24 +1,15 @@
 <!DOCTYPE html>
-<!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
 <!--
-  Copyright 2007 Google Inc. All Rights Reserved.
+Copyright 2007 The Closure Library Authors. All Rights Reserved.
 
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
+<!--
 -->
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>Closure Unit Tests - goog.ui.serverchart</title>
 <script src="../base.js"></script>
 <script>
@@ -28,6 +19,34 @@ limitations under the License.
 </head>
 <body>
 <script>
+
+function testSchemeIndependentBarChartRequest() {
+  var bar = new goog.ui.ServerChart(
+      goog.ui.ServerChart.ChartType.BAR,
+      180,
+      104,
+      null);
+  tryToCreateBarChart(bar);
+  var uri = bar.getUri();
+  var schemeIndependentUri = new goog.Uri(
+      goog.ui.ServerChart.CHART_SERVER_SCHEME_INDEPENDENT_URI);
+  assertEquals('', uri.getScheme());
+  assertEquals(schemeIndependentUri.getDomain(), uri.getDomain());
+}
+
+function testHttpBarChartRequest() {
+  var bar = new goog.ui.ServerChart(
+      goog.ui.ServerChart.ChartType.BAR,
+      180,
+      104,
+      null,
+      goog.ui.ServerChart.CHART_SERVER_HTTP_URI);
+  tryToCreateBarChart(bar);
+  var uri = bar.getUri();
+  var httpUri = new goog.Uri(goog.ui.ServerChart.CHART_SERVER_HTTP_URI);
+  assertEquals('http', uri.getScheme());
+  assertEquals(httpUri.getDomain(), uri.getDomain());
+}
 
 function testHttpsBarChartRequest() {
   var bar = new goog.ui.ServerChart(
@@ -53,6 +72,14 @@ function testMinValue() {
       180, 104);
   line.addDataSet([1, 2, 3], '000000');
   assertEquals(line.getMinValue(), 1);
+}
+
+function testMargins() {
+  var pie = new goog.ui.ServerChart(goog.ui.ServerChart.ChartType.PIE3D,
+      180, 104);
+  pie.setMargins(1, 2, 3, 4);
+  assertEquals('1,2,3,4',
+      pie.getUri().getParameterValue(goog.ui.ServerChart.UriParam.MARGINS));
 }
 
 function testSetParameterValue() {
@@ -475,38 +502,39 @@ function testSetMultiAxisRange() {
 function testGetConvertedValue() {
   var chart = new goog.ui.ServerChart(
       goog.ui.ServerChart.ChartType.VERTICAL_STACKED_BAR);
-  var convertedValue = null;
-  var threwException = false;
-  try {
-    convertedValue = chart.getConvertedValue_(90, 24, 3,
-         goog.ui.ServerChart.EncodingType.SIMPLE);
-  } catch (ex) {
-    threwException = true;
-  }
-  if (!threwException) {
-    fail('Did not throw exception when the minimum value was greater than' +
-        ' the maximum value');
-  }
-  threwException = false;
 
-  assertEquals('f', chart.getConvertedValue_(90, 100, 100,
+  assertThrows('No exception thrown when minValue > maxValue', function() {
+    var result = chart.getConvertedValue_(
+        90, 24, 3, goog.ui.ServerChart.EncodingType.SIMPLE);
+  });
+
+  assertEquals('_', chart.getConvertedValue_(90, 100, 101,
        goog.ui.ServerChart.EncodingType.SIMPLE));
-  
-  var value = null;
-  assertEquals('_', chart.getConvertedValue_(value, 0, 5,
-                        goog.ui.ServerChart.EncodingType.SIMPLE));
-  value = null;
-  assertEquals('__', chart.getConvertedValue_(value, 0, 150,
-                        goog.ui.ServerChart.EncodingType.EXTENDED));
-  value = 24;
-  assertEquals('24', chart.getConvertedValue_(value, 1, 200,
-                      goog.ui.ServerChart.EncodingType.TEXT));
-  value = 24;
-  assertEquals('H', chart.getConvertedValue_(value, 1, 200,
-                      goog.ui.ServerChart.EncodingType.SIMPLE));
-  value = 24;
-  assertEquals('HZ', chart.getConvertedValue_(value, 1, 200,
-                      goog.ui.ServerChart.EncodingType.EXTENDED));
+
+  assertEquals('_', chart.getConvertedValue_(
+      null, 0, 5, goog.ui.ServerChart.EncodingType.SIMPLE));
+  assertEquals('__', chart.getConvertedValue_(
+      null, 0, 150, goog.ui.ServerChart.EncodingType.EXTENDED));
+  assertEquals('24', chart.getConvertedValue_(
+      24, 1, 200, goog.ui.ServerChart.EncodingType.TEXT));
+  assertEquals('H', chart.getConvertedValue_(
+      24, 1, 200, goog.ui.ServerChart.EncodingType.SIMPLE));
+  assertEquals('HZ', chart.getConvertedValue_(
+      24, 1, 200, goog.ui.ServerChart.EncodingType.EXTENDED));
+
+  // Out-of-range values should give a missing data point, not an empty string.
+  assertEquals('__', chart.getConvertedValue_(
+      0, 1, 200, goog.ui.ServerChart.EncodingType.EXTENDED));
+  assertEquals('__', chart.getConvertedValue_(
+      201, 1, 200, goog.ui.ServerChart.EncodingType.EXTENDED));
+  assertEquals('_', chart.getConvertedValue_(
+      0, 1, 200, goog.ui.ServerChart.EncodingType.SIMPLE));
+  assertEquals('_', chart.getConvertedValue_(
+      201, 1, 200, goog.ui.ServerChart.EncodingType.SIMPLE));
+  assertEquals('_', chart.getConvertedValue_(
+      0, 1, 200, goog.ui.ServerChart.EncodingType.TEXT));
+  assertEquals('_', chart.getConvertedValue_(
+      201, 1, 200, goog.ui.ServerChart.EncodingType.TEXT));
 }
 
 function testGetChartServerValues() {
@@ -536,11 +564,11 @@ function testUriLengthLimit() {
   assertEquals(
       'e:AAHHOOVVccjjqqxx44..AAHHOOVVccjjqqxx44..',
       chart.getUri().getParameterValue(goog.ui.ServerChart.UriParam.DATA));
-  chart.setUriLengthLimit(110);
+  chart.setUriLengthLimit(100);
   assertEquals(
       's:AHOUbipv29AHOUbipv29',
       chart.getUri().getParameterValue(goog.ui.ServerChart.UriParam.DATA));
-  chart.setUriLengthLimit(90);
+  chart.setUriLengthLimit(80);
   assertEquals(null, longUri)
   chart.getUri();
   assertNotEquals(null, longUri);

@@ -1,23 +1,13 @@
 <!DOCTYPE html>
-<!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
 <!--
-  Copyright 2009 Google Inc. All Rights Reserved.
+Copyright 2009 The Closure Library Authors. All Rights Reserved.
+
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
 -->
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>Closure Unit Tests - goog.math.Integer</title>
 <script src="../base.js" type="text/javascript"></script>
 <script type="text/javascript">
@@ -1423,8 +1413,8 @@ function testIsOdd() {
   }
 }
 
-function testComparisons() {
-  for (var i = 0; i < TEST_BITS.length; i += 2) {
+function createTestComparisons(i) {
+  return function() {
     var vi = goog.math.Integer.fromBits([TEST_BITS[i+1], TEST_BITS[i]]);
     for (var j = 0; j < TEST_BITS.length; j += 2) {
       var vj = goog.math.Integer.fromBits([TEST_BITS[j+1], TEST_BITS[j]]);
@@ -1435,11 +1425,19 @@ function testComparisons() {
       assertEquals(i > j, vi.greaterThan(vj));
       assertEquals(i >= j, vi.greaterThanOrEqual(vj));
     }
-  }
+  };
 }
 
-function testBitOperations() {
-  for (var i = 0; i < TEST_BITS.length; i += 2) {
+// Here and below, we translate one conceptual test (e.g., "testComparisons")
+// into a number of test functions that will be run separately by jsunit. This
+// is necessary because, in some testing configurations, the full combined test
+// can take so long that it times out. These smaller tests run much faster.
+for (var i = 0; i < TEST_BITS.length; i += 2) {
+  goog.global['testComparisons' + i] = createTestComparisons(i);
+}
+
+function createTestBitOperations(i) {
+  return function() {
     var vi = goog.math.Integer.fromBits([TEST_BITS[i+1], TEST_BITS[i]]);
     assertEquals(~TEST_BITS[i], vi.not().getBits(1));
     assertEquals(~TEST_BITS[i+1], vi.not().getBits(0));
@@ -1484,7 +1482,11 @@ function testBitOperations() {
                  vi.shiftRight(64).getBits(1));
     assertEquals(TEST_BITS[i] & (1 << 31) ? -1 : 0,
                  vi.shiftRight(64).getBits(0));
-  }
+  };
+}
+
+for (var i = 0; i < TEST_BITS.length; i += 2) {
+  goog.global['testBitOperations' + i] = createTestBitOperations(i);
 }
 
 function testNegation() {
@@ -1500,9 +1502,8 @@ function testNegation() {
   }
 }
 
-function testAdd() {
-  var count = 0;
-  for (var i = 0; i < TEST_BITS.length; i += 2) {
+function createTestAdd(i, count) {
+  return function() {
     var vi = goog.math.Integer.fromBits([TEST_BITS[i+1], TEST_BITS[i]]);
     for (var j = 0; j < i; j += 2) {
       var vj = goog.math.Integer.fromBits([TEST_BITS[j+1], TEST_BITS[j]]);
@@ -1510,12 +1511,17 @@ function testAdd() {
       assertEquals(TEST_ADD_BITS[count++], result.getBits(1));
       assertEquals(TEST_ADD_BITS[count++], result.getBits(0));
     }
-  }
+  };
 }
 
-function testSubtract() {
-  var count = 0;
-  for (var i = 0; i < TEST_BITS.length; i += 2) {
+var countAdd = 0;
+for (var i = 0; i < TEST_BITS.length; i += 2) {
+  goog.global['testAdd' + i] = createTestAdd(i, countAdd);
+  countAdd += i;
+}
+
+function createTestSubtract(i, count) {
+  return function() {
     var vi = goog.math.Integer.fromBits([TEST_BITS[i+1], TEST_BITS[i]]);
     for (var j = 0; j < TEST_BITS.length; j += 2) {
       var vj = goog.math.Integer.fromBits([TEST_BITS[j+1], TEST_BITS[j]]);
@@ -1523,12 +1529,17 @@ function testSubtract() {
       assertEquals(TEST_SUB_BITS[count++], result.getBits(1));
       assertEquals(TEST_SUB_BITS[count++], result.getBits(0));
     }
-  }
+  };
 }
 
-function testMultiply() {
-  var count = 0;
-  for (var i = 0; i < TEST_BITS.length; i += 2) {
+var countSubtract = 0;
+for (var i = 0; i < TEST_BITS.length; i += 2) {
+  goog.global['testSubtract' + i] = createTestSubtract(i, countSubtract);
+  countSubtract += TEST_BITS.length;
+}
+
+function createTestMultiply(i, count) {
+  return function() {
     var vi = goog.math.Integer.fromBits([TEST_BITS[i+1], TEST_BITS[i]]);
     for (var j = 0; j < i; j += 2) {
       var vj = goog.math.Integer.fromBits([TEST_BITS[j+1], TEST_BITS[j]]);
@@ -1536,12 +1547,17 @@ function testMultiply() {
       assertEquals(TEST_MUL_BITS[count++], result.getBits(1));
       assertEquals(TEST_MUL_BITS[count++], result.getBits(0));
     }
-  }
+  };
 }
 
-function testDivMod() {
-  var count = 0;
-  for (var i = 0; i < TEST_BITS.length; i += 2) {
+var countMultiply = 0;
+for (var i = 0; i < TEST_BITS.length; i += 2) {
+  goog.global['testMultiply' + i] = createTestMultiply(i, countMultiply);
+  countMultiply += i;
+}
+
+function createTestDivMod(i, count) {
+  return function() {
     var vi = goog.math.Integer.fromBits([TEST_BITS[i+1], TEST_BITS[i]]);
     for (var j = 0; j < TEST_BITS.length; j += 2) {
       var vj = goog.math.Integer.fromBits([TEST_BITS[j+1], TEST_BITS[j]]);
@@ -1555,11 +1571,25 @@ function testDivMod() {
         assertTrue(vi.equals(combinedResult));
       }
     }
+  };
+}
+
+var countPerDivModCall = 0;
+for (var j = 0; j < TEST_BITS.length; j += 2) {
+  var vj = goog.math.Integer.fromBits([TEST_BITS[j+1], TEST_BITS[j]]);
+  if (!vj.isZero()) {
+    countPerDivModCall += 2;
   }
 }
 
-function testToFromString() {
-  for (var i = 0; i < TEST_BITS.length; i += 2) {
+var countDivMod = 0;
+for (var i = 0; i < TEST_BITS.length; i += 2) {
+  goog.global['testDivMod' + i] = createTestDivMod(i, countDivMod);
+  countDivMod += countPerDivModCall;
+}
+
+function createTestToFromString(i) {
+  return function() {
     var vi = goog.math.Integer.fromBits([TEST_BITS[i+1], TEST_BITS[i]]);
     var str = vi.toString(10);
     assertEquals(TEST_STRINGS[i/2], str);
@@ -1575,7 +1605,11 @@ function testToFromString() {
       assertEquals(TEST_BITS[i+1],
                    goog.math.Integer.fromString(result, radix).getBits(0));
     }
-  }
+  };
+}
+
+for (var i = 0; i < TEST_BITS.length; i += 2) {
+  goog.global['testToFromString' + i] = createTestToFromString(i);
 }
 
 function testBigMultiply() {

@@ -1,25 +1,25 @@
 /*
-Use of this source code is governed by an Apache 2.0 License.
-See the COPYING file for details.
-*/
+ * Copyright 2009 The Closure Library Authors. All Rights Reserved.
+ *
+ * Use of this source code is governed by the Apache License, Version 2.0.
+ * See the COPYING file for details.
+ */
 
 /*
- * Copyright 2009 Google Inc.  All Rights Reserved.
- *
  * Standard styling for menus created by goog.ui.MenuItemRenderer.
  *
-
+ * @author attila@google.com (Attila Bodis)
  */
 
 
 /* State: resting. */
 .goog-menuitem {
   color: #000;
-  font: normal 12px Arial, sans-serif;
+  font: normal 13px Arial, sans-serif;
   list-style: none;
   margin: 0;
-  /* 28px on the left for icon or checkbox; 10ex on the right for shortcut. */
-  padding: 4px 10ex 4px 28px;
+  /* 28px on the left for icon or checkbox; 7em on the right for shortcut. */
+  padding: 4px 7em 4px 28px;
   white-space: nowrap;
 }
 
@@ -39,7 +39,7 @@ See the COPYING file for details.
 
 .goog-menuitem-content {
   color: #000;
-  font: normal 12px Arial, sans-serif;
+  font: normal 13px Arial, sans-serif;
 }
 
 /* State: disabled. */
@@ -80,12 +80,14 @@ See the COPYING file for details.
 .goog-option-selected .goog-menuitem-checkbox,
 .goog-option-selected .goog-menuitem-icon {
   /* Client apps may override the URL at which they serve the sprite. */
-  background: url(https://ssl.gstatic.com/editor/editortoolbar.png) no-repeat -512px;
+  background: url(//ssl.gstatic.com/editor/editortoolbar.png) no-repeat -512px 0;
 }
 
 /* Keyboard shortcut ("accelerator") style. */
 .goog-menuitem-accel {
   color: #999;
+  /* Keyboard shortcuts are untranslated; always left-to-right. */
+  /* @noflip */ direction: ltr;
   left: auto;
   padding: 0 6px;
   position: absolute;

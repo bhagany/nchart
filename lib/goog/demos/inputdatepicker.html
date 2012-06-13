@@ -1,21 +1,11 @@
 <!DOCTYPE html>
-<!--
-Copyright 2009 Google Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
+<!--
+Copyright 2010 The Closure Library Authors. All Rights Reserved.
+
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
 <head>
   <title>goog.ui.InputDatePicker</title>
   <script src="../base.js"></script>
@@ -54,14 +44,14 @@ limitations under the License.
     var parser = new goog.i18n.DateTimeParse(PATTERN);
 
     var idp1 = new goog.ui.InputDatePicker(formatter, parser);
-    idp1.decorate(goog.dom.$('date-field1'));
+    idp1.decorate(goog.dom.getElement('date-field1'));
 
     var idp2 = new goog.ui.InputDatePicker(formatter, parser);
-    idp2.render(goog.dom.$('date-field2'));
+    idp2.render(goog.dom.getElement('date-field2'));
 
     // Use a LabelInput for this one:
     var fieldLabelInput = new goog.ui.LabelInput('MM/DD/YYYY');
-    fieldLabelInput.render(goog.dom.$('date-container'));
+    fieldLabelInput.render(goog.dom.getElement('date-container'));
 
     var idp3 = new goog.ui.InputDatePicker(formatter, parser);
     idp3.decorate(fieldLabelInput.getElement());

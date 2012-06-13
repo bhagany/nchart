@@ -1,24 +1,15 @@
 <!DOCTYPE html>
-<!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
 <!--
-Copyright 2008 Google Inc. All Rights Reserved.
+Copyright 2008 The Closure Library Authors. All Rights Reserved.
 
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
+<!--
 -->
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>Closure Unit Tests - goog.ui.ControlRenderer</title>
   <script src="../base.js"></script>
   <script>
@@ -40,7 +31,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
   <div id="sandbox"></div>
   <script>
     var control, controlRenderer, testRenderer;
-    var sandbox = goog.dom.$('sandbox');
+    var sandbox = goog.dom.getElement('sandbox');
     var expectedFailures = new goog.testing.ExpectedFailures();
 
     /**
@@ -64,22 +55,22 @@ Copyright 2008 Google Inc. All Rights Reserved.
        'goog-button']
     ];
 
-    /** {@inheritDoc} */
+    /** {@override} */
     TestRenderer.prototype.getAriaRole = function() {
       return goog.dom.a11y.Role.BUTTON;
     };
 
-    /** {@inheritDoc} */
+    /** {@override} */
     TestRenderer.prototype.getCssClass = function() {
       return TestRenderer.CSS_CLASS;
     };
 
-    /** {@inheritDoc} */
+    /** {@override} */
     TestRenderer.prototype.getStructuralCssClass = function() {
       return 'goog-base';
     };
 
-    /** {@inheritDoc} */
+    /** {@override} */
     TestRenderer.prototype.getIe6ClassCombinations = function() {
       return TestRenderer.IE6_CLASS_COMBINATIONS;
     };
@@ -183,7 +174,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
 
     function testDecorate() {
       sandbox.innerHTML = '<div id="foo">Hello, world!</div>';
-      var foo = goog.dom.$('foo');
+      var foo = goog.dom.getElement('foo');
       var element = controlRenderer.decorate(control, foo);
 
       assertEquals('decorate() must return its argument', foo, element);
@@ -201,7 +192,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
 
     function testDecorateComplexDom() {
       sandbox.innerHTML = '<div id="foo"><i>Hello</i>,<b>world</b>!</div>';
-      var foo = goog.dom.$('foo');
+      var foo = goog.dom.getElement('foo');
       var element = controlRenderer.decorate(control, foo);
 
       assertEquals('decorate() must return its argument', foo, element);
@@ -220,7 +211,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
     function testDecorateWithClasses() {
       sandbox.innerHTML =
           '<div id="foo" class="app goog-base-disabled goog-base-hover"></div>';
-      var foo = goog.dom.$('foo');
+      var foo = goog.dom.getElement('foo');
 
       control.addClassName('extra');
       var element = testRenderer.decorate(control, foo);
@@ -253,19 +244,19 @@ Copyright 2008 Google Inc. All Rights Reserved.
       // Since foo has all required classes, goog.dom.classes.set() must not be
       // called at all.
       sandbox.innerHTML = '<div id="foo" class="goog-control">Foo</div>';
-      controlRenderer.decorate(control, goog.dom.$('foo'));
+      controlRenderer.decorate(control, goog.dom.getElement('foo'));
 
       // Since bar has all required classes, goog.dom.classes.set() must not be
       // called at all.
       sandbox.innerHTML = '<div id="bar" class="goog-base goog-button">Bar' +
           '</div>';
-      testRenderer.decorate(control, goog.dom.$('bar'));
+      testRenderer.decorate(control, goog.dom.getElement('bar'));
 
       // Since baz has all required classes, goog.dom.classes.set() must not be
       // called at all.
       sandbox.innerHTML = '<div id="baz" class="goog-base goog-button ' +
           'goog-button-disabled">Baz</div>';
-      testRenderer.decorate(control, goog.dom.$('baz'));
+      testRenderer.decorate(control, goog.dom.getElement('baz'));
 
       // Restore goog.dom.classes.set().
       goog.dom.classes.set = goog$dom$classes$set;
@@ -309,7 +300,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
       // When a control with default render direction enters the document,
       // setRightToLeft() must not be called.
       control.setRenderer(renderer);
-      control.decorate(goog.dom.$('foo'));
+      control.decorate(goog.dom.getElement('foo'));
 
       // When a control in the default state (enabled, visible, focusable)
       // enters the document, it must get a tab index.
@@ -361,7 +352,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
       // When a disabled control enters the document, setFocusable() must not
       // be called.
       control.setRenderer(renderer);
-      control.decorate(goog.dom.$('foo'));
+      control.decorate(goog.dom.getElement('foo'));
 
       // When a right-to-left control enters the document, special stying must
       // be applied.
@@ -373,25 +364,20 @@ Copyright 2008 Google Inc. All Rights Reserved.
     function testSetAriaRole() {
       sandbox.innerHTML = '<div id="foo">Foo</div><div id="bar">Bar</div>';
 
-      var foo = goog.dom.$('foo');
+      var foo = goog.dom.getElement('foo');
       controlRenderer.setAriaRole(foo);
       assertEquals('ControlRenderer must not set ARIA role', '',
           goog.dom.a11y.getRole(foo));
 
-      var bar = goog.dom.$('bar');
+      var bar = goog.dom.getElement('bar');
       testRenderer.setAriaRole(bar);
-      if (goog.userAgent.GECKO) {
-        assertEquals('On Gecko, element must have expected ARIA role',
-            goog.dom.a11y.Role.BUTTON, goog.dom.a11y.getRole(bar));
-      } else {
-        assertEquals('On non-Gecko, element must not have ARIA role', '',
-            goog.dom.a11y.getRole(bar));
-      }
+      assertEquals('Element must have expected ARIA role',
+          goog.dom.a11y.Role.BUTTON, goog.dom.a11y.getRole(bar));
     }
 
     function testSetAllowTextSelection() {
       sandbox.innerHTML = '<div id="foo"><span>Foo</span></div>';
-      var foo = goog.dom.$('foo');
+      var foo = goog.dom.getElement('foo');
 
       controlRenderer.setAllowTextSelection(foo, false);
       assertTrue('Parent element must be unselectable on all browsers',
@@ -415,7 +401,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
     function testSetRightToLeft() {
       sandbox.innerHTML = '<div id="foo">Foo</div><div id="bar">Bar</div>';
 
-      var foo = goog.dom.$('foo');
+      var foo = goog.dom.getElement('foo');
       controlRenderer.setRightToLeft(foo, true);
       assertSameElements('Element must have right-to-left class applied',
           ['goog-control-rtl'], goog.dom.classes.get(foo));
@@ -423,7 +409,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
       assertSameElements('Element must not have right-to-left class applied',
           [], goog.dom.classes.get(foo));
 
-      var bar = goog.dom.$('bar');
+      var bar = goog.dom.getElement('bar');
       testRenderer.setRightToLeft(bar, true);
       assertSameElements('Element must have right-to-left class applied',
           ['goog-base-rtl'], goog.dom.classes.get(bar));
@@ -489,7 +475,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
 
     function testSetVisible() {
       sandbox.innerHTML = '<div id="foo">Foo</div>';
-      var foo = goog.dom.$('foo');
+      var foo = goog.dom.getElement('foo');
       assertTrue('Element must be visible', foo.style.display != 'none');
       controlRenderer.setVisible(foo, true);
       assertTrue('Element must still be visible', foo.style.display != 'none');
@@ -511,56 +497,180 @@ Copyright 2008 Google Inc. All Rights Reserved.
       assertSameElements('Control must have disabled class name',
           ['goog-button', 'goog-base', 'goog-base-disabled'],
           goog.dom.classes.get(element));
-      if (goog.userAgent.GECKO) {
-        assertEquals('On Gecko, control must have disabled ARIA state', 'true',
-            goog.dom.a11y.getState(element, goog.dom.a11y.State.DISABLED));
-      } else {
-        assertEquals('On non-Gecko, control must not have ARIA state', '',
-            goog.dom.a11y.getState(element, goog.dom.a11y.State.DISABLED));
-      }
+      assertEquals('Control must have disabled ARIA state', 'true',
+          goog.dom.a11y.getState(element, goog.dom.a11y.State.DISABLED));
 
       testRenderer.setState(control, goog.ui.Component.State.DISABLED, false);
       assertSameElements('Control must no longer have disabled class name',
           ['goog-button', 'goog-base'], goog.dom.classes.get(element));
-      if (goog.userAgent.GECKO) {
-        assertEquals('On Gecko, control must not have disabled ARIA state',
-            'false',
-            goog.dom.a11y.getState(element, goog.dom.a11y.State.DISABLED));
-      } else {
-        assertEquals('On non-Gecko, control must not have ARIA state', '',
-            goog.dom.a11y.getState(element, goog.dom.a11y.State.DISABLED));
-      }
+      assertEquals('Control must not have disabled ARIA state',
+          'false',
+          goog.dom.a11y.getState(element, goog.dom.a11y.State.DISABLED));
 
       testRenderer.setState(control, 0xFFFFFF, true);
       assertSameElements('Class names must be unchanged for invalid state',
           ['goog-button', 'goog-base'], goog.dom.classes.get(element));
     }
 
-    function testUpdateAriaState() {
+    function testUpdateAriaStateDisabled() {
       control.createDom();
       var element = control.getElement();
 
-      controlRenderer.updateAriaState(element, goog.ui.Component.State.ACTIVE,
+      controlRenderer.updateAriaState(element, goog.ui.Component.State.DISABLED,
           true);
-      if (goog.userAgent.GECKO) {
-        assertEquals('On Gecko, control must have pressed ARIA state', 'true',
-            goog.dom.a11y.getState(element, goog.dom.a11y.State.PRESSED));
-      } else {
-        assertEquals('On non-Gecko, control must not have ARIA state', '',
-            goog.dom.a11y.getState(element, goog.dom.a11y.State.PRESSED));
-      }
+      assertEquals('Control must have disabled ARIA state', 'true',
+          goog.dom.a11y.getState(element, goog.dom.a11y.State.DISABLED));
 
-      controlRenderer.updateAriaState(element, goog.ui.Component.State.ACTIVE,
+      controlRenderer.updateAriaState(element, goog.ui.Component.State.DISABLED,
           false);
-      if (goog.userAgent.GECKO) {
-        assertEquals('On Gecko, control must no longer have pressed ARIA state',
-            'false',
-            goog.dom.a11y.getState(element, goog.dom.a11y.State.PRESSED));
-      } else {
-        assertEquals('On non-Gecko, control must not have ARIA state', '',
-            goog.dom.a11y.getState(element, goog.dom.a11y.State.PRESSED));
-      }
+      assertEquals('Control must no longer have disabled ARIA state',
+          'false',
+          goog.dom.a11y.getState(element, goog.dom.a11y.State.DISABLED));
+  }
+
+    function testCreateDomAriaStateDisabled() {
+      control.setEnabled(false);
+      control.createDom();
+      var element = control.getElement();
+
+      assertFalse('Control must be disabled', control.isEnabled());
+      assertEquals('Control must have disabled ARIA state', 'true',
+        goog.dom.a11y.getState(element, goog.dom.a11y.State.DISABLED));
     }
+
+    function testDecorateAriaStateDisabled() {
+      sandbox.innerHTML =
+          '<div id="foo" class="app goog-base-disabled"></div>';
+      var foo = goog.dom.getElement('foo');
+
+      var element = testRenderer.decorate(control, foo);
+
+      assertFalse('Control must be disabled', control.isEnabled());
+      assertEquals('Control must have disabled ARIA state', 'true',
+        goog.dom.a11y.getState(element, goog.dom.a11y.State.DISABLED));
+    }
+
+    function testUpdateAriaStateSelected() {
+      control.createDom();
+      var element = control.getElement();
+
+      controlRenderer.updateAriaState(element, goog.ui.Component.State.SELECTED,
+          true);
+      assertEquals('Control must have selected ARIA state', 'true',
+          goog.dom.a11y.getState(element, goog.dom.a11y.State.SELECTED));
+
+      controlRenderer.updateAriaState(element, goog.ui.Component.State.SELECTED,
+          false);
+      assertEquals('Control must no longer have selected ARIA state',
+          'false',
+          goog.dom.a11y.getState(element, goog.dom.a11y.State.SELECTED));
+  }
+
+    function testCreateDomAriaStateSelected() {
+      control.setSupportedState(goog.ui.Component.State.SELECTED, true);
+      control.setSelected(true);
+
+      control.createDom();
+      var element = control.getElement();
+
+      assertTrue('Control must be selected', control.isSelected());
+      assertEquals('Control must have selected ARIA state', 'true',
+        goog.dom.a11y.getState(element, goog.dom.a11y.State.SELECTED));
+    }
+
+    function testDecorateAriaStateSelected() {
+      sandbox.innerHTML =
+          '<div id="foo" class="app goog-base-selected"></div>';
+      var foo = goog.dom.getElement('foo');
+
+      var element = testRenderer.decorate(control, foo);
+
+      assertTrue('Control must be selected', control.isSelected());
+      assertEquals('Control must have selected ARIA state', 'true',
+        goog.dom.a11y.getState(element, goog.dom.a11y.State.SELECTED));
+    }
+
+    function testUpdateAriaStateChecked() {
+      control.createDom();
+      var element = control.getElement();
+
+      controlRenderer.updateAriaState(element, goog.ui.Component.State.CHECKED,
+          true);
+      assertEquals('Control must have checked ARIA state', 'true',
+          goog.dom.a11y.getState(element, goog.dom.a11y.State.CHECKED));
+
+      controlRenderer.updateAriaState(element, goog.ui.Component.State.CHECKED,
+          false);
+      assertEquals('Control must no longer have checked ARIA state',
+          'false',
+          goog.dom.a11y.getState(element, goog.dom.a11y.State.CHECKED));
+  }
+
+    function testCreateDomAriaStateChecked() {
+      control.setSupportedState(goog.ui.Component.State.CHECKED, true);
+      control.setChecked(true);
+
+      control.createDom();
+      var element = control.getElement();
+
+      assertTrue('Control must be checked', control.isChecked());
+      assertEquals('Control must have checked ARIA state', 'true',
+        goog.dom.a11y.getState(element, goog.dom.a11y.State.CHECKED));
+  }
+
+    function testDecorateAriaStateChecked() {
+      sandbox.innerHTML =
+          '<div id="foo" class="app goog-base-checked"></div>';
+      var foo = goog.dom.getElement('foo');
+
+      control.setSupportedState(goog.ui.Component.State.CHECKED, true);
+      var element = testRenderer.decorate(control, foo);
+
+      assertTrue('Control must be checked', control.isChecked());
+      assertEquals('Control must have checked ARIA state', 'true',
+        goog.dom.a11y.getState(element, goog.dom.a11y.State.CHECKED));
+  }
+
+    function testUpdateAriaStateOpened() {
+      control.createDom();
+      var element = control.getElement();
+
+      controlRenderer.updateAriaState(element, goog.ui.Component.State.OPENED,
+          true);
+      assertEquals('Control must have expanded ARIA state', 'true',
+          goog.dom.a11y.getState(element, goog.dom.a11y.State.EXPANDED));
+
+      controlRenderer.updateAriaState(element, goog.ui.Component.State.OPENED,
+          false);
+      assertEquals('Control must no longer have expanded ARIA state',
+          'false',
+          goog.dom.a11y.getState(element, goog.dom.a11y.State.EXPANDED));
+  }
+
+    function testCreateDomAriaStateOpened() {
+      control.setSupportedState(goog.ui.Component.State.OPENED, true);
+      control.setOpen(true);
+
+      control.createDom();
+      var element = control.getElement();
+
+      assertTrue('Control must be opened', control.isOpen());
+      assertEquals('Control must have expanded ARIA state', 'true',
+        goog.dom.a11y.getState(element, goog.dom.a11y.State.EXPANDED));
+  }
+
+    function testDecorateAriaStateOpened() {
+      sandbox.innerHTML =
+          '<div id="foo" class="app goog-base-open"></div>';
+      var foo = goog.dom.getElement('foo');
+
+      control.setSupportedState(goog.ui.Component.State.OPENED, true);
+      var element = testRenderer.decorate(control, foo);
+
+      assertTrue('Control must be opened', control.isOpen());
+      assertEquals('Control must have expanded ARIA state', 'true',
+        goog.dom.a11y.getState(element, goog.dom.a11y.State.EXPANDED));
+  }
 
     function testSetContent() {
       sandbox.innerHTML = 'Hello, world!';
@@ -849,7 +959,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
     function testIe6ClassCombinationsDecorate() {
       sandbox.innerHTML =
           '<div id="foo" class="combined goog-base-hover"></div>';
-      var foo = goog.dom.$('foo');
+      var foo = goog.dom.getElement('foo');
 
       var element = testRenderer.decorate(control, foo);
 

@@ -1,25 +1,17 @@
 <!DOCTYPE html>
-<!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
 <!--
-  Copyright 2008 Google Inc. All Rights Reserved.
+Copyright 2008 The Closure Library Authors. All Rights Reserved.
 
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
+<!--
 
+  @author nicksantos@google.com (Nick Santos)
 -->
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>Closure Unit Tests - goog.ui.SubMenu</title>
 <style type='text/css'>
 .goog-menu {
@@ -100,7 +92,7 @@ goog.positioning.positionAtCoordinate = function(absolutePos, movableElement,
 };
 
 function setUp() {
-  clonedMenuDom = goog.dom.$('demoMenu').cloneNode(true);
+  clonedMenuDom = goog.dom.getElement('demoMenu').cloneNode(true);
 
   menu = new goog.ui.Menu();
 }
@@ -109,10 +101,10 @@ function tearDown() {
   document.body.style.direction = 'ltr';
   menu.dispose();
 
-  var element = goog.dom.$('demoMenu');
+  var element = goog.dom.getElement('demoMenu');
   element.parentNode.replaceChild(clonedMenuDom, element);
 
-  goog.dom.$('sandbox').innerHTML = '';
+  goog.dom.getElement('sandbox').innerHTML = '';
 
   if (mockClock) {
     mockClock.uninstall();
@@ -121,7 +113,7 @@ function tearDown() {
 }
 
 function testNormalLtrSubMenu() {
-  menu.decorate(goog.dom.$('demoMenu'));
+  menu.decorate(goog.dom.getElement('demoMenu'));
   var subMenu = menu.getChildAt(1);
   assertArrowDirection(subMenu, false);
   assertRenderDirection(subMenu, false);
@@ -130,7 +122,7 @@ function testNormalLtrSubMenu() {
 
 function testNormalRtlSubMenu() {
   document.body.style.direction = 'rtl';
-  menu.decorate(goog.dom.$('demoMenu'));
+  menu.decorate(goog.dom.getElement('demoMenu'));
   var subMenu = menu.getChildAt(1);
   assertArrowDirection(subMenu, true);
   assertRenderDirection(subMenu, true);
@@ -138,7 +130,7 @@ function testNormalRtlSubMenu() {
 }
 
 function testLtrSubMenuAlignedToStart() {
-  menu.decorate(goog.dom.$('demoMenu'));
+  menu.decorate(goog.dom.getElement('demoMenu'));
   var subMenu = menu.getChildAt(1);
   subMenu.setAlignToEnd(false);
   assertArrowDirection(subMenu, true);
@@ -148,7 +140,7 @@ function testLtrSubMenuAlignedToStart() {
 
 function testRtlSubMenuAlignedToStart() {
   document.body.style.direction = 'rtl';
-  menu.decorate(goog.dom.$('demoMenu'));
+  menu.decorate(goog.dom.getElement('demoMenu'));
   var subMenu = menu.getChildAt(1);
   subMenu.setAlignToEnd(false);
   assertArrowDirection(subMenu, false);
@@ -157,7 +149,7 @@ function testRtlSubMenuAlignedToStart() {
 }
 
 function testExitDocument() {
-  menu.decorate(goog.dom.$('demoMenu'));
+  menu.decorate(goog.dom.getElement('demoMenu'));
   var subMenu = menu.getChildAt(1);
   var innerMenu = subMenu.getMenu();
 
@@ -173,7 +165,7 @@ function testExitDocument() {
 }
 
 function testDisposal() {
-  menu.decorate(goog.dom.$('demoMenu'));
+  menu.decorate(goog.dom.getElement('demoMenu'));
   var subMenu = menu.getChildAt(1);
   var innerMenu = subMenu.getMenu();
   menu.dispose();
@@ -200,7 +192,7 @@ function testShowAndDismissSubMenu() {
     }
   }
 
-  menu.decorate(goog.dom.$('demoMenu'));
+  menu.decorate(goog.dom.getElement('demoMenu'));
   var subMenu = menu.getChildAt(1);
   subMenu.setHighlighted(true);
 
@@ -238,7 +230,7 @@ function testShowAndDismissSubMenu() {
 }
 
 function testLazyInstantiateSubMenu() {
-  menu.decorate(goog.dom.$('demoMenu'));
+  menu.decorate(goog.dom.getElement('demoMenu'));
   var subMenu = menu.getChildAt(1);
   subMenu.setHighlighted(true);
 
@@ -274,7 +266,7 @@ function testReusableMenu() {
   var subMenuTwo = new goog.ui.SubMenu('SubMenu Two');
   menu.addItem(subMenuOne);
   menu.addItem(subMenuTwo);
-  menu.render(goog.dom.$('sandbox'));
+  menu.render(goog.dom.getElement('sandbox'));
 
   // It is possible for the same popup menu to be shared between different
   // submenus.
@@ -346,6 +338,31 @@ function testShowSubMenuAfterRemoval() {
   menu.removeItem(submenu);
   submenu.showSubMenu();
   // (No JS error should occur.)
+}
+
+function testSubmenuSelectable() {
+  var submenu = new goog.ui.SubMenu('submenu');
+  submenu.addItem(new goog.ui.MenuItem('submenu item 1'));
+  menu.addItem(submenu);
+  submenu.setSelectable(true);
+
+  var numClicks = 0;
+  var menuClickedFn = function(e) {
+    numClicks++;
+  }
+
+  goog.events.listen(submenu, goog.ui.Component.EventType.ACTION,
+      menuClickedFn);
+  submenu.performActionInternal(null);
+  submenu.performActionInternal(null);
+
+  assertEquals('The submenu should have fired an event', 2, numClicks);
+
+  submenu.setSelectable(false);
+  submenu.performActionInternal(null);
+
+  assertEquals('The submenu should not have fired any further events', 2,
+      numClicks);
 }
 
 /**

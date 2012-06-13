@@ -1,21 +1,11 @@
 <!DOCTYPE html>
-<!--
-Copyright 2009 Google Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
+<!--
+Copyright 2010 The Closure Library Authors. All Rights Reserved.
+
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
 <head>
   <title>goog.ui.DimensionPicker</title>
   <script src="../base.js"></script>
@@ -34,7 +24,9 @@ limitations under the License.
   </script>
   <link rel="stylesheet" href="css/demo.css">
   <link rel="stylesheet" href="../css/dimensionpicker.css">
-  <link rel="stylesheet" href="../css/menus.css">
+  <link rel="stylesheet" href="../css/menu.css">
+  <link rel="stylesheet" href="../css/menuitem.css">
+  <link rel="stylesheet" href="../css/menuseparator.css">
 </head>
 <body dir="rtl">
   <h1>goog.ui.DimensionPicker</h1>
@@ -74,7 +66,7 @@ limitations under the License.
     // Set up a logger.
     goog.debug.LogManager.getRoot().setLevel(goog.debug.Logger.Level.ALL);
     var logger = goog.debug.Logger.getLogger('demo');
-    var logconsole = new goog.debug.DivConsole(goog.dom.$('log'));
+    var logconsole = new goog.debug.DivConsole(goog.dom.getElement('log'));
     logconsole.setCapturing(true);
 
     var EVENTS = goog.object.getValues(goog.ui.Component.EventType);
@@ -103,24 +95,25 @@ limitations under the License.
 
     var p1 = new goog.ui.DimensionPicker();
     p1.setRightToLeft(true);
-    p1.render(goog.dom.$('p1'));
+    p1.render(goog.dom.getElement('p1'));
     goog.events.listen(p1, goog.ui.Component.EventType.ACTION,
         function(e) {
           var picker = e.target;
           var size = picker.getValue();
 
-          goog.dom.setTextContent(goog.dom.$('p1_value'),
+          goog.dom.setTextContent(goog.dom.getElement('p1_value'),
               size.width + ' x ' + size.height);
         });
     goog.events.listen(p1, EVENTS, logEvent);
 
     // Perf and clean up
 
-    goog.dom.setTextContent(goog.dom.$('perf'), (goog.now() - timer) + 'ms');
+    goog.dom.setTextContent(goog.dom.getElement('perf'),
+        (goog.now() - timer) + 'ms');
 
     var p2 = new goog.ui.DimensionPicker();
     p2.setRightToLeft(true);
-    p2.decorate(goog.dom.$('decorateTarget'));
+    p2.decorate(goog.dom.getElement('decorateTarget'));
 
     goog.events.listen(window, 'unload', function() {
       goog.events.removeAll();

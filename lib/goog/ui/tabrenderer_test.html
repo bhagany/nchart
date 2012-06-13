@@ -1,24 +1,15 @@
 <!DOCTYPE html>
-<!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
 <!--
-Copyright 2008 Google Inc. All Rights Reserved.
+Copyright 2008 The Closure Library Authors. All Rights Reserved.
 
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
+<!--
 -->
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>Closure Unit Tests - goog.ui.TabRenderer</title>
   <script src="../base.js"></script>
   <script>
@@ -34,7 +25,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
 <body>
   <div id="sandbox"></div>
   <script>
-    var sandbox = goog.dom.$('sandbox');
+    var sandbox = goog.dom.getElement('sandbox');
     var renderer = goog.ui.TabRenderer.getInstance();
     var tab;
   
@@ -81,7 +72,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
           '<div id="foo">Foo</div>\n' +
           '<div id="bar" title="Yes">Bar</div>';
 
-      var foo = renderer.decorate(tab, goog.dom.$('foo'));
+      var foo = renderer.decorate(tab, goog.dom.getElement('foo'));
       assertNotNull('Decorated element must not be null', foo);
       assertSameElements('Decorated element must have expected class',
           ['goog-tab'], goog.dom.classes.get(foo));
@@ -91,7 +82,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
       assertEquals('Decorated element must not have title', '',
           renderer.getTooltip(foo));
 
-      var bar = renderer.decorate(tab, goog.dom.$('bar'));
+      var bar = renderer.decorate(tab, goog.dom.getElement('bar'));
       assertNotNull('Decorated element must not be null', bar);
       assertSameElements('Decorated element must have expected class',
           ['goog-tab'], goog.dom.classes.get(bar));
@@ -109,16 +100,16 @@ Copyright 2008 Google Inc. All Rights Reserved.
           '<div id="bar" title="">Bar</div>\n' +
           '<div id="baz" title="BazTitle">Baz</div>';
       assertEquals('getTooltip() must return empty string for no title', '',
-          renderer.getTooltip(goog.dom.$('foo')));
+          renderer.getTooltip(goog.dom.getElement('foo')));
       assertEquals('getTooltip() must return empty string for empty title', '',
-          renderer.getTooltip(goog.dom.$('bar')));
+          renderer.getTooltip(goog.dom.getElement('bar')));
       assertEquals('Tooltip must have expected value', 'BazTitle',
-          renderer.getTooltip(goog.dom.$('baz')));
+          renderer.getTooltip(goog.dom.getElement('baz')));
     }
 
     function testSetTooltip() {
       sandbox.innerHTML = '<div id="foo">Foo</div>';
-      var element = goog.dom.$('foo');
+      var element = goog.dom.getElement('foo');
 
       renderer.setTooltip(null, null); // Must not error.
 

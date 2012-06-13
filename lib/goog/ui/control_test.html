@@ -1,24 +1,15 @@
 <!DOCTYPE html>
-<!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
 <!--
-Copyright 2008 Google Inc. All Rights Reserved.
+Copyright 2008 The Closure Library Authors. All Rights Reserved.
 
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
+<!--
 -->
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>Closure Unit Tests - goog.ui.Control</title>
   <script src="../base.js"></script>
   <script>
@@ -26,6 +17,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
     goog.require('goog.dom.classes');
     goog.require('goog.events');
     goog.require('goog.events.BrowserEvent.MouseButton');
+    goog.require('goog.events.KeyCodes');
     goog.require('goog.object');
     goog.require('goog.style');
     goog.require('goog.testing.ExpectedFailures');
@@ -143,7 +135,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
     /**
      * Simulates a mousedown event on the given element, including focusing it.
      * @param {Element} element Element on which to simulate mousedown.
-     * @param {goog.events.BrowserEvent.MouseButton} opt_button Mouse button;
+     * @param {goog.events.BrowserEvent.MouseButton=} opt_button Mouse button;
      *     defaults to {@code goog.events.BrowserEvent.MouseButton.LEFT}.
      * @return {boolean} Whether the event was allowed to proceed.
      */
@@ -448,7 +440,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
      */
     function testDecorateInternal() {
       sandbox.innerHTML = '<div id="foo">Hello, <b>World</b>!</div>';
-      var foo = goog.dom.$('foo');
+      var foo = goog.dom.getElement('foo');
       control.decorate(foo);
       assertEquals('Decorated control\'s element must have expected value',
           foo, control.getElement());
@@ -464,7 +456,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
      */
     function testDecorateInternalForSelectableControl() {
       sandbox.innerHTML = '<div id="foo">Hello, <b>World</b>!</div>';
-      var foo = goog.dom.$('foo');
+      var foo = goog.dom.getElement('foo');
       control.setAllowTextSelection(true);
       control.decorate(foo);
       assertEquals('Decorated control\'s element must have expected value',
@@ -479,7 +471,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
      */
     function testDecorateInternalForHiddenElement() {
       sandbox.innerHTML = '<div id="foo" style="display:none">Hello!</div>';
-      var foo = goog.dom.$('foo');
+      var foo = goog.dom.getElement('foo');
       control.decorate(foo);
       assertEquals('Decorated control\'s element must have expected value',
           foo, control.getElement());
@@ -612,7 +604,8 @@ Copyright 2008 Google Inc. All Rights Reserved.
           control.googUiComponentHandler_);
       assertTrue('Key handler must have been disposed of',
           keyHandler.isDisposed());
-      assertUndefined('Key handler must have been deleted', control.keyHandler_);
+      assertUndefined('Key handler must have been deleted',
+          control.keyHandler_);
       assertNull('Extra class names must have been nulled out',
           control.getExtraClassNames());
     }
@@ -642,29 +635,29 @@ Copyright 2008 Google Inc. All Rights Reserved.
           '<div id="nodelist">Hello, <b>world</b>!</div>\n';
 
       var empty = new goog.ui.Control(null);
-      empty.decorate(goog.dom.$('empty'));
+      empty.decorate(goog.dom.getElement('empty'));
       assertNull('Content of control decorating empty DIV must be null',
           empty.getContent());
       empty.dispose();
 
       var text = new goog.ui.Control(null);
-      text.decorate(goog.dom.$('text'));
+      text.decorate(goog.dom.getElement('text'));
       assertEquals('Content of control decorating DIV with text contents ' +
           'must be as expected', 'Hello, world!', text.getContent().nodeValue);
       text.dispose();
 
       var element = new goog.ui.Control(null);
-      element.decorate(goog.dom.$('element'));
+      element.decorate(goog.dom.getElement('element'));
       assertEquals('Content of control decorating DIV with element child ' +
-          'must be as expected', goog.dom.$('element').firstChild,
+          'must be as expected', goog.dom.getElement('element').firstChild,
           element.getContent());
       element.dispose();
 
       var nodelist = new goog.ui.Control(null);
-      nodelist.decorate(goog.dom.$('nodelist'));
+      nodelist.decorate(goog.dom.getElement('nodelist'));
       assertSameElements('Content of control decorating DIV with mixed ' +
-          'contents must be as expected', goog.dom.$('nodelist').childNodes,
-          nodelist.getContent());
+          'contents must be as expected',
+          goog.dom.getElement('nodelist').childNodes, nodelist.getContent());
       nodelist.dispose();
     }
 
@@ -711,15 +704,25 @@ Copyright 2008 Google Inc. All Rights Reserved.
      * Tests {@link goog.ui.Control#getCaption}.
      */
     function testGetCaption() {
-      assertNull('Empty control\'s caption must be null',
+      assertEquals('Empty control\'s caption must be empty string', '',
           (new goog.ui.Control(null)).getCaption());
 
       assertEquals('Caption must have expected value', 'Hello',
           control.getCaption());
 
       sandbox.innerHTML = '<div id="nodelist">Hello, <b>world</b>!</div>';
-      control.decorate(goog.dom.$('nodelist'));
+      control.decorate(goog.dom.getElement('nodelist'));
       assertEquals('Caption must have expected value', 'Hello, world!',
+          control.getCaption());
+
+      var arrayContent = goog.array.clone(goog.dom.htmlToDocumentFragment(
+          ' <b> foo</b><i>  bar</i> ').childNodes);
+      control.setContent(arrayContent);
+      assertEquals('whitespaces must be normalized in the caption',
+          'foo bar', control.getCaption());
+
+      control.setContent('\xa0foo');
+      assertEquals('indenting spaces must be kept', '\xa0foo',
           control.getCaption());
     }
 
@@ -915,7 +918,8 @@ Copyright 2008 Google Inc. All Rights Reserved.
         control.getKeyEventTarget().focus();
         assertEquals('Control must not have dispatched FOCUS', 0,
             getEventCount(control, goog.ui.Component.EventType.FOCUS));
-        assertFalse('Control must not have keyboard focus', control.isFocused());
+        assertFalse('Control must not have keyboard focus',
+            control.isFocused());
         control.setVisible(false);
         assertFalse('Control must be hidden', control.isVisible());
         assertFalse('Control must not have a tab index',
@@ -941,7 +945,8 @@ Copyright 2008 Google Inc. All Rights Reserved.
         // Expected to fail on Mac Safari prior to version 527.
         expectedFailures.expectFailureFor(isMacSafari3());
         try {
-          // Mac Safari currently doesn't support tabIndex on arbitrary elements.
+          // Mac Safari currently doesn't support tabIndex on arbitrary
+          // elements.
           assertTrue('Control must have a tab index',
               goog.dom.isFocusableTabIndex(control.getKeyEventTarget()));
         } catch (e) {
@@ -1169,17 +1174,11 @@ Copyright 2008 Google Inc. All Rights Reserved.
             control.dispose();
           });
 
-      var error = false;
-      try {
-        control.performActionInternal();
-        control.setActive(true);
-      } catch (e) {
-        error = true;
-      }
-
-      assertFalse('Control must not throw an exception if disposed of in an ' +
-          'ACTION event handler', error);
-      assertTrue('Control must havbe been disposed of', control.isDisposed());
+      // Control must not throw an exception if disposed of in an ACTION event
+      // handler.
+      control.performActionInternal();
+      control.setActive(true);
+      assertTrue('Control should have been disposed of', control.isDisposed());
     }
 
     /**
@@ -1631,6 +1630,29 @@ Copyright 2008 Google Inc. All Rights Reserved.
     }
 
     /**
+     * Tests {@link goog.ui.Control#handleKeyEvent}.
+     */
+    function testHandleKeyEvent() {
+      control.render();
+      control.isVisible = control.isEnabled = function() {
+        return true;
+      };
+
+
+      goog.testing.events.fireKeySequence(
+          control.getKeyEventTarget(), goog.events.KeyCodes.A);
+
+      assertEquals('Control must not have dispatched an ACTION event', 0,
+          getEventCount(control, goog.ui.Component.EventType.ACTION));
+
+      goog.testing.events.fireKeySequence(
+          control.getKeyEventTarget(), goog.events.KeyCodes.ENTER);
+      assertEquals('Control must have dispatched an ACTION event', 1,
+          getEventCount(control, goog.ui.Component.EventType.ACTION));
+    }
+
+
+    /**
      * Tests {@link goog.ui.Control#performActionInternal}.
      */
     function testPerformActionInternal() {
@@ -1687,7 +1709,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
       control.render(sandbox);
 
       var element = control.getElement();
-      var caption = goog.dom.$('caption');
+      var caption = goog.dom.getElement('caption');
 
       // Verify baseline assumptions.
       assertTrue('Caption must be contained within the control',
@@ -1748,6 +1770,17 @@ Copyright 2008 Google Inc. All Rights Reserved.
       assertEquals('Control must dispatch HIGHLIGHT event on mouseover', 1,
           getEventCount(control, goog.ui.Component.EventType.HIGHLIGHT));
       assertTrue('Control must be highlighted', control.isHighlighted());
+      resetEventCount();
+
+      // Scenario 6: relatedTarget is null
+      control.setHighlighted(false);
+      goog.testing.events.fireMouseOverEvent(element, null);
+      assertEquals('Control must dispatch ENTER event on mouseover', 1,
+          getEventCount(control, goog.ui.Component.EventType.ENTER));
+      assertEquals('Control must dispatch HIGHLIGHT event on mouseover', 1,
+          getEventCount(control, goog.ui.Component.EventType.HIGHLIGHT));
+      assertTrue('Control must be highlighted', control.isHighlighted());
+      resetEventCount();
     }
 
     /**
@@ -1763,7 +1796,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
       control.render(sandbox);
 
       var element = control.getElement();
-      var caption = goog.dom.$('caption');
+      var caption = goog.dom.getElement('caption');
 
       // Verify baseline assumptions.
       assertTrue('Caption must be contained within the control',
@@ -1839,6 +1872,37 @@ Copyright 2008 Google Inc. All Rights Reserved.
           getEventCount(control, goog.ui.Component.EventType.UNHIGHLIGHT));
       assertFalse('Control must be deactivated', control.isActive());
       assertFalse('Control must be unhighlighted', control.isHighlighted());
+      resetEventCount();
+
+      // Scenario 6: relatedTarget is null
+      control.setActive(true);
+      control.setHighlighted(true);
+      goog.testing.events.fireMouseOutEvent(element, null);
+      assertEquals('Control must dispatch LEAVE event on mouseout', 1,
+          getEventCount(control, goog.ui.Component.EventType.LEAVE));
+      assertEquals('Control must dispatch DEACTIVATE event on mouseout', 1,
+          getEventCount(control, goog.ui.Component.EventType.DEACTIVATE));
+      assertEquals('Control must dispatch UNHIGHLIGHT event on mouseout', 1,
+          getEventCount(control, goog.ui.Component.EventType.UNHIGHLIGHT));
+      assertFalse('Control must be deactivated', control.isActive());
+      assertFalse('Control must be unhighlighted', control.isHighlighted());
+      resetEventCount();
+    }
+
+    function testIsMouseEventWithinElement() {
+      var child = goog.dom.createElement('div');
+      var parent = goog.dom.createDom('div', null, child);
+      var notChild = goog.dom.createElement('div');
+
+      var event = new goog.testing.events.Event('mouseout');
+      event.relatedTarget = child;
+      assertTrue('Event is within element',
+                 goog.ui.Control.isMouseEventWithinElement_(event, parent));
+
+      var event = new goog.testing.events.Event('mouseout');
+      event.relatedTarget = notChild;
+      assertFalse('Event is not within element',
+                  goog.ui.Control.isMouseEventWithinElement_(event, parent));
     }
 
     function testHandleMouseDown() {
@@ -1951,7 +2015,7 @@ Copyright 2008 Google Inc. All Rights Reserved.
       assertFalse('Control must not be focused', control.isFocused());
     }
 
-    // TODO: Find out why this is flaky on FF2/Linux and FF1.5/Win.
+    // TODO(user): Find out why this is flaky on FF2/Linux and FF1.5/Win.
     //function testHandleMouseDownForSelectableControl() {
     //  control.setAllowTextSelection(true);
     //  control.render(sandbox);

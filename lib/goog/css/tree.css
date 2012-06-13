@@ -1,12 +1,13 @@
 /*
-Use of this source code is governed by an Apache 2.0 License.
-See the COPYING file for details.
-*/
+ * Copyright 2007 The Closure Library Authors. All Rights Reserved.
+ *
+ * Use of this source code is governed by the Apache License, Version 2.0.
+ * See the COPYING file for details.
+ */
 
-/* Copyright 2007 Google Inc.  All Rights Reserved. */
-/**/
-/**/
-/**/
+/* Author: arv@google.com (Erik Arvidsson) */
+/* Author: eae@google.com (Emil A Eklund) */
+/* Author: jonp@google.com (Jon Perlow) */
 
 /*
   TODO(arv): Currently the sprite image has the height 16px. We should make the
@@ -33,7 +34,7 @@ See the COPYING file for details.
 
 .goog-tree-children {
   background-repeat: repeat-y;
-  background-image: url("../images/tree/I.png") !important;
+  background-image: url(//ssl.gstatic.com/closure/tree/I.png) !important;
   background-position-y: 1px !important;	/* IE only */
   font: icon;
 }
@@ -43,7 +44,7 @@ See the COPYING file for details.
 }
 
 .goog-tree-icon {
-  background-image: url("../images/tree/tree.png");
+  background-image: url(//ssl.gstatic.com/closure/tree/tree.png);
 }
 
 .goog-tree-expand-icon {

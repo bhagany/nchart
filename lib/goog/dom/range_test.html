@@ -1,23 +1,13 @@
 <!DOCTYPE html>
-<!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
 <!--
-Copyright 2007 Google Inc. All Rights Reserved.
+Copyright 2007 The Closure Library Authors. All Rights Reserved.
+
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
 -->
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>Closure Unit Tests - goog.dom.Range</title>
 <script src="../base.js"></script>
 <script>
@@ -46,8 +36,14 @@ Copyright 2007 Google Inc. All Rights Reserved.
 
   <div id='bug1480638'></div>
   <div id='textWithSpaces'>hello world !</div>
+  <div contentEditable=true>
+  <div id='rangeAroundBreaks'>abcd<br />e</div>
+  <div id='breaksAroundNode'><br />abcde<br /></div>
+  </div>
 
 <script>
+  var assertRangeEquals = goog.testing.dom.assertRangeEquals;
+
   function normalizeHtml(str) {
     return str.toLowerCase().replace(/[\n\r\f"]/g, '')
         .replace(/<\/li>/g, ''); // " for emacs
@@ -55,18 +51,18 @@ Copyright 2007 Google Inc. All Rights Reserved.
 
   function testCreate() {
     assertNotNull('Browser range object can be created for node',
-        goog.dom.Range.createFromNodeContents(goog.dom.$('test1')));
+        goog.dom.Range.createFromNodeContents(goog.dom.getElement('test1')));
   }
 
   function testTableRange() {
-    var tr = goog.dom.$('cell').parentNode;
+    var tr = goog.dom.getElement('cell').parentNode;
     var range = goog.dom.Range.createFromNodeContents(tr);
     assertEquals('Selection should have correct text', '12',
         range.getText());
     assertEquals('Selection should have correct html fragment',
         '1</td><td>2', normalizeHtml(range.getHtmlFragment()));
 
-    // TODO: On IE the TR is included, on FF it is not.
+    // TODO(robbyw): On IE the TR is included, on FF it is not.
     //assertEquals('Selection should have correct valid html',
     //    '<tr id=row><td>1</td><td>2</td></tr>',
     //    normalizeHtml(range.getValidHtml()));
@@ -77,12 +73,12 @@ Copyright 2007 Google Inc. All Rights Reserved.
   }
 
   function testUnorderedListRange() {
-    var ul = goog.dom.$('ulTest').firstChild;
+    var ul = goog.dom.getElement('ulTest').firstChild;
     var range = goog.dom.Range.createFromNodeContents(ul);
     assertEquals('Selection should have correct html fragment',
         '1<li>2', normalizeHtml(range.getHtmlFragment()));
 
-    // TODO: On IE the UL is included, on FF it is not.
+    // TODO(robbyw): On IE the UL is included, on FF it is not.
     //assertEquals('Selection should have correct valid html',
     //    '<li>1</li><li>2</li>', normalizeHtml(range.getValidHtml()));
 
@@ -92,12 +88,12 @@ Copyright 2007 Google Inc. All Rights Reserved.
   }
 
   function testOrderedListRange() {
-    var ol = goog.dom.$('olTest').firstChild;
+    var ol = goog.dom.getElement('olTest').firstChild;
     var range = goog.dom.Range.createFromNodeContents(ol);
     assertEquals('Selection should have correct html fragment',
         '1<li>2', normalizeHtml(range.getHtmlFragment()));
 
-    // TODO: On IE the OL is included, on FF it is not.
+    // TODO(robbyw): On IE the OL is included, on FF it is not.
     //assertEquals('Selection should have correct valid html',
     //    '<li>1</li><li>2</li>', normalizeHtml(range.getValidHtml()));
 
@@ -107,8 +103,8 @@ Copyright 2007 Google Inc. All Rights Reserved.
   }
 
   function testCreateFromNodes() {
-    var start = goog.dom.$('test1').firstChild;
-    var end = goog.dom.$('br');
+    var start = goog.dom.getElement('test1').firstChild;
+    var end = goog.dom.getElement('br');
     var range = goog.dom.Range.createFromNodes(start, 2, end, 0);
     assertNotNull('Browser range object can be created for W3C node range',
         range);
@@ -122,7 +118,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
     assertEquals('Selection should be anchored at offset 2', 2,
         range.getAnchorOffset());
 
-    var div = goog.dom.$('test2');
+    var div = goog.dom.getElement('test2');
     assertEquals('DIV node should be selected at end endpoint', div,
         range.getEndNode());
     assertEquals('Selection should end at offset 1', 1, range.getEndOffset());
@@ -143,7 +139,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
       return;
     }
     var cr = document.body.createControlRange();
-    cr.addElement(goog.dom.$('logo'));
+    cr.addElement(goog.dom.getElement('logo'));
 
     var range = goog.dom.Range.createFromBrowserRange(cr);
     assertNotNull('Control range object can be created from browser range',
@@ -155,7 +151,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
 
   function testTextNode() {
     var range = goog.dom.Range.createFromNodeContents(
-        goog.dom.$('test1').firstChild);
+        goog.dom.getElement('test1').firstChild);
 
     assertEquals('Created range is a text range', goog.dom.RangeType.TEXT,
         range.getType());
@@ -179,7 +175,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
 
   function testDiv() {
     var range = goog.dom.Range.createFromNodeContents(
-        goog.dom.$('test2'));
+        goog.dom.getElement('test2'));
 
     assertEquals('Text node "abc" should be selected at start endpoint', 'abc',
         range.getStartNode().nodeValue);
@@ -191,7 +187,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
     assertEquals('Selection should end at offset 3', 'def'.length,
         range.getEndOffset());
 
-    assertEquals('Container should be DIV', goog.dom.$('test2'),
+    assertEquals('Container should be DIV', goog.dom.getElement('test2'),
         range.getContainer());
 
     assertTrue('Div text content should be "abc\\s*def"',
@@ -202,19 +198,19 @@ Copyright 2007 Google Inc. All Rights Reserved.
 
   function testEmptyNode() {
     var range = goog.dom.Range.createFromNodeContents(
-        goog.dom.$('empty'));
+        goog.dom.getElement('empty'));
 
-    assertEquals('DIV be selected at start endpoint', goog.dom.$('empty'),
-        range.getStartNode());
+    assertEquals('DIV be selected at start endpoint',
+        goog.dom.getElement('empty'), range.getStartNode());
     assertEquals('Selection should start at offset 0', 0,
         range.getStartOffset());
 
-    assertEquals('DIV should be selected at end endpoint', goog.dom.$('empty'),
-        range.getEndNode());
+    assertEquals('DIV should be selected at end endpoint',
+        goog.dom.getElement('empty'), range.getEndNode());
     assertEquals('Selection should end at offset 0', 0,
         range.getEndOffset());
 
-    assertEquals('Container should be DIV', goog.dom.$('empty'),
+    assertEquals('Container should be DIV', goog.dom.getElement('empty'),
         range.getContainer());
 
     assertEquals('Empty text content should be ""', '', range.getText());
@@ -223,37 +219,38 @@ Copyright 2007 Google Inc. All Rights Reserved.
 
 
   function testCollapse() {
-    var range = goog.dom.Range.createFromNodeContents(goog.dom.$('test2'));
+    var range = goog.dom.Range.createFromNodeContents(
+        goog.dom.getElement('test2'));
     assertFalse('Div range is not collapsed', range.isCollapsed());
     range.collapse();
     assertTrue('Div range is collapsed after call to empty()',
         range.isCollapsed());
 
-    range = goog.dom.Range.createFromNodeContents(goog.dom.$('empty'));
+    range = goog.dom.Range.createFromNodeContents(goog.dom.getElement('empty'));
     assertTrue('Empty range is collapsed', range.isCollapsed());
     range.collapse();
     assertTrue('Empty range is still collapsed', range.isCollapsed());
   }
 
-  // TODO: Test iteration over a strange document fragment.
+  // TODO(robbyw): Test iteration over a strange document fragment.
 
   function testIterator() {
     goog.testing.dom.assertNodesMatch(goog.dom.Range.createFromNodeContents(
-        goog.dom.$('test2')), ['abc', '#br', '#br', 'def']);
+        goog.dom.getElement('test2')), ['abc', '#br', '#br', 'def']);
   }
 
   function testReversedNodes() {
-    var node = goog.dom.$('test1').firstChild;
+    var node = goog.dom.getElement('test1').firstChild;
     var range = goog.dom.Range.createFromNodes(node, 4, node, 0);
     assertTrue('Range is reversed', range.isReversed());
-    node = goog.dom.$('test3');
+    node = goog.dom.getElement('test3');
     range = goog.dom.Range.createFromNodes(node, 0, node, 1);
     assertFalse('Range is not reversed', range.isReversed());
   }
 
   function testReversedContents() {
-    var range = goog.dom.Range.createFromNodeContents(goog.dom.$('test1'),
-        true);
+    var range = goog.dom.Range.createFromNodeContents(
+        goog.dom.getElement('test1'), true);
     assertTrue('Range is reversed', range.isReversed());
     assertEquals('Range should select "Text"', 'Text',
         range.getText());
@@ -278,7 +275,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
   }
 
   function testRemoveContents() {
-    var outer = goog.dom.$('removeTest');
+    var outer = goog.dom.getElement('removeTest');
     var range = goog.dom.Range.createFromNodeContents(outer.firstChild);
 
     range.removeContents();
@@ -292,7 +289,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
   }
 
   function testRemovePartialContents() {
-    var outer = goog.dom.$('removePartialTest');
+    var outer = goog.dom.getElement('removePartialTest');
 
     var range = goog.dom.Range.createFromNodes(outer.firstChild, 2,
         outer.firstChild, 4);
@@ -330,7 +327,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
     range = goog.dom.Range.createFromNodeContents(outer.firstChild);
     removeHelper(8, range, outer, 1, '<div></div>');
 
-    // TODO: Fix the following edge cases:
+    // TODO(robbyw): Fix the following edge cases:
     //    * Selecting contents of a node containing multiply empty divs
     //    * Selecting via createFromNodes(x, 0, x, x.childNodes.length)
     //    * Consistent handling of nodeContents(<div><div></div></div>).remove
@@ -348,11 +345,11 @@ Copyright 2007 Google Inc. All Rights Reserved.
     assertEquals(testNumber + ': Outer div should have ' + expectedChildCount +
         ' children now', expectedChildCount, outer.childNodes.length);
     assertNotNull(testNumber + ': Empty node should still exist',
-        goog.dom.$('empty'));
+        goog.dom.getElement('empty'));
   }
 
   function testSurroundContents() {
-    var outer = goog.dom.$('surroundTest');
+    var outer = goog.dom.getElement('surroundTest');
     outer.innerHTML = '---Text that<br/>will be surrounded---';
     var range = goog.dom.Range.createFromNodes(outer.firstChild, 3,
         outer.lastChild, outer.lastChild.nodeValue.length - 3);
@@ -369,7 +366,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
     assertEquals('New element should have three children', 3,
         output.childNodes.length);
 
-    // TODO: Ensure the range stays in a reasonable state.
+    // TODO(robbyw): Ensure the range stays in a reasonable state.
   }
 
   /**
@@ -379,7 +376,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
    */
   function assertSurroundDoesntChangeSelectionWithOffsets(
       offset1, offset2, expectedHtml) {
-    var div = goog.dom.$('bug1480638');
+    var div = goog.dom.getElement('bug1480638');
     div.innerHTML = 'foobar';
     var rangeToSelect = goog.dom.Range.createFromNodes(
         div.firstChild, 2, div.firstChild, 5);
@@ -416,7 +413,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
   }
 
   function testInsertNode() {
-    var outer = goog.dom.$('insertTest');
+    var outer = goog.dom.getElement('insertTest');
     outer.innerHTML = 'ACD';
 
     var range = goog.dom.Range.createFromNodes(outer.firstChild, 1,
@@ -435,7 +432,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
   }
 
   function testReplaceContentsWithNode() {
-    var outer = goog.dom.$('insertTest');
+    var outer = goog.dom.getElement('insertTest');
     outer.innerHTML = 'AXC';
 
     var range = goog.dom.Range.createFromNodes(outer.firstChild, 1,
@@ -460,7 +457,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
   }
 
   function testSurroundWithNodes() {
-    var outer = goog.dom.$('insertTest');
+    var outer = goog.dom.getElement('insertTest');
     outer.innerHTML = 'ACE';
     var range = goog.dom.Range.createFromNodes(outer.firstChild, 1,
         outer.firstChild, 2);
@@ -473,7 +470,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
   }
 
   function testIsRangeInDocument() {
-    var outer = goog.dom.$('insertTest');
+    var outer = goog.dom.getElement('insertTest');
     outer.innerHTML = '<br>ABC';
     var range = goog.dom.Range.createCaret(outer.lastChild, 1);
 
@@ -488,7 +485,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
   }
 
   function testRemovedNode() {
-    var node = goog.dom.$('removeNodeTest');
+    var node = goog.dom.getElement('removeNodeTest');
     var range = goog.dom.browserrange.createRangeFromNodeContents(node);
     range.select();
     goog.dom.removeNode(node);
@@ -503,8 +500,8 @@ Copyright 2007 Google Inc. All Rights Reserved.
   }
 
   function testReversedRange() {
-    goog.dom.Range.createFromNodes(
-        goog.dom.$('test2'), 0, goog.dom.$('test1'), 0).select();
+    goog.dom.Range.createFromNodes(goog.dom.getElement('test2'), 0,
+        goog.dom.getElement('test1'), 0).select();
 
     var range = goog.dom.Range.createFromWindow(window);
     assertTrue('Range should be reversed',
@@ -512,8 +509,8 @@ Copyright 2007 Google Inc. All Rights Reserved.
   }
 
   function testUnreversedRange() {
-    goog.dom.Range.createFromNodes(
-        goog.dom.$('test1'), 0, goog.dom.$('test2'), 0).select();
+    goog.dom.Range.createFromNodes(goog.dom.getElement('test1'), 0,
+        goog.dom.getElement('test2'), 0).select();
 
     var range = goog.dom.Range.createFromWindow(window);
     assertFalse('Range should not be reversed', range.isReversed());
@@ -522,17 +519,18 @@ Copyright 2007 Google Inc. All Rights Reserved.
   function testReversedThenUnreversedRange() {
     // This tests a workaround for a webkit bug where webkit caches selections
     // incorrectly.
-    goog.dom.Range.createFromNodes(
-        goog.dom.$('test2'), 0, goog.dom.$('test1'), 0).select();
-    goog.dom.Range.createFromNodes(
-        goog.dom.$('test1'), 0, goog.dom.$('test2'), 0).select();
+    goog.dom.Range.createFromNodes(goog.dom.getElement('test2'), 0,
+        goog.dom.getElement('test1'), 0).select();
+    goog.dom.Range.createFromNodes(goog.dom.getElement('test1'), 0,
+        goog.dom.getElement('test2'), 0).select();
 
     var range = goog.dom.Range.createFromWindow(window);
     assertFalse('Range should not be reversed', range.isReversed());
   }
 
   function testHasAndClearSelection() {
-    goog.dom.Range.createFromNodeContents(goog.dom.$('test1')).select();
+    goog.dom.Range.createFromNodeContents(
+        goog.dom.getElement('test1')).select();
 
     assertTrue('Selection should exist', goog.dom.Range.hasSelection());
 
@@ -542,7 +540,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
   }
 
   function assertForward(string, startNode, startOffset, endNode, endOffset) {
-    var root = goog.dom.$('test2');
+    var root = goog.dom.getElement('test2');
     var originalInnerHtml = root.innerHTML;
 
     assertFalse(string, goog.dom.Range.isReversed(startNode, startOffset,
@@ -554,7 +552,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
   }
 
   function testIsReversed() {
-    var root = goog.dom.$('test2');
+    var root = goog.dom.getElement('test2');
     var text1 = root.firstChild; // Text content: 'abc'.
     var br = root.childNodes[1];
     var text2 = root.lastChild; // Text content: 'def'.
@@ -588,7 +586,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
 
   function testSelectAroundSpaces() {
     // set the selection
-    var textNode = goog.dom.$('textWithSpaces').firstChild;
+    var textNode = goog.dom.getElement('textWithSpaces').firstChild;
     goog.dom.TextRange.createFromNodes(
         textNode, 5, textNode, 12).select();
 
@@ -606,7 +604,7 @@ Copyright 2007 Google Inc. All Rights Reserved.
 
   function testSelectInsideSpaces() {
     // set the selection
-    var textNode = goog.dom.$('textWithSpaces').firstChild;
+    var textNode = goog.dom.getElement('textWithSpaces').firstChild;
     goog.dom.TextRange.createFromNodes(
         textNode, 6, textNode, 11).select();
 
@@ -620,6 +618,84 @@ Copyright 2007 Google Inc. All Rights Reserved.
     // Check the contents again, because there used to be a bug where
     // it changed after calling getContainer().
     assertEquals('world', range.getText());
+  }
+
+  function testRangeBeforeBreak() {
+    var container = goog.dom.getElement('rangeAroundBreaks');
+    var text = container.firstChild;
+    var offset = text.length;
+    assertEquals(4, offset);
+
+    var br = container.childNodes[1];
+    var caret = goog.dom.Range.createCaret(text, offset);
+    caret.select();
+    assertEquals(offset, caret.getStartOffset());
+
+    var range = goog.dom.Range.createFromWindow();
+    assertFalse('Should not contain whole <br>',
+        range.containsNode(br, false));
+    if (goog.userAgent.IE) {
+      assertTrue('Range over <br> is adjacent to the immediate range before it',
+          range.containsNode(br, true));
+    } else {
+      assertFalse('Should not contain partial <br>',
+          range.containsNode(br, true));
+    }
+
+    assertEquals(offset, range.getStartOffset());
+    assertEquals(text, range.getStartNode());
+  }
+
+  function testRangeAfterBreak() {
+    var container = goog.dom.getElement('rangeAroundBreaks');
+    var br = container.childNodes[1];
+    var caret = goog.dom.Range.createCaret(container.lastChild, 0);
+    caret.select();
+    assertEquals(0, caret.getStartOffset());
+
+    var range = goog.dom.Range.createFromWindow();
+    assertFalse('Should not contain whole <br>',
+        range.containsNode(br, false));
+    var isSafari3 = goog.userAgent.WEBKIT && !goog.userAgent.isVersion('528');
+
+    if (goog.userAgent.IE || isSafari3) {
+      assertTrue('Range over <br> is adjacent to the immediate range after it',
+          range.containsNode(br, true));
+    } else {
+      assertFalse('Should not contain partial <br>',
+          range.containsNode(br, true));
+    }
+
+    if (isSafari3) {
+      assertEquals(2, range.getStartOffset());
+      assertEquals(container, range.getStartNode());
+    } else {
+      assertEquals(0, range.getStartOffset());
+      assertEquals(container.lastChild, range.getStartNode());
+    }
+  }
+
+  function testRangeAtBreakAtStart() {
+    var container = goog.dom.getElement('breaksAroundNode');
+    var br = container.firstChild;
+    var caret = goog.dom.Range.createCaret(container.firstChild, 0);
+    caret.select();
+    assertEquals(0, caret.getStartOffset());
+
+    var range = goog.dom.Range.createFromWindow();
+    assertTrue('Range over <br> is adjacent to the immediate range before it',
+        range.containsNode(br, true));
+    assertFalse('Should not contain whole <br>',
+        range.containsNode(br, false));
+
+    assertRangeEquals(container, 0, container, 0, range);
+  }
+
+  function assertNodeEquals(expected, actual) {
+    assertEquals(
+        'Expected: ' + goog.testing.dom.exposeNode(expected) +
+        '\nActual: ' + goog.testing.dom.exposeNode(actual),
+        expected, actual);
   }
 </script>
 </body>

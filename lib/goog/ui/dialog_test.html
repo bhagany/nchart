@@ -1,38 +1,31 @@
 <!DOCTYPE html>
-<!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
 <!--
-  Copyright 2007 Google Inc. All Rights Reserved.
+Copyright 2007 The Closure Library Authors. All Rights Reserved.
+
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
 -->
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>Closure Unit Tests - goog.ui.Dialog</title>
 <script src="../base.js"></script>
 <script>
   goog.require('goog.ui.Dialog');
+  goog.require('goog.ui.Dialog.ButtonSet');
   goog.require('goog.dom');
   goog.require('goog.events');
+  goog.require('goog.events.EventType');
   goog.require('goog.style');
   goog.require('goog.testing.events');
   goog.require('goog.testing.jsunit');
+  goog.require('goog.testing.recordFunction');
 </script>
 </head>
 <body>
 <iframe id="f" src="javascript:'<input>'"></iframe>
 <script>
-
+  var decorateTarget;
   var dialog;
 
   function setUp() {
@@ -47,18 +40,24 @@ limitations under the License.
        true);
     dialog.setButtonSet(buttons);
     dialog.setVisible(true);
+
+    decorateTarget = goog.dom.createDom('div');
+    document.body.appendChild(decorateTarget);
   }
 
   function tearDown() {
     dialog.dispose();
+    goog.dom.removeNode(decorateTarget);
   }
 
   function testCrossFrameFocus() {
-    if (goog.userAgent.IE) {
+    // Firefox (3.6, maybe future versions) fails this test when there are too
+    // many other test files being run concurrently.
+    if (goog.userAgent.IE || goog.userAgent.GECKO) {
       return;
     }
     dialog.setVisible(false);
-    var iframeWindow = goog.dom.$('f').contentWindow;
+    var iframeWindow = goog.dom.getElement('f').contentWindow;
     var iframeInput = iframeWindow.document.getElementsByTagName('input')[0];
     dialog.setButtonSet(goog.ui.Dialog.ButtonSet.OK);
     var buttonElement = dialog.getButtonSet().getButton(0);
@@ -74,6 +73,11 @@ limitations under the License.
     assertEquals(2, focusCounter);
   }
 
+  function testNoTitleClose() {
+    assertTrue(goog.style.isElementShown(dialog.getTitleCloseElement()));
+    dialog.setHasTitleCloseButton(false);
+    assertFalse(goog.style.isElementShown(dialog.getTitleCloseElement()));
+  }
 
   /**
    * Helper that clicks the first button in the dialog and checks if that
@@ -166,6 +170,47 @@ limitations under the License.
     goog.testing.events.fireKeySequence(select,
         goog.events.KeyCodes.ESC);
     assertTrue(wasCalled);
+  }
+
+  function testEscapeCloses() {
+    // If escapeCloses is set to false, the dialog should ignore the escape key
+    assertTrue(dialog.isEscapeToCancel());
+    dialog.setEscapeToCancel(false);
+    assertFalse(dialog.isEscapeToCancel());
+
+    var buttons = new goog.ui.Dialog.ButtonSet();
+    buttons.set(goog.ui.Dialog.DefaultButtonKeys.OK, 'OK', true);
+    dialog.setButtonSet(buttons);
+    goog.testing.events.fireKeySequence(dialog.getContentElement(),
+        goog.events.KeyCodes.ESC);
+    assertTrue(dialog.isVisible());
+
+    // Having a cancel button should make no difference, escape should still not
+    // work.
+    buttons.set(goog.ui.Dialog.DefaultButtonKeys.CANCEL, 'Foo!', false, true);
+    dialog.setButtonSet(buttons);
+    goog.testing.events.fireKeySequence(dialog.getContentElement(),
+        goog.events.KeyCodes.ESC);
+    assertTrue(dialog.isVisible());
+  }
+
+  function testKeydownClosesWithoutButtonSet() {
+    // Clear button set
+    dialog.setButtonSet(null);
+
+    // Create a custom button.
+    dialog.setContent('<button id="button" name="ok">OK</button>');
+    var wasCalled = false;
+    function called() {
+      wasCalled = true;
+    }
+    var element = goog.dom.getElement('button');
+    goog.events.listen(element, goog.events.EventType.KEYPRESS, called);
+    // Listen for 'Enter' on the button.
+    // This tests using a dialog with no ButtonSet that has been set. Uses
+    // a custom button.  The callback should be called with no exception thrown.
+    goog.testing.events.fireKeySequence(element, goog.events.KeyCodes.ENTER);
+    assertTrue('Should have gotten event on the button.', wasCalled);
   }
 
   function testEnterKeyWithoutDefaultDoesNotPreventPropagation() {
@@ -281,6 +326,16 @@ limitations under the License.
     assertTrue(wasCalled);
   }
 
+  function testAfterShowEvent() {
+    dialog.setVisible(false);
+    var wasCalled = false;
+    var callRecorder = function() { wasCalled = true; };
+    goog.events.listen(dialog, goog.ui.Dialog.EventType.AFTER_SHOW,
+        callRecorder);
+    dialog.setVisible(true);
+    assertTrue(wasCalled);
+  }
+
   function testCannedButtonSets() {
     dialog.setButtonSet(goog.ui.Dialog.ButtonSet.OK);
     assertButtons([goog.ui.Dialog.DefaultButtonKeys.OK]);
@@ -304,10 +359,33 @@ limitations under the License.
                    goog.ui.Dialog.DefaultButtonKeys.CANCEL]);
   }
 
+  function testFactoryButtonSets() {
+    dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+    assertButtons([goog.ui.Dialog.DefaultButtonKeys.OK]);
+
+    dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOkCancel());
+    assertButtons([goog.ui.Dialog.DefaultButtonKeys.OK,
+                   goog.ui.Dialog.DefaultButtonKeys.CANCEL]);
+
+    dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createYesNo());
+    assertButtons([goog.ui.Dialog.DefaultButtonKeys.YES,
+                   goog.ui.Dialog.DefaultButtonKeys.NO]);
+
+    dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createYesNoCancel());
+    assertButtons([goog.ui.Dialog.DefaultButtonKeys.YES,
+                   goog.ui.Dialog.DefaultButtonKeys.NO,
+                   goog.ui.Dialog.DefaultButtonKeys.CANCEL]);
+
+    dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createContinueSaveCancel());
+    assertButtons([goog.ui.Dialog.DefaultButtonKeys.CONTINUE,
+                   goog.ui.Dialog.DefaultButtonKeys.SAVE,
+                   goog.ui.Dialog.DefaultButtonKeys.CANCEL]);
+  }
+
   function testDefaultButtonClassName() {
     var key = 'someKey';
     var msg = 'someMessage';
-    var isDefalut = false;
+    var isDefault = false;
     var buttonSetOne = new goog.ui.Dialog.ButtonSet().set(key, msg, isDefault);
     dialog.setButtonSet(buttonSetOne);
     var defaultClassName = goog.getCssName(buttonSetOne.class_, 'default');
@@ -330,10 +408,42 @@ limitations under the License.
 
   function testGetAllButtons() {
     dialog.setButtonSet(goog.ui.Dialog.ButtonSet.YES_NO_CANCEL);
-    var buttons = goog.dom.$$(goog.dom.TagName.BUTTON, null,
-        dialog.getElement());
+    var buttons = dialog.getElement().getElementsByTagName(
+        goog.dom.TagName.BUTTON);
     for (var i = 0; i < buttons.length; i++) {
       assertEquals(buttons[i], dialog.getButtonSet().getAllButtons()[i]);
+    }
+  }
+
+  function testSetButtonEnabled() {
+    var buttonSet = goog.ui.Dialog.ButtonSet.createYesNoCancel();
+    dialog.setButtonSet(buttonSet);
+    assertFalse(
+        buttonSet.getButton(goog.ui.Dialog.DefaultButtonKeys.NO).disabled);
+    buttonSet.setButtonEnabled(goog.ui.Dialog.DefaultButtonKeys.NO, false);
+    assertTrue(
+        buttonSet.getButton(goog.ui.Dialog.DefaultButtonKeys.NO).disabled);
+    buttonSet.setButtonEnabled(goog.ui.Dialog.DefaultButtonKeys.NO, true);
+    assertFalse(
+        buttonSet.getButton(goog.ui.Dialog.DefaultButtonKeys.NO).disabled);
+  }
+
+  function testSetAllButtonsEnabled() {
+    var buttonSet = goog.ui.Dialog.ButtonSet.createContinueSaveCancel();
+    dialog.setButtonSet(buttonSet);
+    var buttons = buttonSet.getAllButtons();
+    for (var i = 0; i < buttons.length; i++) {
+      assertFalse(buttons[i].disabled);
+    }
+
+    buttonSet.setAllButtonsEnabled(false);
+    for (var i = 0; i < buttons.length; i++) {
+      assertTrue(buttons[i].disabled);
+    }
+
+    buttonSet.setAllButtonsEnabled(true);
+    for (var i = 0; i < buttons.length; i++) {
+      assertFalse(buttons[i].disabled);
     }
   }
 
@@ -369,48 +479,26 @@ limitations under the License.
     dialog = new goog.ui.Dialog(null, true /* iframe mask */);
     dialog.setVisible(true);
     dialog.setModal(false);
-    assertNull('IFrame bg element should be null', dialog.bgIframeEl_);
-    assertNull('bg element should be null', dialog.bgEl_);
+    assertFalse('IFrame bg element should not be in dom',
+        goog.dom.contains(document.body, dialog.getBackgroundIframe()));
+    assertFalse('bg element should not be in dom',
+        goog.dom.contains(document.body, dialog.getBackgroundElement()));
 
     dialog.setModal(true);
-    assertNotNull('IFrame bg element should not be null', dialog.bgIframeEl_);
-    assertNotNull('bg element should not be null', dialog.bgEl_);
+    assertTrue('IFrame bg element should be in dom',
+        goog.dom.contains(document.body, dialog.getBackgroundIframe()));
+    assertTrue('bg element should be in dom',
+        goog.dom.contains(document.body, dialog.getBackgroundElement()));
 
     assertEquals('IFrame bg element is a child of body',
-        document.body, dialog.bgIframeEl_.parentNode);
+        document.body, dialog.getBackgroundIframe().parentNode);
     assertEquals('bg element is a child of body',
-        document.body, dialog.bgEl_.parentNode);
+        document.body, dialog.getBackgroundElement().parentNode);
 
     assertTrue('IFrame bg element should visible',
-        goog.style.isElementShown(dialog.bgIframeEl_));
+        goog.style.isElementShown(dialog.getBackgroundIframe()));
     assertTrue('bg element should be visible',
-        goog.style.isElementShown(dialog.bgEl_));
-  }
-
-  function testRepositionInRtlContext() {
-    dialog.dispose();
-    // LTR is the default.
-    dialog = new goog.ui.Dialog();
-    dialog.setVisible(true);
-    var el = dialog.getElement();
-    var left = el.style.left;
-
-    dialog.dispose();
-    dialog = new goog.ui.Dialog();
-    dialog.setRightToLeft(true);
-    dialog.setVisible(true);
-    el = dialog.getElement();
-    var right = el.style.right;
-
-    // We'll allow for up to 1px of variance between LTR and RTL to handle
-    // possible subpixel rounding issues in either LTR or RTL
-    // (noticed in Safari 3 & 4/Mac).
-    var acceptableVariance = 1;
-    var variance = Math.abs(parseInt(left, 10) - parseInt(right));
-
-    // Note: we have to round these values due to subpixel issues.
-    assertTrue('LTR left position ~equals RTL right position.',
-        variance <= acceptableVariance);
+        goog.style.isElementShown(dialog.getBackgroundElement()));
   }
 
   /**
@@ -419,8 +507,8 @@ limitations under the License.
    * @param {Array.<string>} keys An array of button keys.
    */
   function assertButtons(keys) {
-    var buttons = goog.dom.$$(goog.dom.TagName.BUTTON, null,
-        dialog.getElement());
+    var buttons = dialog.getElement().getElementsByTagName(
+        goog.dom.TagName.BUTTON);
     var actualKeys = [];
     for (var i = 0; i < buttons.length; i++) {
       actualKeys[i] = buttons[i].name;
@@ -437,6 +525,84 @@ limitations under the License.
     goog.testing.events.fireKeySequence(
         dialog.getElement(), goog.events.KeyCodes.ESC);
     assertTrue(wasCalled);
+  }
+
+  function testHideButtons_afterRender() {
+    dialog.setButtonSet(goog.ui.Dialog.ButtonSet.OK);
+    assertTrue(goog.style.isElementShown(dialog.buttonEl_));
+    dialog.setButtonSet(null);
+    assertFalse(goog.style.isElementShown(dialog.buttonEl_));
+    dialog.setButtonSet(goog.ui.Dialog.ButtonSet.OK);
+    assertTrue(goog.style.isElementShown(dialog.buttonEl_));
+  }
+
+  function testHideButtons_beforeRender() {
+    dialog.dispose();
+
+    dialog = new goog.ui.Dialog();
+    dialog.setButtonSet(null);
+    dialog.setVisible(true);
+    assertFalse(goog.style.isElementShown(dialog.buttonEl_));
+    dialog.setButtonSet(goog.ui.Dialog.ButtonSet.OK);
+    assertTrue(goog.style.isElementShown(dialog.buttonEl_));
+  }
+
+  function testHideButtons_beforeDecorate() {
+    dialog.dispose();
+
+    dialog = new goog.ui.Dialog();
+    dialog.setButtonSet(null);
+    dialog.decorate(decorateTarget);
+    dialog.setVisible(true);
+    assertFalse(goog.style.isElementShown(dialog.buttonEl_));
+    dialog.setButtonSet(goog.ui.Dialog.ButtonSet.OK);
+    assertTrue(goog.style.isElementShown(dialog.buttonEl_));
+  }
+
+  function testDefaultOpacityIsAppliedOnRender() {
+    dialog.dispose();
+
+    dialog = new goog.ui.Dialog();
+    dialog.render();
+    assertEquals(0.5, goog.style.getOpacity(dialog.getBackgroundElement()));
+  }
+
+  function testDefaultOpacityIsAppliedOnDecorate() {
+    dialog.dispose();
+
+    dialog = new goog.ui.Dialog();
+    dialog.decorate(decorateTarget);
+    assertEquals(0.5, goog.style.getOpacity(dialog.getBackgroundElement()));
+  }
+
+  function testDraggableStyle() {
+    assertTrue('draggable CSS class is set', goog.dom.classes.has(
+        dialog.titleEl_, 'modal-dialog-title-draggable'));
+    dialog.setDraggable(false);
+    assertFalse('draggable CSS class is removed', goog.dom.classes.has(
+        dialog.titleEl_, 'modal-dialog-title-draggable'));
+  }
+
+  function testDraggingLifecycle() {
+    dialog.dispose();
+
+    dialog = new goog.ui.Dialog();
+    dialog.setDraggerLimits_ = goog.testing.recordFunction();
+    dialog.createDom();
+    assertNull('dragger is not created in createDom', dialog.dragger_);
+
+    dialog.setVisible(true);
+    assertNotNull('dragger is created when the dialog is rendered',
+        dialog.dragger_);
+
+    assertNull('dragging limits are not set just before dragging',
+        dialog.setDraggerLimits_.getLastCall());
+    goog.testing.events.fireMouseDownEvent(dialog.titleEl_);
+    assertNotNull('dragging limits are set',
+        dialog.setDraggerLimits_.getLastCall());
+
+    dialog.exitDocument();
+    assertNull('dragger is cleaned up in exitDocument', dialog.dragger_);
   }
 </script>
 </body>

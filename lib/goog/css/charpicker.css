@@ -1,11 +1,12 @@
 /*
-Use of this source code is governed by an Apache 2.0 License.
-See the COPYING file for details.
-*/
+ * Copyright 2009 The Closure Library Authors. All Rights Reserved.
+ *
+ * Use of this source code is governed by the Apache License, Version 2.0.
+ * See the COPYING file for details.
+ */
 
-/* Copyright 2009 Google Inc.  All Rights Reserved. */
-/**/
-/**/
+/* Author: pupius@google.com (Daniel Pupius) */
+/* Author: cibu@google.com (Cibu Johny) */
 
 .goog-char-picker {
   background-color: #ddd;
@@ -152,7 +153,7 @@ See the COPYING file for details.
   color: #000;
   list-style: none;
   margin: 0;
-  /* 28px on the left for icon or checkbox; 10ex on the right for shortcut. */ 
+  /* 28px on the left for icon or checkbox; 10ex on the right for shortcut. */
   padding: 1px 32px 1px 8px;
   white-space: nowrap;
 }
@@ -161,7 +162,7 @@ See the COPYING file for details.
   color: #000;
   list-style: none;
   margin: 0;
-  /* 28px on the left for icon or checkbox; 10ex on the right for shortcut. */ 
+  /* 28px on the left for icon or checkbox; 10ex on the right for shortcut. */
   padding: 1px 32px 1px 8px;
   white-space: nowrap;
 }
@@ -172,7 +173,7 @@ See the COPYING file for details.
   font-weight: bold;
   list-style: none;
   margin: 0;
-  /* 28px on the left for icon or checkbox; 10ex on the right for shortcut. */ 
+  /* 28px on the left for icon or checkbox; 10ex on the right for shortcut. */
   padding: 3px 32px 3px 8px;
   white-space: nowrap;
 }
@@ -196,6 +197,5 @@ See the COPYING file for details.
   border-top: 1px solid #ccc;
   margin: 2px 0;
   padding: 0;
-  position: relative;
 }
 

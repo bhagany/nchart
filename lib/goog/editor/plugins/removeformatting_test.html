@@ -1,29 +1,22 @@
 <!DOCTYPE html>
-<!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 
 <!--
-  Copyright 2008 Google Inc.
   All Rights Reserved.
-
-
-
 -->
 
 <html>
+<!--
+Copyright 2008 The Closure Library Authors. All Rights Reserved.
+
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
 <head>
+<!--
+This test has not yet been updated to run on IE8. See http://b/hotlist?id=36311
+-->
+<!--meta http-equiv="X-UA-Compatible" content="IE=edge"-->
+<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7">
 <title>goog.editor.plugins.RemoveFormatting Tests</title>
 <script type="text/javascript" src="../../base.js"></script>
 <script type="text/javascript">
@@ -48,6 +41,19 @@ limitations under the License.
   var FIELDMOCK;
   var FORMATTER;
   var testHelper;
+
+  var WEBKIT_BEFORE_CHROME_8 = goog.userAgent.WEBKIT &&
+      !goog.userAgent.isVersion('534.10');
+
+  // Extra html to add to test html to make sure removeformatting is actually
+  // getting called when you're testing if it leaves certain styles alone
+  // (instead of not even running at all due to some other bug). However, adding
+  // this extra text into the node to be selected screws up IE.
+  // (e.g. <a><img></a><b>t</b> --> <a></a><a><img></a>t )
+  // TODO(user): Remove this special casing once http://b/3131117 is
+  // fixed.
+  var controlHtml = goog.userAgent.IE ? '' : '<u>control</u>';
+  var controlCleanHtml = goog.userAgent.IE ? '' : 'control';
 
   var expectedFailures = new goog.testing.ExpectedFailures();
 
@@ -164,7 +170,7 @@ limitations under the License.
   }
 
   function testLinksAreNotRemoved() {
-    expectedFailures.expectFailureFor(goog.userAgent.WEBKIT,
+    expectedFailures.expectFailureFor(WEBKIT_BEFORE_CHROME_8,
         'WebKit\'s removeFormatting command removes links.');
 
     var anchor;
@@ -206,7 +212,7 @@ limitations under the License.
     FORMATTER.removeFormatting_();
     // Webkit will change all tags to non-formatted ones anyway.
     // Make sure 'Foo' was changed to 'Bar'
-    if (goog.userAgent.WEBKIT) {
+    if (WEBKIT_BEFORE_CHROME_8) {
       assertHTMLEquals('regular cleaner should not have run',
           'StartBar<br>Bar<br>Baz',
           div.innerHTML);
@@ -215,6 +221,38 @@ limitations under the License.
           'StartBar<pre>Bar</pre>Baz',
           div.innerHTML);
     }
+  }
+
+  function testGetValueForNode() {
+    // Override getValueForNode to keep bold tags.
+    var oldGetValue =
+        goog.editor.plugins.RemoveFormatting.prototype.getValueForNode;
+    goog.editor.plugins.RemoveFormatting.prototype.getValueForNode =
+        function(node) {
+      if (node.nodeName == goog.dom.TagName.B) {
+        return '<b>' + this.removeFormattingWorker_(node.innerHTML) + '</b>';
+      }
+      return null;
+    }
+
+    var html = FORMATTER.removeFormattingWorker_('<div>foo<b>bar</b></div>');
+    assertHTMLEquals('B tags should remain','foo<b>bar</b>', html);
+
+    // Override getValueForNode to throw out bold tags, and their contents.
+    goog.editor.plugins.RemoveFormatting.prototype.getValueForNode =
+        function(node) {
+      if (node.nodeName == goog.dom.TagName.B) {
+        return '';
+      }
+      return null;
+    }
+
+    html = FORMATTER.removeFormattingWorker_('<div>foo<b>bar</b></div>');
+    assertHTMLEquals('B tag and its contents should be removed', 'foo', html);
+
+    FIELDMOCK.$verify();
+    goog.editor.plugins.RemoveFormatting.prototype.getValueForNode =
+        oldGetValue;
   }
 
   function testRemoveFormattingAddsNoNbsps() {
@@ -390,7 +428,7 @@ limitations under the License.
     goog.dom.Range.createFromNodes(div.firstChild.firstChild, 2,
         div.firstChild.lastChild.firstChild, 3).select();
 
-    expectedFailures.expectFailureFor(goog.userAgent.WEBKIT,
+    expectedFailures.expectFailureFor(WEBKIT_BEFORE_CHROME_8,
         'WebKit just gets this all wrong.  Everything stays bold and ' +
         '"lditalic" gets italicised.');
 
@@ -398,6 +436,103 @@ limitations under the License.
       FORMATTER.removeFormatting_();
       assertHTMLEquals("<b>bo</b>ldita<b><i>lic</i></b>",
           div.innerHTML);
+      FIELDMOCK.$verify();
+    });
+  }
+
+  /**
+   * @bug 3075557
+   */
+  function testRemoveFormattingLinkedImageBorderZero() {
+    var testHtml = '<a href="http://www.google.com/">' +
+        '<img src="http://www.google.com/images/logo.gif" border="0"></a>';
+    var div =  document.getElementById('html');
+    div.innerHTML = testHtml + controlHtml;
+    goog.dom.Range.createFromNodeContents(div).select();
+    FORMATTER.removeFormatting_();
+    
+    expectedFailures.expectFailureFor(goog.userAgent.WEBKIT,
+        'WebKit removes the image entirely, see ' +
+        'https://bugs.webkit.org/show_bug.cgi?id=13125 .');
+
+    expectedFailures.run(function() {
+      assertHTMLEquals(
+          'Image\'s border=0 should not be removed during remove formatting',
+          testHtml + controlCleanHtml, div.innerHTML);
+      FIELDMOCK.$verify();
+    });
+  }
+
+  /**
+   * @bug 3075557
+   */
+  function testRemoveFormattingLinkedImageBorderNonzero() {
+    var testHtml = '<a href="http://www.google.com/">' +
+        '<img src="http://www.google.com/images/logo.gif" border="1"></a>';
+    var div =  document.getElementById('html');
+    div.innerHTML = testHtml + controlHtml;
+    goog.dom.Range.createFromNodeContents(div).select();
+    FORMATTER.removeFormatting_();
+
+    expectedFailures.expectFailureFor(goog.userAgent.WEBKIT,
+        'WebKit removes the image entirely, see ' +
+        'https://bugs.webkit.org/show_bug.cgi?id=13125 .');
+
+    expectedFailures.run(function() {
+      assertHTMLEquals(
+          'Image\'s border should be removed during remove formatting' +
+          ' if non-zero',
+          testHtml.replace(' border="1"', '') + controlCleanHtml,
+          div.innerHTML);
+      FIELDMOCK.$verify();
+    });
+  }
+
+  /**
+   * @bug 3075557
+   */
+  function testRemoveFormattingUnlinkedImage() {
+    var testHtml =
+        '<img src="http://www.google.com/images/logo.gif" border="0">';
+    var div =  document.getElementById('html');
+    div.innerHTML = testHtml + controlHtml;
+    goog.dom.Range.createFromNodeContents(div).select();
+    FORMATTER.removeFormatting_();
+
+    expectedFailures.expectFailureFor(goog.userAgent.WEBKIT,
+        'WebKit removes the image entirely, see ' +
+        'https://bugs.webkit.org/show_bug.cgi?id=13125 .');
+
+    expectedFailures.run(function() {
+      assertHTMLEquals(
+          'Image\'s border=0 should not be removed during remove formatting' +
+          ' even if not wrapped by a link',
+          testHtml + controlCleanHtml, div.innerHTML);
+      FIELDMOCK.$verify();
+    });
+  }
+
+  /**
+   * @bug 3075557
+   */
+  function testRemoveFormattingLinkedImageDeep() {
+    var testHtml = '<a href="http://www.google.com/"><b>hello' +
+        '<img src="http://www.google.com/images/logo.gif" border="0">' +
+        'world</b></a>';
+    var div =  document.getElementById('html');
+    div.innerHTML = testHtml + controlHtml;
+    goog.dom.Range.createFromNodeContents(div).select();
+    FORMATTER.removeFormatting_();
+
+    expectedFailures.expectFailureFor(WEBKIT_BEFORE_CHROME_8,
+        'WebKit removes the image entirely, see ' +
+        'https://bugs.webkit.org/show_bug.cgi?id=13125 .');
+
+    expectedFailures.run(function() {
+      assertHTMLEquals(
+          'Image\'s border=0 should not be removed during remove formatting' +
+          ' even if deep inside anchor tag',
+          testHtml.replace(/<\/?b>/g, '') + controlCleanHtml, div.innerHTML);
       FIELDMOCK.$verify();
     });
   }
@@ -441,8 +576,8 @@ limitations under the License.
       // We should still remove the table, even if the selection is inside the
       // table and it is fully selected.
       div.innerHTML = "foo<table><tr><td id='td'>bar</td></tr></table>baz3";
-      goog.dom.Range.createFromNodeContents(goog.dom.$('td').firstChild).
-          select();
+      goog.dom.Range.createFromNodeContents(
+          goog.dom.getElement('td').firstChild).select();
       FORMATTER.removeFormatting_();
       assertHTMLEquals("foo<br>bar<br>baz3", div.innerHTML);
       FIELDMOCK.$verify();
@@ -454,13 +589,13 @@ limitations under the License.
     div.innerHTML =
     "<table><tr><td><b id='b'>foo</b></td></tr><tr><td>ba</td></tr></table>";
 
-    goog.dom.Range.createFromNodeContents(goog.dom.$('b')).select();
+    goog.dom.Range.createFromNodeContents(goog.dom.getElement('b')).select();
 
     // Webkit adds some apple style span crap during execCommand("removeFormat")
     // Our workaround for the nbsp bug removes these, but causes worse problems.
     // See bugs.webkit.org/show_bug.cgi?id=29164 for more details.
     expectedFailures.expectFailureFor(
-         goog.userAgent.WEBKIT &&
+         WEBKIT_BEFORE_CHROME_8 &&
          !goog.editor.BrowserFeature.ADDS_NBSPS_IN_REMOVE_FORMAT,
          'Extra apple-style-spans');
 
@@ -489,8 +624,8 @@ limitations under the License.
                     "baz</div>";
 
     // Select from the "oo" inside the b tag to the end of "baz".
-    goog.dom.Range.createFromNodes(goog.dom.$('b').firstChild, 1,
-        goog.dom.$('baz').firstChild, 3).select();
+    goog.dom.Range.createFromNodes(goog.dom.getElement('b').firstChild, 1,
+        goog.dom.getElement('baz').firstChild, 3).select();
 
     // All browsers currently clobber the table cells that are selected.
     expectedFailures.expectFailureFor(goog.userAgent.WEBKIT);
@@ -550,8 +685,8 @@ limitations under the License.
       // also remove them completely.
       div.innerHTML = '<table><tr><td id="td1">foo</td></tr></table>' +
                       '<table><tr><td id="td2">bar</td></tr></table>';
-      goog.dom.Range.createFromNodes(goog.dom.$("td1").firstChild, 0,
-          goog.dom.$("td2").firstChild, 3).select();
+      goog.dom.Range.createFromNodes(goog.dom.getElement("td1").firstChild, 0,
+          goog.dom.getElement("td2").firstChild, 3).select();
       FORMATTER.removeFormatting_();
       assertHTMLEquals('<br>foo<br><br>bar<br>', div.innerHTML);
       FIELDMOCK.$verify();
@@ -566,8 +701,8 @@ limitations under the License.
       // partially selected one.
       div.innerHTML = '<table><tr><td id="td1">foo</td></tr></table>' +
                       '<table><tr><td id="td2"><b>bar<b></td></tr></table>';
-      goog.dom.Range.createFromNodes(goog.dom.$("td1").firstChild, 0,
-          goog.dom.$("td2").firstChild.firstChild, 2).select();
+      goog.dom.Range.createFromNodes(goog.dom.getElement("td1").firstChild, 0,
+          goog.dom.getElement("td2").firstChild.firstChild, 2).select();
       FORMATTER.removeFormatting_();
       assertHTMLEquals('<br>foo<br>' +
                        '<table><tr><td id="td2">ba<b>r</b></td></tr></table>',
@@ -583,8 +718,8 @@ limitations under the License.
       // but remove styles.
       div.innerHTML = '<table><tr><td id="td1">f<i>o</i>o</td></tr></table>' +
                       '<table><tr><td id="td2">b<b>a</b>r</td></tr></table>';
-      goog.dom.Range.createFromNodes(goog.dom.$("td1").firstChild, 1,
-          goog.dom.$("td2").childNodes[1], 1).select();
+      goog.dom.Range.createFromNodes(goog.dom.getElement("td1").firstChild, 1,
+          goog.dom.getElement("td2").childNodes[1], 1).select();
       FORMATTER.removeFormatting_();
       assertHTMLEquals('<table><tr><td id="td1">foo</td></tr></table>' +
                        '<table><tr><td id="td2">bar</td></tr></table>',
@@ -621,7 +756,7 @@ function testRandomGoogleNewsSnippetRemoveFormatting() {
       'iPvAMHe_0B4A:r-1-0_1268233361_6_H0_MH20_PL60"><b>Britney\'s son ' +
       'released from hospital</b></a><br><font size="-1"><b><font color=' +
       '"#6f6f6f">NME.com&nbsp;-</font> <nobr>53 minutes ago</nobr></b>' +
-      '</font><br><font size="-1">Britney Spears’ youngest son Jayden James ' +
+      '</font><br><font size="-1">Britney Spearsï¿½ youngest son Jayden James ' +
       'has been released from hospital, having been admitted on Sunday after' +
       ' suffering a severe reaction to something he ingested.</font><br><fon' +
       'tsize="-1"><a href="http://www.celebrity-gossip.net/celebrities/holly' +
@@ -647,11 +782,11 @@ function testRandomGoogleNewsSnippetRemoveFormatting() {
       '8oX6hVDe4Qbcl1x5Rua_EA:u-AFQjCNEpn3nOHA8EB0pxJAPf6diOicMRDg"><nobr>eF' +
       'luxMedia</nobr></a></font><br><font class="p" size="-1"><a class="p" ' +
       'href="http://news.google.com/news?ncl=1268233361&amp;hl=en"><nobr><b>' +
-      'all 950 news articles&nbsp;»</b></nobr></a></font>';
+      'all 950 news articles&nbsp;ï¿½</b></nobr></a></font>';
   // Select it all.
   goog.dom.Range.createFromNodeContents(div).select();
 
-  expectedFailures.expectFailureFor(goog.userAgent.WEBKIT,
+  expectedFailures.expectFailureFor(WEBKIT_BEFORE_CHROME_8,
       'WebKit barfs apple-style-spans all over the place, and removes links.');
 
   expectedFailures.run(function() {
@@ -663,7 +798,7 @@ function testRandomGoogleNewsSnippetRemoveFormatting() {
         'npost.com/wp-dyn/content/photo/2008/11/11/PH2008111101091.jpg"><br>' +
         'Washington Post</a><br><a href="http://www.nme.com/news/britney-spe' +
         'ars/40995">Britney\'s son released from hospital</a><br>NME.com - 5' +
-        '3 minutes ago<br>Britney Spears’ youngest son Jayden James has been' +
+        '3 minutes ago<br>Britney Spearsï¿½ youngest son Jayden James has been' +
         ' released from hospital, having been admitted on Sunday after suffe' +
         'ring a severe reaction to something he ingested.<br><a href="http:/' +
         '/www.celebrity-gossip.net/celebrities/hollywood/britney-and-jamie-l' +
@@ -679,13 +814,13 @@ function testRandomGoogleNewsSnippetRemoveFormatting() {
         'm/">Just Jared</a> - <a href="http://www.efluxmedia.com/news_Britne' +
         'y_Spears_Son_Released_from_Hospital_28696.html">eFluxMedia</a><br><' +
         'a href="http://news.google.com/news?ncl=1268233361&amp;hl=en">all 9' +
-        '50 news articles »</a>', div.innerHTML);
+        '50 news articles ï¿½</a>', div.innerHTML);
     FIELDMOCK.$verify();
   });
 }
 
 function testRangeDelimitedByRanges() {
-  var abcde = goog.dom.$('abcde').firstChild;
+  var abcde = goog.dom.getElement('abcde').firstChild;
   var start = goog.dom.Range.createFromNodes(abcde, 1, abcde, 2);
   var end = goog.dom.Range.createFromNodes(abcde, 3, abcde, 4);
   
@@ -753,6 +888,34 @@ function testHardReturnsInHeadersPreserved() {
   expectedFailures.run(function() {
     assertHTMLEquals("<br>abcd<br>efgh<br>ijkl", div.innerHTML);
   });
+}
+
+function testKeyboardShortcut_space() {
+  FIELDMOCK.$reset();
+
+  FIELDMOCK.execCommand(
+        goog.editor.plugins.RemoveFormatting.REMOVE_FORMATTING_COMMAND);
+
+  FIELDMOCK.$replay();
+
+  var e = {};
+  var key = ' ';
+  var result = FORMATTER.handleKeyboardShortcut(e, key, true);
+  assertTrue(result);
+
+  FIELDMOCK.$verify();
+}
+
+function testKeyboardShortcut_other() {
+  FIELDMOCK.$reset();
+  FIELDMOCK.$replay();
+
+  var e = {};
+  var key = 'a';
+  var result = FORMATTER.handleKeyboardShortcut(e, key, true);
+  assertFalse(result);
+
+  FIELDMOCK.$verify();
 }
 
 </script>

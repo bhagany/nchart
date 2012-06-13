@@ -1,24 +1,15 @@
 <!DOCTYPE html>
-<!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
 <!--
-  Copyright 2009 Google Inc. All Rights Reserved.
+Copyright 2009 The Closure Library Authors. All Rights Reserved.
 
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
+<!--
 -->
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>Closure Unit Tests - goog.events.PasteHandler</title>
 <script src="../base.js"></script>
 <script>
@@ -27,6 +18,7 @@ limitations under the License.
   goog.require('goog.testing.MockUserAgent');
   goog.require('goog.testing.jsunit');
   goog.require('goog.events.EventTarget');
+  goog.require('goog.events.EventType');
   goog.require('goog.dom');
 </script>
 </head>
@@ -37,7 +29,7 @@ limitations under the License.
 <script>
 
 function setUp() {
-  // TODO: fix {@code goog.testing.MockUserAgent} to do the right thing.
+  // TODO(user): fix {@code goog.testing.MockUserAgent} to do the right thing.
   // the code doesn't seem to be updating the variables with
   // goog.userAgent.init_(), which means it is not allowing me to mock the
   // user agent variables.
@@ -347,14 +339,74 @@ function testScriptingDoesntTriggerPasteEvents() {
       function() {
         pasted = true;
       });
-  goog.dom.$('foo').value = 'dear paste handler,';
+  goog.dom.getElement('foo').value = 'dear paste handler,';
   assertFalse(pasted);
-  goog.dom.$('foo').value = 'please dont misunderstand script changes';
+  goog.dom.getElement('foo').value = 'please dont misunderstand script changes';
   assertFalse(pasted);
-  goog.dom.$('foo').value = 'with user generated paste events';
+  goog.dom.getElement('foo').value = 'with user generated paste events';
   assertFalse(pasted);
-  goog.dom.$('foo').value = 'thanks!';
+  goog.dom.getElement('foo').value = 'thanks!';
   assertFalse(pasted);
+}
+
+function testAfterPaste() {
+  goog.userAgent.IE = true;
+  var handlerThatSupportsPasteEvents =
+      new goog.events.PasteHandler(textarea);
+  pasted = false;
+  goog.events.listen(handlerThatSupportsPasteEvents,
+      goog.events.PasteHandler.EventType.PASTE,
+      function() {
+        pasted = true;
+      });
+  var afterPasteFired = false;
+  goog.events.listen(handlerThatSupportsPasteEvents,
+      goog.events.PasteHandler.EventType.AFTER_PASTE,
+      function() {
+        afterPasteFired = true;
+      });
+
+  // Initial paste event comes before AFTER_PASTE has fired.
+  textarea.dispatchEvent(newBrowserEvent('paste'));
+  assertTrue(pasted);
+  assertFalse(afterPasteFired);
+
+  // Once text is pasted, it takes a bit to detect it, at which point
+  // AFTER_PASTE is fired.
+  clock.tick(goog.events.PasteHandler.PASTE_POLLING_PERIOD_MS_);
+  textarea.value = 'text';
+  clock.tick(goog.events.PasteHandler.PASTE_POLLING_PERIOD_MS_);
+  assertTrue(afterPasteFired);
+}
+
+
+function testAfterPasteNotFiredIfDelayTooLong() {
+  goog.userAgent.IE = true;
+  var handlerThatSupportsPasteEvents =
+      new goog.events.PasteHandler(textarea);
+  pasted = false;
+  goog.events.listen(handlerThatSupportsPasteEvents,
+      goog.events.PasteHandler.EventType.PASTE,
+      function() {
+        pasted = true;
+      });
+  var afterPasteFired = false;
+  goog.events.listen(handlerThatSupportsPasteEvents,
+      goog.events.PasteHandler.EventType.AFTER_PASTE,
+      function() {
+        afterPasteFired = true;
+      });
+
+  // Initial paste event comes before AFTER_PASTE has fired.
+  textarea.dispatchEvent(newBrowserEvent('paste'));
+  assertTrue(pasted);
+  assertFalse(afterPasteFired);
+
+  // If the new text doesn't show up in time, we never fire AFTER_PASTE.
+  clock.tick(goog.events.PasteHandler.PASTE_POLLING_TIMEOUT_MS_);
+  textarea.value = 'text';
+  clock.tick(goog.events.PasteHandler.PASTE_POLLING_PERIOD_MS_);
+  assertFalse(afterPasteFired);
 }
 
 </script>

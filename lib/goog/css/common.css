@@ -1,31 +1,24 @@
 /*
-Use of this source code is governed by an Apache 2.0 License.
-See the COPYING file for details.
-*/
+ * Copyright 2009 The Closure Library Authors. All Rights Reserved.
+ *
+ * Use of this source code is governed by the Apache License, Version 2.0.
+ * See the COPYING file for details.
+ */
 
 /*
- * Copyright 2009 Google Inc.  All Rights Reserved.
- *
  * Cross-browser implementation of the "display: inline-block" CSS property.
  * See http://www.w3.org/TR/CSS21/visuren.html#propdef-display for details.
  * Tested on IE 6 & 7, FF 1.5 & 2.0, Safari 2 & 3, Webkit, and Opera 9.
  *
-
+ * @author attila@google.com (Attila Bodis)
  */
-
-/*
- * Gecko hack; Pre-FF3 Gecko uses -moz-inline-box instead of inline-block.
- */
-html>body .goog-inline-block {
-  display: -moz-inline-box; /* Ignored by FF3 and later. */
-  display: inline-block; /* Ignored by pre-FF3 Gecko. */
-}
 
 /*
  * Default rule; only Safari, Webkit, and Opera handle it without hacks.
  */
 .goog-inline-block {
   position: relative;
+  display: -moz-inline-box; /* Ignored by FF3 and later. */
   display: inline-block;
 }
 

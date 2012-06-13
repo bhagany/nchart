@@ -1,31 +1,24 @@
 <!DOCTYPE html>
 <!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
-<!--
-  Copyright 2009 Google Inc. All Rights Reserved.
-
 -->
 <html>
+<!--
+Copyright 2009 The Closure Library Authors. All Rights Reserved.
+
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>CrossPageChannel: End-to-End Test</title>
 <script src="../../base.js"></script>
 <script>
   goog.require('goog.Disposable');
+  goog.require('goog.Uri');
   goog.require('goog.debug.Logger');
   goog.require('goog.dom');
   goog.require('goog.net.xpc.CrossPageChannel');
+  goog.require('goog.object');
   goog.require('goog.testing.AsyncTestCase');
   goog.require('goog.testing.PropertyReplacer');
   goog.require('goog.testing.jsunit');
@@ -90,6 +83,17 @@ function testCreateIframeRandomId() {
 }
 
 
+function testCreateIframeWithDom() {
+  driver.createPeerIframe(goog.dom.getDomHelper());
+
+  asyncTestCase.waitForAsync('iframe load');
+  window.setTimeout(function() {
+    asyncTestCase.continueTesting();
+    driver.checkPeerIframe();
+  }, IFRAME_LOAD_WAIT_MS);
+}
+
+
 function testCreateIframeAsynchronousConnect() {
   driver.createPeerIframe('new_iframe');
 
@@ -111,6 +115,64 @@ function testExistingIframeConnect() {
   driver.connect();
 }
 
+function testEscapeServiceName() {
+  var escape = goog.net.xpc.CrossPageChannel.prototype.escapeServiceName_;
+  assertEquals('Shouldn\'t escape alphanumeric name',
+               'fooBar123', escape('fooBar123'));
+  assertEquals('Shouldn\'t escape most non-alphanumeric characters',
+               '`~!@#$^&*()_-=+ []{}\'";,<.>/?\\',
+               escape('`~!@#$^&*()_-=+ []{}\'";,<.>/?\\'));
+  assertEquals('Should escape %, |, and :',
+               'foo%3ABar%7C123%25', escape('foo:Bar|123%'));
+  assertEquals('Should escape tp', '%25tp', escape('tp'));
+  assertEquals('Should escape %tp', '%25%25tp', escape('%tp'));
+  assertEquals('Should not escape stp', 'stp', escape('stp'));
+  assertEquals('Should not escape s%tp', 's%25tp', escape('s%tp'));
+}
+
+function testSameDomainCheck_noMessageOrigin() {
+  var channel = new goog.net.xpc.CrossPageChannel(goog.object.create(
+      goog.net.xpc.CfgFields.PEER_HOSTNAME, 'http://foo.com'));
+  assertTrue(channel.isMessageOriginAcceptable_(undefined));
+}
+
+function testSameDomainCheck_noPeerHostname() {
+  var channel = new goog.net.xpc.CrossPageChannel({});
+  assertTrue(channel.isMessageOriginAcceptable_('http://foo.com'));
+}
+
+function testSameDomainCheck_unconfigured() {
+  var channel = new goog.net.xpc.CrossPageChannel({});
+  assertTrue(channel.isMessageOriginAcceptable_(undefined));
+}
+
+function testSameDomainCheck_originsMatch() {
+  var channel = new goog.net.xpc.CrossPageChannel(goog.object.create(
+      goog.net.xpc.CfgFields.PEER_HOSTNAME, 'http://foo.com'));
+  assertTrue(channel.isMessageOriginAcceptable_('http://foo.com'));
+}
+
+function testSameDomainCheck_originsMismatch() {
+  var channel = new goog.net.xpc.CrossPageChannel(goog.object.create(
+      goog.net.xpc.CfgFields.PEER_HOSTNAME, 'http://foo.com'));
+  assertFalse(channel.isMessageOriginAcceptable_('http://nasty.com'));
+}
+
+function testUnescapeServiceName() {
+  var unescape = goog.net.xpc.CrossPageChannel.prototype.unescapeServiceName_;
+  assertEquals('Shouldn\'t modify alphanumeric name',
+               'fooBar123', unescape('fooBar123'));
+  assertEquals('Shouldn\'t modify most non-alphanumeric characters',
+               '`~!@#$^&*()_-=+ []{}\'";,<.>/?\\',
+               unescape('`~!@#$^&*()_-=+ []{}\'";,<.>/?\\'));
+  assertEquals('Should unescape URL-escapes',
+               'foo:Bar|123%', unescape('foo%3ABar%7C123%25'));
+  assertEquals('Should unescape tp', 'tp', unescape('%25tp'));
+  assertEquals('Should unescape %tp', '%tp', unescape('%25%25tp'));
+  assertEquals('Should not escape stp', 'stp', unescape('stp'));
+  assertEquals('Should not escape s%tp', 's%tp', unescape('s%25tp'));
+}
+
 
 /**
  * Driver for the tests for CrossPageChannel.
@@ -119,6 +181,8 @@ function testExistingIframeConnect() {
  * @extends {goog.Disposable}
  */
 Driver = function() {
+  goog.Disposable.call(this);
+
   /**
    * The peer iframe.
    * @type {!Element}
@@ -150,11 +214,9 @@ Driver = function() {
 goog.inherits(Driver, goog.Disposable);
 
 
-/**
- * Disposes of the channel.
- */
+/** @override */
 Driver.prototype.disposeInternal = function() {
-  goog.net.xpc.CrossPageChannel.superClass_.disposeInternal.call(this);
+  goog.base(this, 'disposeInternal');
 
   if (this.channel_) {
     this.channel_.dispose();
@@ -174,10 +236,12 @@ Driver.prototype.getInnerPeer_ = function() {
 
 /**
  * Creates the channel.
- * @param {string} opt_iframeId If present, the ID of the iframe to use,
+ * @param {string=} opt_iframeId If present, the ID of the iframe to use,
  *     otherwise, tells the channel to generate an iframe ID.
+ * @param {goog.dom.DomHelper=} opt_domHelper The optional dom helper to use
+ *     for determining which window to use.
  */
-Driver.prototype.createChannel = function(opt_iframeId) {
+Driver.prototype.createChannel = function(opt_iframeId, opt_domHelper) {
   var cfg = {};
   if (opt_iframeId) {
     this.iframeId_ = opt_iframeId;
@@ -187,8 +251,15 @@ Driver.prototype.createChannel = function(opt_iframeId) {
   cfg[goog.net.xpc.CfgFields.CHANNEL_NAME] = 'test_channel' + uniqueId++;
   cfg[goog.net.xpc.CfgFields.LOCAL_POLL_URI] = 'does-not-exist.html';
   cfg[goog.net.xpc.CfgFields.PEER_POLL_URI] = 'does-not-exist.html';
+  function resolveUri(fieldName) {
+    cfg[fieldName] =
+        goog.Uri.resolve(window.location.href, cfg[fieldName]).toString();
+  }
+  resolveUri(goog.net.xpc.CfgFields.PEER_URI);
+  resolveUri(goog.net.xpc.CfgFields.LOCAL_POLL_URI);
+  resolveUri(goog.net.xpc.CfgFields.PEER_POLL_URI);
 
-  this.channel_ = new goog.net.xpc.CrossPageChannel(cfg);
+  this.channel_ = new goog.net.xpc.CrossPageChannel(cfg, opt_domHelper);
   this.channel_.registerService('msg', goog.bind(this.msgHandler_, this));
   this.cfg_ = cfg;
 };
@@ -196,10 +267,12 @@ Driver.prototype.createChannel = function(opt_iframeId) {
 
 /**
  * Creates the peer iframe.
- * @param {string} opt_iframeId If present, the ID of the iframe to create,
+ * @param {string=} opt_iframeId If present, the ID of the iframe to create,
  *     otherwise, generates an iframe ID.
+ * @param {goog.dom.DomHelper=} opt_domHelper The dom helper to use for
+ *     finding the elements in the iframe.
  */
-Driver.prototype.createPeerIframe = function(opt_iframeId) {
+Driver.prototype.createPeerIframe = function(opt_iframeId, opt_domHelper) {
   var expectedIframeId;
 
   if (opt_iframeId) {
@@ -212,9 +285,9 @@ Driver.prototype.createPeerIframe = function(opt_iframeId) {
     expectedIframeId = 'xpcpeer4';
   }
   assertNull('element[id=' + expectedIframeId + '] exists',
-      goog.dom.$(expectedIframeId));
+      goog.dom.getElement(expectedIframeId));
 
-  this.createChannel(opt_iframeId);
+  this.createChannel(opt_iframeId, opt_domHelper);
   this.iframe_ = this.channel_.createPeerIframe(document.body);
 
   assertEquals(expectedIframeId, this.iframe_.id);
@@ -226,7 +299,7 @@ Driver.prototype.createPeerIframe = function(opt_iframeId) {
  * Checks if the peer iframe has been created.
  */
 Driver.prototype.checkPeerIframe = function() {
-  assertNotNull(goog.dom.$(this.iframeId_));
+  assertNotNull(goog.dom.getElement(this.iframeId_));
   var peer = this.getInnerPeer_();
   assertNotNull(peer);
   assertNotNull(peer.document);
@@ -237,7 +310,7 @@ Driver.prototype.checkPeerIframe = function() {
  * Starts the connection. The connection happens asynchronously.
  */
 Driver.prototype.connect = function() {
-  // TODO: Get tests to pass for all transports
+  // TODO(user): Get tests to pass for all transports
   if (!this.isTransportTestable_()) {
     asyncTestCase.continueTesting();
     return;

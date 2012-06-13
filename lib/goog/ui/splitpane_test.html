@@ -1,24 +1,15 @@
 <!DOCTYPE html>
-<!--
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <html>
 <!--
-  Copyright 2009 Google Inc. All Rights Reserved.
+Copyright 2009 The Closure Library Authors. All Rights Reserved.
 
+Use of this source code is governed by the Apache License, Version 2.0.
+See the COPYING file for details.
+-->
+<!--
 -->
 <head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>Closure Unit Tests - goog.ui.SplitPane</title>
 <script src="../base.js"></script>
 <script type="text/javascript">
@@ -26,6 +17,7 @@ limitations under the License.
   goog.require('goog.dom.classes');
   goog.require('goog.math.Size');
   goog.require('goog.style');
+  goog.require('goog.testing.events');
   goog.require('goog.testing.jsunit');
   goog.require('goog.ui.Component');
   goog.require('goog.ui.SplitPane');
@@ -53,11 +45,11 @@ function tearDown() {
   splitpane.dispose();
   leftComponent.dispose();
   rightComponent.dispose();
-  goog.dom.$('sandbox').innerHTML = '';
+  goog.dom.getElement('sandbox').innerHTML = '';
 }
 
 function testRender() {
-  splitpane.render(goog.dom.$('sandbox'));
+  splitpane.render(goog.dom.getElement('sandbox'));
   assertEquals(1, goog.dom.getElementsByTagNameAndClass('div',
       'goog-splitpane').length);
   assertEquals(1, goog.dom.getElementsByTagNameAndClass('div',
@@ -73,7 +65,7 @@ function testDecorate() {
       goog.dom.createDom('div', 'goog-splitpane-first-container'),
       goog.dom.createDom('div', 'goog-splitpane-second-container'),
       goog.dom.createDom('div', 'goog-splitpane-handle'));
-  var sandbox = goog.dom.$('sandbox');
+  var sandbox = goog.dom.getElement('sandbox');
   goog.dom.appendChild(sandbox, mainDiv);
 
   splitpane.decorate(mainDiv);  
@@ -82,7 +74,7 @@ function testDecorate() {
 function testSetSize() {
   splitpane.setInitialSize(200);
   splitpane.setHandleSize(10);
-  splitpane.render(goog.dom.$('sandbox'));
+  splitpane.render(goog.dom.getElement('sandbox'));
 
   splitpane.setSize(new goog.math.Size(500, 300));
   assertEquals(200, splitpane.getFirstComponentSize());
@@ -96,7 +88,7 @@ function testSetSize() {
 function testOrientationChange() {
   splitpane.setInitialSize(200);
   splitpane.setHandleSize(10);
-  splitpane.render(goog.dom.$('sandbox'));
+  splitpane.render(goog.dom.getElement('sandbox'));
   splitpane.setSize(new goog.math.Size(500, 300));
 
   var first = goog.dom.getElementsByTagNameAndClass('div',
@@ -146,6 +138,34 @@ function testOrientationChange() {
   assertEquals(290, secondSize.width);
   assertEquals(300, secondSize.height);
 }
+
+function testDragEndEvent() {
+  splitpane.setInitialSize(200);
+  splitpane.setHandleSize(10);
+  splitpane.render(goog.dom.getElement('sandbox'));
+  var eventFired = false;
+  goog.events.listen(splitpane, goog.ui.SplitPane.EventType.HANDLE_DRAG_END,
+      function() {
+        eventFired = true;
+      });
+
+  var handle = goog.dom.getElementsByTagNameAndClass('div',
+      'goog-splitpane-handle')[0];
+
+  goog.testing.events.fireMouseDownEvent(handle);
+  goog.testing.events.fireMouseMoveEvent(handle);
+  goog.testing.events.fireMouseUpEvent(handle);
+  assertTrue('HANDLE_DRAG_END event expected', eventFired);
+
+  splitpane.setContinuousResize(false);
+  eventFired = false;
+  goog.testing.events.fireMouseDownEvent(handle);
+  goog.testing.events.fireMouseMoveEvent(handle);
+  goog.testing.events.fireMouseUpEvent(handle);
+  assertTrue('HANDLE_DRAG_END event expected', eventFired);
+}
+
+
 
 </script>
 </body>
