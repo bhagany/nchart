@@ -245,6 +245,12 @@
                     if(last_node && last_node != node) {
                         var span = i - last_node.layer.num;
                         var names = intersect(node.characters, last_node.characters);
+                        for(var l=0; l<names.length; l++) {
+                            if(last_nodes[names[l]] != last_node) {
+                                names.splice(l, 1);
+                                l--;
+                            }
+                        }
                         if(span > 2) {
                             // Add two new vertices at layers last_node.layer.num + 1 and i - 1
                             var p_layer = layers[last_node.layer.num + 1];
@@ -554,7 +560,8 @@
                 entry.push(crossing_results.length);
                 crossing_results.push(total_crossings);
 
-                if(total_crossings < best.crossings) {
+                if(total_crossings <= best.crossings) {
+                    best.a = a
                     best.crossings = total_crossings;
                     best.compaction = compaction;
                     best.marked = {};
@@ -596,6 +603,7 @@
             this.graph.layers.reverse();
         }
 
+        console.log('best:', best.a, best.crossings);
         this.graph = best;
     };
 
@@ -605,6 +613,7 @@
             var q = 'p';
             var children = 'parents';
             var parents = 'children';
+            var parent = 'child';
             var next_layer = layer.prev;
             var pq_num = 0;
             var subnode_sort = this.subnode_child_sort;
@@ -613,34 +622,44 @@
             var q = 'q';
             var children = 'children';
             var parents = 'parents';
+            var parent = 'parent';
             var next_layer = layer.next;
             var pq_num = 1;
             var subnode_sort = this.subnode_parent_sort;
         }
 
-        next_layer.L = this.make_L(layer, next_layer, p, q, parents, subnode_sort);
+        next_layer.L = this.make_L(layer, next_layer, p, q, parent, subnode_sort);
         next_layer.alt_L = this.make_alt_L(next_layer, pq_num);
         var crossings = this.get_crossings(layer, next_layer.L, children, parents);
         return [crossings, next_layer];
     };
 
-    NChart.prototype.make_L = function(layer, next_layer, p, q, parents, subnode_sort) {
+    NChart.prototype.make_L = function(layer, next_layer, p, q, parent, subnode_sort) {
         this.replace_p_nodes(layer.alt_L, p);
 
         // Step 2
         var LS = [];
-        var pos;
         for(var j=0; j<layer.alt_L.length; j+=2) {
             var S = this.copy_segment_container(layer.alt_L[j], next_layer);
-            pos = j ? pos + 1 : 0;
-            S.measure = S.pos = pos;
-            pos += S.segs.length;
+            S.max_layer_position = 0
             if(S.segs.length > 0) {
                 LS.push(S);
-            }
-            if(j < layer.alt_L.length - 1) {
-                var node = layer.alt_L[j + 1];
-                node.pos = pos;
+                S.seg_measures = [];
+                var S_total_pos = 0;
+                var num_subnodes = 0;
+                for(var k=0; k<S.segs.length; k++) {
+                    var seg = S.segs[k];
+                    var seg_total_pos = 0;
+                    for(var l=0; l<seg.subnodes.length; l++) {
+                        var subnode = seg.subnodes[l];
+                        S_total_pos += subnode.layer_position;
+                        seg_total_pos += subnode.layer_position;
+                        S.max_layer_position = Math.max(S.max_layer_position, subnode.layer_position);
+                        num_subnodes++;
+                    }
+                    S.seg_measures.push(seg_total_pos / seg.subnodes.length);
+                }
+                S.measure = S.pos = total_pos / num_subnodes;
             }
         }
 
@@ -653,40 +672,20 @@
             }
         }
 
-        var used_measures = {};
         for(var j=0; j<LV.length; j++) {
             var node = LV[j];
             node.subnodes.sort(subnode_sort);
             var num_parents = 0;
             var total_pos = 0;
-            var ps = node[parents];
-            for(var k=0; k<ps.length; k++) {
-                var parent = ps[k];
-                var edge_weight = node.edges[parent.id].weight;
-                total_pos += edge_weight * parent.pos;
-                num_parents += edge_weight;
-            }
-            node.measure = num_parents > 0 ? total_pos / num_parents : node.measure ? node.measure : 0;
-            goog.object.setIfUndefined(used_measures, node.measure, []);
-            // Track nodes with duplicate measures
-            used_measures[node.measure].push(node);
-        }
-
-        // If we have any nodes with duplicate measures, we can further refine
-        // the node's measure by taking into account where the sub nodes came from in
-        // the previous layer
-        goog.object.forEach(used_measures, function(nodes) {
-            if(nodes.length > 1) {
-                for(var i=0; i<nodes.length; i++) {
-                    var node = nodes[i];
-                    var sub_pos = 0;
-                    for(var j=0; j<node.characters.length; j++) {
-                        sub_pos += goog.array.indexOf(layer.characters, node.characters[j]);
-                    }
-                    node.sub_measure = sub_pos / node.characters.length;
+            for(var k=0; k<node.subnodes.length; k++) {
+                var subnode = node.subnodes[k];
+                if(subnode[parent]) {
+                    total_pos += subnode[parent].layer_position;
+                    num_parents++;
                 }
             }
-        });
+            node.measure = num_parents > 0 ? total_pos / num_parents : node.measure ? node.measure : 0;
+        }
 
         goog.array.stableSort(LV, this.measure_sort);
         goog.array.stableSort(LS, this.measure_sort);
@@ -699,11 +698,15 @@
                 L.push(LV.shift());
             } else {
                 var S = LS.shift();
-                if(LV[0].measure >= S.pos + S.segs.length - 1) {
+                if(LV[0].measure >= S.max_layer_position) {
                     L.push(S);
                 } else {
                     var v = LV.shift();
-                    var k = Math.ceil(v.measure - S.pos);
+                    var evaluator = this.generate_evaluator(v.measure);
+                    var k = goog.array.binarySelect(S.seg_measures, evaluator);
+                    if(k < 0) {
+                        k = ~k;
+                    }
                     var S1 = {'pos': S.pos, 'segs': S.segs.splice(0, k)};
                     var S2 = S;
                     if(S1.segs.length) {
@@ -721,14 +724,26 @@
         return L;
     };
 
+    NChart.prototype.generate_evaluator = function(input) {
+        return function(test) {
+            return input - test;
+        }
+    }
+
     NChart.prototype.replace_p_nodes = function(alt_L, p) {
         // Step 1
-        // Nodes are always have odd indices in alternating layers
+        // Nodes are always at odd indices in alternating layers
         for(var j=1; j<alt_L.length; j+=2) {
-            var item = alt_L[j];
-            if(item[p]) {
+            var node = alt_L[j];
+            if(node[p]) {
                 // Join segment container alt_L[j-1], this p_node's segment, and alt_L[j+1]
-                alt_L[j-1].segs = alt_L[j-1].segs.concat(item.pq_seg,
+                for(var k=0; k<node.subnodes.length; k++) {
+                    var subnode = node.subnodes[k];
+                    var pq_subnode = node.pq_seg.subnode_map[subnode.name]
+                    pq_subnode.node_position = subnode.node_position;
+                    pq_subnode.layer_position = subnode.layer_position;
+                }
+                alt_L[j-1].segs = alt_L[j-1].segs.concat(node.pq_seg,
                                                          alt_L.splice(j+1, 1)[0].segs);
                 // Remove the p-node
                 alt_L.splice(j, 1);
@@ -741,7 +756,14 @@
         var new_c = {'segs': []};
         for(var i=0; i<container.segs.length; i++) {
             var seg = container.segs[i];
-            new_c.segs.push(layer.segs[seg.id]);
+            var layer_seg = layer.segs[seg.id];
+            for(var j=0; j<seg.subnodes.length; j++) {
+                var subnode = seg.subnodes[j];
+                var layer_subnode = layer_seg.subnode_map[subnode.name];
+                layer_subnode.node_position = subnode.node_position;
+                layer_subnode.layer_position = subnode.layer_position;
+            }
+            new_c.segs.push(layer_seg);
         }
         return new_c;
     };
@@ -811,10 +833,10 @@
             } else {
                 var segment_container = alt_L[j];
                 next_layer.segments.push(segment_container);
-                for(var k=0; k<segment_container.length; k++) {
-                    var segment = segment_container[k];
+                for(var k=0; k<segment_container.segs.length; k++) {
+                    var segment = segment_container.segs[k];
                     for(var l=0; l<segment.subnodes.length; l++) {
-                        segment.subnodes[k].layer_position = s_pos;
+                        segment.subnodes[l].layer_position = s_pos;
                         s_pos++;
                     }
                 }

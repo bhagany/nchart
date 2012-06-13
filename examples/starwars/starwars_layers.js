@@ -2,179 +2,179 @@
     var layers = [
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['vader']},
-             {'subnodes': ['leia', 'r2-d2', 'c-3po']},
-             {'subnodes': ['obi-wan']},
-             {'subnodes': ['luke']},
-             {'subnodes': ['han', 'chewie']},
-             {'subnodes': ['jabba']}
+             {'characters': ['vader']},
+             {'characters': ['leia', 'r2-d2', 'c-3po']},
+             {'characters': ['obi-wan']},
+             {'characters': ['luke']},
+             {'characters': ['han', 'chewie']},
+             {'characters': ['jabba']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['vader', 'leia']},
-             {'subnodes': ['r2-d2', 'c-3po', 'luke']}
+             {'characters': ['vader', 'leia']},
+             {'characters': ['r2-d2', 'c-3po', 'luke']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['r2-d2', 'c-3po', 'luke', 'obi-wan']},
-             {'subnodes': ['greedo']}
+             {'characters': ['r2-d2', 'c-3po', 'luke', 'obi-wan']},
+             {'characters': ['greedo']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['r2-d2', 'c-3po', 'luke', 'obi-wan', 'han', 'chewie', 'greedo'],
+             {'characters': ['r2-d2', 'c-3po', 'luke', 'obi-wan', 'han', 'chewie', 'greedo'],
               'deaths': ['greedo']
              },
          ],
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['luke', 'han', 'chewie', 'leia']},
-             {'subnodes': ['r2-d2', 'c-3po']},
+             {'characters': ['luke', 'han', 'chewie', 'leia']},
+             {'characters': ['r2-d2', 'c-3po']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['obi-wan', 'vader'],
+             {'characters': ['obi-wan', 'vader'],
               'deaths': ['obi-wan']
              },
-             {'subnodes': ['r2-d2', 'c-3po', 'luke', 'han', 'chewie', 'leia']},
+             {'characters': ['r2-d2', 'c-3po', 'luke', 'han', 'chewie', 'leia']},
          ],
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['luke', 'vader', 'r2-d2']},
-             {'subnodes': ['han', 'chewie']},
+             {'characters': ['luke', 'vader', 'r2-d2']},
+             {'characters': ['han', 'chewie']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['luke', 'vader', 'r2-d2', 'han', 'chewie']},
+             {'characters': ['luke', 'vader', 'r2-d2', 'han', 'chewie']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['luke', 'r2-d2', 'han', 'chewie', 'leia', 'c-3po']},
+             {'characters': ['luke', 'r2-d2', 'han', 'chewie', 'leia', 'c-3po']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['luke']}
+             {'characters': ['luke']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['luke', 'han']}
+             {'characters': ['luke', 'han']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['luke', 'han', 'r2-d2', 'chewie', 'leia', 'c-3po']}
+             {'characters': ['luke', 'han', 'r2-d2', 'chewie', 'leia', 'c-3po']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['luke', 'han', 'r2-d2', 'chewie', 'leia', 'c-3po', 'vader']},
-             {'subnodes': ['lando']}
+             {'characters': ['luke', 'han', 'r2-d2', 'chewie', 'leia', 'c-3po', 'vader']},
+             {'characters': ['lando']}
 
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['luke', 'r2-d2']},
-             {'subnodes': ['vader', 'lando']},
-             {'subnodes': ['boba']},
-             {'subnodes': ['yoda']}
+             {'characters': ['luke', 'r2-d2']},
+             {'characters': ['vader', 'lando']},
+             {'characters': ['boba']},
+             {'characters': ['yoda']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['luke', 'r2-d2', 'yoda']},
-             {'subnodes': ['vader', 'boba']},
-             {'subnodes': ['han', 'chewie', 'leia', 'c-3po', 'lando']},
+             {'characters': ['luke', 'r2-d2', 'yoda']},
+             {'characters': ['vader', 'boba']},
+             {'characters': ['han', 'chewie', 'leia', 'c-3po', 'lando']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['luke', 'r2-d2', 'yoda']},
-             {'subnodes': ['vader', 'boba', 'han', 'chewie', 'leia', 'c-3po', 'lando']},
+             {'characters': ['luke', 'r2-d2', 'yoda']},
+             {'characters': ['vader', 'boba', 'han', 'chewie', 'leia', 'c-3po', 'lando']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['boba', 'han', 'jabba']},
-             {'subnodes': ['r2-d2', 'chewie', 'leia', 'c-3po', 'lando']},
-             {'subnodes': ['luke', 'vader']},
+             {'characters': ['boba', 'han', 'jabba']},
+             {'characters': ['r2-d2', 'chewie', 'leia', 'c-3po', 'lando']},
+             {'characters': ['luke', 'vader']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['r2-d2', 'chewie', 'leia', 'c-3po', 'lando', 'luke']},
+             {'characters': ['r2-d2', 'chewie', 'leia', 'c-3po', 'lando', 'luke']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['boba', 'han', 'jabba', 'lando']},
+             {'characters': ['boba', 'han', 'jabba', 'lando']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['boba', 'han', 'jabba', 'lando', 'r2-d2', 'c-3po']},
+             {'characters': ['boba', 'han', 'jabba', 'lando', 'r2-d2', 'c-3po']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['boba', 'han', 'jabba', 'lando', 'r2-d2', 'c-3po', 'chewie', 'leia']},
+             {'characters': ['boba', 'han', 'jabba', 'lando', 'r2-d2', 'c-3po', 'chewie', 'leia']},
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['boba', 'han', 'jabba', 'lando', 'r2-d2', 'c-3po', 'chewie', 'leia', 'luke'],
+             {'characters': ['boba', 'han', 'jabba', 'lando', 'r2-d2', 'c-3po', 'chewie', 'leia', 'luke'],
               'deaths': ['boba', 'jabba']
              },
          ],
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['luke', 'yoda'],
+             {'characters': ['luke', 'yoda'],
               'deaths': ['yoda']
              }
          ],
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['han', 'lando', 'r2-d2', 'c-3po', 'chewie', 'leia', 'luke']},
-             {'subnodes': ['emperor']}
+             {'characters': ['han', 'lando', 'r2-d2', 'c-3po', 'chewie', 'leia', 'luke']},
+             {'characters': ['emperor']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['han', 'r2-d2', 'c-3po', 'chewie', 'leia', 'luke']},
-             {'subnodes': ['emperor', 'vader']}
+             {'characters': ['han', 'r2-d2', 'c-3po', 'chewie', 'leia', 'luke']},
+             {'characters': ['emperor', 'vader']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['luke', 'vader']}
+             {'characters': ['luke', 'vader']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['luke', 'vader', 'emperor']}
+             {'characters': ['luke', 'vader', 'emperor']}
          ]
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['luke', 'vader', 'emperor', 'lando'],
+             {'characters': ['luke', 'vader', 'emperor', 'lando'],
               'deaths': ['emperor', 'vader']
              }
          ],
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['luke', 'lando', 'chewie', 'leia', 'r2-d2', 'c-3po', 'han']}
+             {'characters': ['luke', 'lando', 'chewie', 'leia', 'r2-d2', 'c-3po', 'han']}
          ],
         },
     ];
