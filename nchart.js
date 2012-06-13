@@ -228,6 +228,13 @@
                     if(last_node && last_node != node) {
                         var span = i - last_node.layer.num;
                         var subnodes = intersect(node.subnodes, last_node.subnodes);
+
+                        for(var l=0; l<subnodes.length; l++) {
+                            if(last_nodes[subnodes[l]] != last_node) {
+                                subnodes.splice(l, 1);
+                                l--;
+                            }
+                        }
                         if(span > 2) {
                             // Add two new vertices at layers last_node.layer.num + 1 and i - 1
                             var p_layer = layers[last_node.layer.num + 1];
@@ -521,6 +528,7 @@
                 crossing_results.push(total_crossings);
 
                 if(total_crossings < best.crossings) {
+                    best.a = a;
                     best.crossings = total_crossings;
                     best.compaction = compaction;
                     best.marked = {};
@@ -562,6 +570,7 @@
             this.graph.layers.reverse();
         }
 
+        console.log('best:', best.a, best.crossings);
         this.graph = best;
     };
 
