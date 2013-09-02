@@ -29,8 +29,7 @@
         this.paper_id = paper_id;
         this.characters = characters;
 
-        goog.object.extend(this, this.defaults());
-        goog.object.extend(this, conf);
+        goog.object.extend(this, this.defaults(), conf);
 
         if(!this.group_styles.default_group) {
             this.group_styles.default_group = {'stroke-width': 1};
