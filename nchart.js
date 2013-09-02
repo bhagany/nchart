@@ -29,59 +29,21 @@
         this.paper_id = paper_id;
         this.characters = characters;
 
-        conf = conf || {};
-        this.node_spacing = conf.node_spacing ? conf.node_spacing : 50;
-        this.subnode_spacing = conf.subnode_spacing ? conf.subnode_spacing : 15;
-        this.slope_func = conf.slope_func ? conf.slope_func : function(edge) { return Math.max(1.5, 3.5 - (edge.weight / 7)); };
-        this.group_styles = conf.group_styles ? conf.group_styles : {};
+        goog.object.extend(this, this.defaults());
+        goog.object.extend(this, conf);
+
         if(!this.group_styles.default_group) {
             this.group_styles.default_group = {'stroke-width': 1};
         }
 
-        this.death_style = conf.death_style ? conf.death_style : {'fill': 'black', 'radius': 5};
-        if(this.death_style.radius) {
-            this.death_radius = this.death_style.radius;
-            delete this.death_style.radius;
-        } else {
-            this.death_radius = 5;
-        }
-
-        this.undeath_style = conf.undeath_style ? conf.undeath_style : {'fill': 'white',
-                                                                        'stroke': 'black',
-                                                                        'radius': 5};
-        if(this.undeath_style.radius) {
-            this.undeath_radius = this.undeath_style.radius;
-            delete this.undeath_style.radius;
-        } else {
-            this.undeath_radius = 5;
-        }
-
         var self = this;
-        this.bendiness = conf.bendiness ? conf.bendiness : function(old_x, old_y, new_x, new_y) {
-            return Math.min(new_x - old_x - self.node_spacing, Math.floor(.375 * Math.abs(old_y - new_y)));
-        };
-        this.name_style = conf.name_style ? conf.name_style : {'fill': 'black',
-                                                               'font-family': 'fantasy',
-                                                               'font-size': '9',
-                                                               'dy': '-2'};
-        this.name_padding = conf.name_padding ? conf.name_padding : {'top': 20,
-                                                                     'bottom': 20,
-                                                                     'left': 20};
-        this.initial_padding = conf.initial_padding ? conf.initial_padding : {'top': 20,
-                                                                              'right': 20,
-                                                                              'bottom': 20,
-                                                                              'left': 20};
         goog.array.forEach(['top', 'right', 'bottom', 'left'], function(dir) {
             self.initial_padding[dir] = self.initial_padding[dir] || 0;
         });
-        this.length_tolerance = conf.length_tolerance ? conf.length_tolerance : .1;
-        this.max_scale = conf.max_scale ? conf.max_scale : 10;
-        this.min_scale = conf.min_scale ? conf.min_scale : .05;
-        if(conf.start_scale && conf.start_scale != 'auto') {
-            this.start_scale = conf.start_scale;
+        if(this.start_scale == 'auto') {
+            this.start_scale = null;
         }
 
-        this.debug = conf.debug ? conf.debug : null;
         if(this.debug && !(this.debug.direction > 0 && this.debug.direction < 5)) {
             var self = this;
             goog.array.forEach(['blocks', 'classes'], function(feature) {
@@ -92,80 +54,161 @@
             });
             delete this.debug.direction;
         }
-
-
-        this.path_styles = {'default': {'stroke-width': 'inherit',
-                                        'stroke-linecap': 'round',
-                                        'stroke-linejoin': 'round',
-                                        'fill': 'none'},
-                            'dead': {'stroke-width': 'inherit',
-                                     'stroke-linecap': 'round',
-                                     'stroke-linejoin': 'round',
-                                     'stroke-dasharray': '10',
-                                     'fill': 'none'},
-                            'disappeared': null
-                           };
-
-        this.states = {'default': {'icon': null,
-                                   'noun': null,
-                                   'following_style': 'default'},
-                       'dead': {'icon': {'circle': {'r': 5,
-                                                    'fill': 'black'},
-                                         'skip_radius': 7,
-                                         'placement': 'end'},
-                                'noun': 'deaths',
-                                'following_style': 'dead',
-                                'reverses': 'default'},
-                       'undead': {'icon': {'circle': {'r': 5,
-                                                      'fill': 'white',
-                                                      'stroke': 'black'},
-                                           'skip_radius': 7,
-                                           'placement': 'end'},
-                                  'noun': 'undeaths',
-                                  'reverses': 'dead'},
-                       'disappeared': {'icon': {'path': {'d': ['m2,0',
-                                                               'm-3.5,-6.06218', 'l-4,-6.92822',
-                                                               'm7.5,12.9904',
-                                                               'm-3.5,6.06218', 'l-4,6.92822',
-                                                               'm7.5,-12.9904',
-                                                               'm3.5,-6.06218', 'l4,-6.92822',
-                                                               'm-7.5,12.9904',
-                                                               'm3.5,6.06218', 'l4,6.92822',
-                                                               'm-7.5,-12.9904',
-                                                               'm7,0', 'l8,0'].join(' '),
-                                                         'stroke': 'black',
-                                                         'stroke-width': 2,
-                                                         'stroke-linecap': 'round'},
-                                                'skip_radius': 8,
-                                                'placement': 'end'},
-                                       'noun': 'disappearances',
-                                       'following_style': 'disappeared',
-                                       'reverses': 'default'},
-                       'reappeared': {'icon': {'path': {'d': ['m-2,0',
-                                                              'm-3.5,-6.06218', 'l-4,-6.92822',
-                                                              'm7.5,12.9904',
-                                                              'm-3.5,6.06218', 'l-4,6.92822',
-                                                              'm7.5,-12.9904',
-                                                              'm3.5,-6.06218', 'l4,-6.92822',
-                                                              'm-7.5,12.9904',
-                                                              'm3.5,6.06218', 'l4,6.92822',
-                                                              'm-7.5,-12.9904',
-                                                              'm-7,0', 'l-8,0'].join(' '),
-                                                        'stroke': 'black',
-                                                        'stroke-width': 2,
-                                                        'stroke-linecap': 'round'},
-                                               'skip_radius': 8,
-                                               'placement': 'start'},
-                                      'noun': 'reappearances',
-                                      'reverses': 'disappeared'}
-                      };
-
-        this.path_breakers = ['disappearances'];
-
         this.plotter = conf.plotter ? new conf.plotter(this) : new NChart.Plotter(this);
         this.drawer = conf.drawer ? new conf.drawer(this) : new NChart.SvgDrawer(this);
 
         this.graph = this.parse_layers(layers);
+    };
+
+    NChart.prototype.defaults = function() {
+        var node_spacing = 50;
+        return {
+            node_spacing: node_spacing,
+            subnode_spacing: 15,
+            slope_func: function(edge) {
+                return Math.max(1.5, 3.5 - (edge.weight / 7));
+            },
+            bendiness: function(old_x, old_y, new_x, new_y) {
+                return Math.min(new_x - old_x - node_spacing, Math.floor(.375 * Math.abs(old_y - new_y)));
+            },
+            states: {
+                'default': {
+                    'icon': null,
+                    'noun': null,
+                    'following_style': 'default'
+                },
+                'dead': {
+                    'icon': {
+                        'circle': {
+                            'r': 5,
+                            'fill': 'black'
+                        },
+                        'skip_radius': 7,
+                        'placement': 'end'
+                    },
+                    'noun': 'deaths',
+                    'following_style': 'dead',
+                    'reverses': 'default'
+                },
+                'undead': {
+                    'icon': {
+                        'circle': {
+                            'r': 5,
+                            'fill': 'white',
+                            'stroke': 'black'
+                        },
+                        'skip_radius': 7,
+                        'placement': 'end'
+                    },
+                    'noun': 'undeaths',
+                    'reverses': 'dead'
+                },
+                'disappeared': {
+                    'icon': {
+                        'path': {
+                            'd': [
+                                'm2,0',
+                                'm-3.5,-6.06218', 'l-4,-6.92822',
+                                'm7.5,12.9904',
+                                'm-3.5,6.06218', 'l-4,6.92822',
+                                'm7.5,-12.9904',
+                                'm3.5,-6.06218', 'l4,-6.92822',
+                                'm-7.5,12.9904',
+                                'm3.5,6.06218', 'l4,6.92822',
+                                'm-7.5,-12.9904',
+                                'm7,0', 'l8,0'
+                            ].join(' '),
+                            'stroke': 'black',
+                            'stroke-width': 2,
+                            'stroke-linecap': 'round'
+                        },
+                        'skip_radius': 8,
+                        'placement': 'end'
+                    },
+                    'noun': 'disappearances',
+                    'following_style': 'disappeared',
+                    'reverses': 'default'
+                },
+                'reappeared': {
+                    'icon': {
+                        'path': {
+                            'd': [
+                                'm-2,0',
+                                'm-3.5,-6.06218', 'l-4,-6.92822',
+                                'm7.5,12.9904',
+                                'm-3.5,6.06218', 'l-4,6.92822',
+                                'm7.5,-12.9904',
+                                'm3.5,-6.06218', 'l4,-6.92822',
+                                'm-7.5,12.9904',
+                                'm3.5,6.06218', 'l4,6.92822',
+                                'm-7.5,-12.9904',
+                                'm-7,0', 'l-8,0'
+                            ].join(' '),
+                            'stroke': 'black',
+                            'stroke-width': 2,
+                            'stroke-linecap': 'round'
+                        },
+                        'skip_radius': 8,
+                        'placement': 'start'
+                    },
+                    'noun': 'reappearances',
+                    'reverses': 'disappeared'
+                }
+            },
+            group_styles: {
+                'default': {
+                    'stroke-width': 1
+                }
+            },
+            path_styles: {
+                'default': {
+                    'stroke-width': 'inherit',
+                    'stroke-linecap': 'round',
+                    'stroke-linejoin': 'round',
+                    'fill': 'none'
+                },
+                'dead': {
+                    'stroke-width': 'inherit',
+                    'stroke-linecap': 'round',
+                    'stroke-linejoin': 'round',
+                    'stroke-dasharray': '10',
+                    'fill': 'none'
+                },
+                'disappeared': null
+            },
+            death_style: {
+                'fill': 'black',
+                'radius': 5
+            },
+            undeath_style: {
+                'fill': 'white',
+                'stroke': 'black',
+                'radius': 5
+            },
+            name_style: {
+                'fill': 'black',
+                'font-family': 'fantasy',
+                'font-size': '9',
+                'dy': '-2'
+            },
+            name_padding: {
+                'top': 20,
+                'bottom': 20,
+                'left': 20
+            },
+            initial_padding: {
+                'top': 20,
+                'right': 20,
+                'bottom': 20,
+                'left': 20
+            },
+            length_tolerance: .1,
+            max_scale: 10,
+            min_scale: .05,
+            start_scale: 'auto',
+            path_breakers: ['disappearances'],
+            debug: null
+        };
     };
 
     NChart.prototype.calc = function() {
