@@ -188,18 +188,22 @@
         return this;
     };
 
-    NChart.prototype.create_subnodes = function(node) {
-        node.subnodes = [];
-        node.subnode_map = {};
-        for(var i=0; i<node.characters.length; i++) {
-            var character = node.characters[i];
+    NChart.prototype.create_subnodes = function(item) {
+        item.subnodes = [];
+        item.subnode_map = {};
+        goog.object.setIfUndefined(item.layer, 'subnodes', []);
+        goog.object.setIfUndefined(item.layer, 'subnode_map', {});
+        for(var i=0; i<item.characters.length; i++) {
+            var character = item.characters[i];
             var subnode = {
-                'node': node,
+                'node': item,
                 'name': character,
                 'node_position': i
             };
-            node.subnodes.push(subnode);
-            node.subnode_map[character] = subnode;
+            item.subnodes.push(subnode);
+            item.subnode_map[character] = subnode;
+            item.layer.subnodes.push(subnode);
+            item.layer.subnode_map[character] = subnode;
         }
     };
 
@@ -796,6 +800,10 @@
         return a.child.layer_position - b.child.layer_position;
     }
 
+    NChart.prototype.subnode_layer_sort = function(a, b) {
+        return a.layer_position - b.layer_position;
+    }
+
     NChart.prototype.lowest_sub_pos_sort = NChart.prototype.sort_gen('lowest_sub_pos');
 
     NChart.prototype.make_alt_L = function(next_layer, pq_num) {
@@ -896,60 +904,11 @@
     };
 
     NChart.prototype.get_crossings = function(layer, L, children, parents) {
-        var subnode_map = {};
-        for(var i=0; i<layer.characters.length; i++) {
-            subnode_map[layer.characters[i]] = i;
-        }
-
-        function subnode_compare(a, b) {
-            return subnode_map[a] - subnode_map[b];
-        }
-
         var prev_L = layer.L
         // Step 5
         // Need to find edges between L - 1 and L
-        var L_map = {};
-        var L_sub_map = {};
-        var position = 0;
-        for(var j=0; j<L.length; j++) {
-            var node = L[j];
-            if(node.subnodes) {
-                if(node[parents] && node.draw) {
-                    node.characters.sort(subnode_compare);
-                    for(var k=0; k<node.characters.length; k++) {
-                        var name = node.characters[k];
-                        if(subnode_map[name]) {
-                            L_sub_map[name] = position;
-                        }
-                    }
-                    L_map[node.id] = position;
-                    position++;
-                }
-            } else {
-                var drew_one = false;
-                for(var k=0; k<node.segs.length; k++) {
-                    var seg = node.segs[k];
-                    if(seg.draw) {
-                        L_map[seg.id] = position;
-                        drew_one = true;
-                    }
-                    for(var l=0; l<seg.characters.length; l++) {
-                        var name = seg.characters[l];
-                        if(seg.draw) {
-                            L_sub_map[name] = position;
-                        }
-                    }
-                }
-                if(drew_one) {
-                    position++;
-                }
-            }
-        }
 
-        function children_sort(a, b) {
-            return L_map[a.id] - L_map[b.id];
-        }
-
+        layer.subnodes.sort(this.subnode_layer_sort)
         var layer_edges = [];
         var lower_positions = [];
         var edge_weights = [];
@@ -964,14 +923,6 @@
             }
             for(var k=0; k<nodes.length; k++) {
                 var node = nodes[k];
-                var count_subs = false;
-
-                // do this above?
-                var cs = node[children];
-                if(cs.length > 1) {
-                    goog.array.stableSort(cs, children_sort);
-                    count_subs = true;
-                }
 
                 var sub_position = 0;
                 var L_sub_map = {};
@@ -981,19 +932,6 @@
                     layer_edges.push(edge);
                     lower_positions.push(L_map[edge.target.id]);
                     edge_weights.push(edge.weight);
-                    if(count_subs) {
-                        for(var m=0; m<edge.characters.length; m++) {
-                            L_sub_map[edge.characters[m]] = sub_position;
-                        }
-                        sub_position++;
-                    }
-                }
-                if(count_subs) {
-                    var lower_sub_positions = [];
-                    for(var l=0; l<node.characters.length; l++) {
-                        lower_sub_positions.push(L_sub_map[node.characters[l]]);
-                    }
-                    crossings += this.count_sub_crossings(sub_position, lower_sub_positions);
                 }
             }
         }
