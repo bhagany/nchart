@@ -6,7 +6,6 @@
 // Add name sliding to the straight line graph
 // Add centering to the straight line graph
 // Deal with names that are too long for their paths
-// Do only half bezier curves for r nodes
 // Take out unnecessary stableSorts
 // Fix Aeron and Victarion crossing Essos line
 // Disappearances (alongside deaths and undeaths) - create a general configurable thing?
@@ -18,6 +17,7 @@
 // If we're going to reorder paths, they can't be in a group for each type (default, pov, etc)
 // What if you disappear while dead?
 // Beginning the story in a non-default state
+// Draw segments between unaligned nodes behind other lines
 
 (function(window) {
 
@@ -64,12 +64,8 @@
         return {
             node_spacing: node_spacing,
             subnode_spacing: 15,
-            slope_func: function(edge) {
-                return Math.max(1.5, 3.5 - (edge.weight / 7));
-            },
-            bendiness: function(old_x, old_y, new_x, new_y) {
-                return Math.min(new_x - old_x - node_spacing, Math.floor(.375 * Math.abs(old_y - new_y)));
-            },
+            min_layer_spacing: 50,
+            max_line_slope: 10,
             states: {
                 'default': {
                     'icon': null,
@@ -201,7 +197,6 @@
                 'bottom': 20,
                 'left': 20
             },
-            length_tolerance: .1,
             max_scale: 10,
             min_scale: .05,
             start_scale: 'auto',
@@ -402,7 +397,7 @@
         return {'id': dest_layer.num + '-' + dest_layer.nodes.length,
                 'subnodes': node.subnodes.slice(0),
                 'x': dest_layer.nodes[0].x,
-                'duration': 10,
+                'duration': node.duration,
                 'parents': [],
                 'children': [],
                 'layer': dest_layer,
@@ -1632,6 +1627,10 @@
                     // Set the y coordinate to be the rounded average median (yeah, that's right) of the four alignments
                     v.y = Math.round((v_coords[1] + v_coords[2]) / 2);
                 }
+                v.arc_centers = {
+                    'up': v.y - this.nchart.subnode_spacing,
+                    'down': v.y + (v.subnodes.length * this.nchart.subnode_spacing)
+                }
                 min_y = Math.min(v.y, min_y);
                 max_y = Math.max(v.y + ((v.size - 1) * this.nchart.subnode_spacing), max_y);
             }
@@ -1644,7 +1643,12 @@
             for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
                 var L = this.nchart.graph.e_compaction[i];
                 for(var j=0; j<L.length; j++) {
-                    L[j].y += shift;
+                    var v = L[j];
+                    v.y += shift;
+                    v.arc_centers = {
+                        'up': v.y - this.nchart.subnode_spacing,
+                        'down': v.y + (v.subnodes.length * this.nchart.subnode_spacing)
+                    }
                 }
             }
         }
@@ -1652,30 +1656,85 @@
     };
 
     NChart.Plotter.prototype.place_x = function() {
-        var last_x = 0;
+        var layer_x = 0;
         for(var i=0; i<this.nchart.graph.e_compaction.length; i++) {
             var L = this.nchart.graph.e_compaction[i];
-            var max_y_diff = 0;
+            var layer_spacing = this.nchart.min_layer_spacing;
+
             var use_slope = Infinity;
             for(var j=0; j<L.length; j++) {
                 var v = L[j];
-                v.x = last_x;
-                for(var k=0; k<v.children.length; k++) {
-                    var c = v.children[k];
-                    if(v.y != c.y) {
-                        var edge = v.edges[c.id];
-                        var slope = this.nchart.slope_func(edge);
-                        var y_diff = Math.abs(v.y - c.y) + v.layer.duration * slope;
-                        if(y_diff > max_y_diff) {
-                            max_y_diff = y_diff;
-                        }
-                        if(slope < use_slope) {
-                            use_slope = slope;
+                v.x = layer_x;
+                v.arc_centers.left = v.x;
+                v.arc_centers.right = v.x + v.duration;
+                if(!v.nodes) {
+                    for(var k=0; k<v.children.length; k++) {
+                        var c = v.children[k];
+                        if(!c.nodes) {
+                            var edge = v.edges[c.id];
+                            for(var l=0; l<edge.subnodes.length; l++) {
+                                var subnode = edge.subnodes[l];
+                                var v_sub_order = v.subnode_order[subnode];
+                                var c_sub_order = c.subnode_order[subnode];
+                                var rel_v_sub_y = v_sub_order * this.nchart.subnode_spacing;
+                                var rel_c_sub_y = c_sub_order * this.nchart.subnode_spacing;
+                                var v_sub_y = v.y + rel_v_sub_y;
+                                var c_sub_y = c.y + rel_c_sub_y;
+                                if(v_sub_y == c_sub_y) {
+                                    continue;
+                                }
+                                if(v_sub_y > c_sub_y) {
+                                    var fb_radius = rel_v_sub_y + this.nchart.subnode_spacing;
+                                    var sb_radius = (c.subnodes.length - c_sub_order) * this.nchart.subnode_spacing;
+                                    var y_distance = c.arc_centers.down - v.arc_centers.up;
+                                } else {
+                                    var fb_radius = (v.subnodes.length - v_sub_order) * this.nchart.subnode_spacing;
+                                    var sb_radius = rel_c_sub_y + this.nchart.subnode_spacing;
+                                    var y_distance = c.arc_centers.up - v.arc_centers.down;
+                                }
+                                var total_radius = fb_radius + sb_radius;
+                                var center_distance = Math.sqrt(Math.pow(layer_spacing, 2) + Math.pow(y_distance, 2));
+                                var good_tangent = false;
+                                if(total_radius <= center_distance) {
+                                    var tangent_center_angle = Math.asin(total_radius / center_distance);
+                                    var center_x_angle = Math.asin(y_distance / center_distance);
+                                    if(v_sub_y > c_sub_y) {
+                                        var tangent_x_angle = center_x_angle - tangent_center_angle;
+                                    } else {
+                                        var tangent_x_angle = center_x_angle + tangent_center_angle;
+                                    }
+
+                                    var slope = Math.tan(tangent_x_angle);
+                                    if(Math.abs(slope) <= this.nchart.max_line_slope && ((v_sub_y > c_sub_y && slope < 0)) || (v_sub_y < c_sub_y && slope > 0)) {
+                                        good_tangent = true;
+                                    }
+                                }
+                                if(!good_tangent) {
+                                    var max_line_slope = this.nchart.max_line_slope;
+                                    max_line_slope = y_distance < 0 ? -max_line_slope : max_line_slope;
+                                    var slope_atan = Math.atan(max_line_slope);
+                                    if(y_distance < 0) {
+                                        var fb_angle = (Math.PI / 2) - slope_atan;
+                                        var sb_angle = (3 * Math.PI / 2) - slope_atan;
+                                    } else {
+                                        var fb_angle = (3 * Math.PI / 2) + slope_atan;
+                                        var sb_angle = (Math.PI / 2) + slope_atan;
+                                    }
+                                    var fb_cos_component = Math.cos(fb_angle);
+                                    var fb_sin_component = Math.sin(fb_angle);
+                                    var sb_cos_component = Math.cos(sb_angle);
+                                    var sb_sin_component = Math.sin(sb_angle);
+                                    var arc_widths = Math.abs(fb_radius * fb_cos_component) + Math.abs(sb_radius * sb_cos_component);
+                                    var arc_heights = Math.abs(fb_radius * fb_sin_component) + Math.abs(sb_radius * sb_sin_component);
+                                    var y_diff = Math.abs(v_sub_y - c_sub_y) - arc_heights;
+                                    layer_spacing = Math.abs(y_diff / max_line_slope) + arc_widths;
+                                }
+                            }
                         }
                     }
                 }
             }
-            last_x += Math.floor(Math.max(max_y_diff / use_slope, 100));
+            layer_x += layer_spacing + L[0].layer.duration;
         }
         this.nchart.graph.max_x = this.nchart.graph.e_compaction[this.nchart.graph.e_compaction.length - 1][0].x
     };
@@ -1874,6 +1933,7 @@
                 var node = c_nodes.nodes[j];
                 var edge_y = node.y + (node.subnode_order[short_name] * this.nchart.subnode_spacing);
                 var end_x = node.x + node.duration;
+                var this_segs = [];
                 var this_seg = [];
 
                 var active_states = goog.object.getKeys(goog.object.filter(states,
@@ -1889,7 +1949,8 @@
                         last_horiz = horiz;
                         horiz = last.y == edge_y;
                         if(horiz) {
-                            this_seg = ['H', end_x];
+                            this_seg = ['H', end_x]
+                            this_segs.push(this_seg);
                             if(last_horiz) {
                                 last_segment.x_range[1] = end_x;
                                 last_segment.d[1] = end_x;
@@ -1900,29 +1961,228 @@
                                                    'd': this_seg});
                             }
                         } else {
-                            var bend = this.nchart.bendiness(last.x, last.y, node.x, edge_y);
-                            this_seg = ['C', last.x + bend, last.y, node.x - bend, edge_y, node.x, edge_y];
-                            use_segments.push({'x_range': [last.x, node.x],
-                                               'y_range': [last.y, edge_y],
-                                               'type': 'C',
-                                               'd': this_seg,
-                                               'bezier': new goog.math.Bezier(last.x, last.y,
-                                                                              last.x + bend, last.y,
-                                                                              node.x - bend, edge_y,
-                                                                              node.x, edge_y)});
+                            var slope = (edge_y - last.y) / (node.x - last.x);
+                            var slope_atan = Math.atan(Math.abs(slope))
+                            var x_distance = node.arc_centers.left - last_node.arc_centers.right;
+
+                            if(last.y > edge_y) {
+                                var y_distance = node.arc_centers.down - last_node.arc_centers.up;
+                                var center_distance = Math.sqrt(Math.pow(x_distance, 2) + Math.pow(y_distance, 2));
+
+                                // First bend
+                                var fb_radius = ((last_node.subnode_order[short_name] + 1) * this.nchart.subnode_spacing);
+                                // Second bend
+                                var sb_radius = (node.subnodes.length - node.subnode_order[short_name]) * this.nchart.subnode_spacing;
+                                var total_radius = fb_radius + sb_radius;
+
+                                var tangent_center_angle = Math.asin(total_radius / center_distance);  // theta
+                                var center_x_angle = Math.asin(y_distance / center_distance);  // phi
+                                var tangent_x_angle = tangent_center_angle - center_x_angle;
+
+                                var fb_start_angle = Math.PI / 2;
+                                var fb_end_angle = fb_start_angle - tangent_x_angle;
+                                var fb_sweep_flag = 0;
+                                var fb_center = {
+                                    'x': last_node.arc_centers.right,
+                                    'y': last_node.arc_centers.up
+                                };
+
+                                var fb_find_x_and_length = (function(fb_center, fb_radius, fb_start_angle) {
+                                    return function(proto_theta) {
+                                        return {
+                                            'x': fb_center.x + (fb_radius * Math.cos(proto_theta)),
+                                            'length': (fb_start_angle - proto_theta) * fb_radius
+                                        };
+                                    };
+                                })(fb_center, fb_radius, fb_start_angle);
+
+                                var fb_find_y_and_length = (function(fb_center, fb_radius, fb_start_angle) {
+                                    return function(proto_theta) {
+                                        return {
+                                            'y': fb_center.y + (fb_radius * Math.sin(proto_theta)),
+                                            'length': (fb_start_angle - proto_theta) * fb_radius
+                                        };
+                                    };
+                                })(fb_center, fb_radius, fb_start_angle);
+
+                                var sb_end_angle = 3 * Math.PI / 2;
+                                var sb_start_angle = sb_end_angle - tangent_x_angle;
+                                var sb_sweep_flag = 1;
+                                var sb_center = {
+                                    'x': node.arc_centers.left,
+                                    'y': node.arc_centers.down
+                                };
+                                var sb_find_x_and_length = (function(sb_center, sb_radius, sb_start_angle) {
+                                    return function(proto_theta) {
+                                        var theta = Math.PI - proto_theta;  // proto_theta will be negative
+                                        return {
+                                            'x': sb_center.x + (sb_radius * Math.cos(theta)),
+                                            'length': (theta - sb_start_angle) * sb_radius
+                                        };
+                                    };
+                                })(sb_center, sb_radius, sb_start_angle);
+
+                                var sb_find_y_and_length = (function(sb_center, sb_radius, sb_start_angle) {
+                                    return function(proto_theta) {
+                                        var theta = (2 * Math.PI) - proto_theta;
+                                        return {
+                                            'y': sb_center.y + (sb_radius * Math.sin(theta)),
+                                            'length': (theta - sb_start_angle) * sb_radius
+                                        };
+                                    };
+                                })(sb_center, sb_radius, sb_start_angle);
+
+                            } else {
+                                var y_distance = node.arc_centers.up - last_node.arc_centers.down;
+                                var center_distance = Math.sqrt(Math.pow(x_distance, 2) + Math.pow(y_distance, 2));
+
+                                // First bend
+                                var fb_radius = (last_node.subnodes.length - last_node.subnode_order[short_name]) * this.nchart.subnode_spacing;
+                                // Second bend
+                                var sb_radius = ((node.subnode_order[short_name] + 1) * this.nchart.subnode_spacing);
+                                var total_radius = fb_radius + sb_radius;
+
+                                var tangent_center_angle = Math.asin(total_radius / center_distance);  // theta
+                                var center_x_angle = Math.asin(y_distance / center_distance);  // phi
+                                var tangent_x_angle = tangent_center_angle + center_x_angle;
+
+                                var fb_start_angle = 3 * Math.PI / 2;
+                                var fb_end_angle = fb_start_angle + tangent_x_angle;
+                                var fb_sweep_flag = 1;
+                                var fb_center = {
+                                    'x': last_node.arc_centers.right,
+                                    'y': last_node.arc_centers.down
+                                };
+                                var fb_find_x_and_length = (function(fb_center, fb_radius, fb_start_angle) {
+                                    return function(proto_theta) {
+                                        var theta = (2 * Math.PI) + proto_theta;  // proto_theta will be negative
+                                        return {
+                                            'x': fb_center.x + (fb_radius * Math.cos(theta)),
+                                            'length': (theta - fb_start_angle) * fb_radius
+                                        };
+                                    };
+                                })(fb_center, fb_radius, fb_start_angle);
+
+                                var fb_find_y_and_length = (function(fb_center, fb_radius, fb_start_angle) {
+                                    return function(proto_theta) {
+                                        var theta = (2 * Math.PI) - proto_theta;
+                                        return {
+                                            'y': fb_center.y + (fb_radius * Math.sin(proto_theta)),
+                                            'length': (theta - fb_start_angle) * fb_radius
+                                        };
+                                    };
+                                })(fb_center, fb_radius, fb_start_angle);
+
+                                var sb_end_angle = Math.PI / 2;
+                                var sb_start_angle = sb_end_angle + tangent_x_angle;
+                                var sb_sweep_flag = 0;
+                                var sb_center = {
+                                    'x': node.arc_centers.left,
+                                    'y': node.arc_centers.up
+                                };
+                                var sb_find_x_and_length = (function(sb_center, sb_radius, sb_start_angle) {
+                                    return function(proto_theta) {
+                                        var theta = Math.PI - proto_theta;
+                                        return {
+                                            'x': sb_center.x + (sb_radius * Math.cos(theta)),
+                                            'length': (sb_start_angle - theta) * sb_radius
+                                        };
+                                    };
+                                })(sb_center, sb_radius, sb_start_angle);
+
+                                var sb_find_y_and_length = (function(sb_center, sb_radius, sb_start_angle) {
+                                    return function(proto_theta) {
+                                        return {
+                                            'y': sb_center.y + (sb_radius * Math.sin(proto_theta)),
+                                            'length': (sb_start_angle - proto_theta) * sb_radius
+                                        };
+                                    };
+                                })(sb_center, sb_radius, sb_start_angle);
+                            }
+
+                            var fb_arc_end = {
+                                'x': fb_center.x + (fb_radius * Math.cos(fb_end_angle)),
+                                'y': fb_center.y + (fb_radius * Math.sin(fb_end_angle))
+                            };
+                            var sb_arc_start = {
+                                'x': sb_center.x + (sb_radius * Math.cos(sb_start_angle)),
+                                'y': sb_center.y + (sb_radius * Math.sin(sb_start_angle))
+                            };
+
+                            var first_bend = [
+                                'A',
+                                fb_radius,
+                                fb_radius,
+                                '0 0',  // x-axis rotation and large arc flag (we never want either of those)
+                                fb_sweep_flag,
+                                fb_arc_end.x,
+                                fb_arc_end.y
+                            ];
+                            this_segs.push(first_bend);
+                            use_segments.push({
+                                'x_range': [last.x, fb_arc_end.x],
+                                'y_range': [last.y, fb_arc_end.y],
+                                'center': fb_center,
+                                'start_angle': fb_start_angle,
+                                'radius': fb_radius,
+                                'find_x_and_length': fb_find_x_and_length,
+                                'find_y_and_length': fb_find_y_and_length,
+                                'type': 'A',
+                                'd': first_bend
+                            });
+
+                            var middle_line = [
+                                'L',
+                                sb_arc_start.x,
+                                sb_arc_start.y
+                            ];
+                            this_segs.push(middle_line);
+                            use_segments.push({
+                                'x_range': [fb_arc_end.x, sb_arc_start.x],
+                                'y_range': [fb_arc_end.y, sb_arc_start.y],
+                                'x_diff': sb_arc_start.x - fb_arc_end.x,
+                                'y_diff': sb_arc_start.y - fb_arc_end.y,
+                                'type': 'L',
+                                'd': middle_line
+                            });
+
+                            var second_bend = [
+                                'A',
+                                sb_radius,
+                                sb_radius,
+                                '0 0',  // x-axis rotation and large arc flag (we never want either of those)
+                                sb_sweep_flag,
+                                node.x,
+                                edge_y
+                            ];
+                            this_segs.push(second_bend);
+                            use_segments.push({
+                                'x_range': [sb_arc_start.x, node.x],
+                                'y_range': [sb_arc_start.y, edge_y],
+                                'center': sb_center,
+                                'start_angle': sb_start_angle,
+                                'radius': sb_radius,
+                                'find_x_and_length': sb_find_x_and_length,
+                                'find_y_and_length': sb_find_y_and_length,
+                                'type': 'A',
+                                'd': second_bend
+                            });
+
                             last_horiz = false;
                         }
 
                         goog.array.forEach(active_states, function(state) {
                             var s_segments = segments[state];
                             var last_s_seg = s_segments[s_segments.length - 1];
-                            var s_horiz = this_seg[0] == 'H';
-                            var s_last_horiz = last_s_seg[0] == 'H';
-                            if(s_horiz && s_last_horiz) {
-                                last_s_seg[1] = end_x;
-                            } else {
-                                s_segments.push(this_seg);
-                            }
+                            goog.array.forEach(this_segs, function(this_seg) {
+                                var s_horiz = this_seg[0] == 'H';
+                                var s_last_horiz = last_s_seg[0] == 'H';
+                                if(s_horiz && s_last_horiz) {
+                                    last_s_seg[1] = end_x;
+                                } else {
+                                    s_segments.push(this_seg);
+                                }
+                            });
                         });
                     } else {
                         goog.array.forEach(active_states, function(state) {
@@ -1934,10 +2194,12 @@
                         goog.array.forEach(active_states, function(state) {
                             segments[state].push(['H', end_x]);
                         });
-                        use_segments.push({'x_range': [node.x, end_x],
-                                           'y_range': [edge_y, edge_y],
-                                           'type': 'H',
-                                           'd': ['H', end_x]});
+                        use_segments.push({
+                            'x_range': [node.x, end_x],
+                            'y_range': [edge_y, edge_y],
+                            'type': 'H',
+                            'd': ['H', end_x]
+                        });
                         horiz = true;
                     }
                 }
@@ -1974,6 +2236,7 @@
                     }
                 });
                 last = {'x': end_x, 'y': edge_y};
+                last_node = node;
             }
             var group = groups[c_nodes.character.group] || groups['default_group'];
 
@@ -1990,18 +2253,22 @@
                                             p_id + '_group',
                                             {'stroke-width': 'inherit'});
 
-            var p = this.svg.path(defs,
-                                  use_segments.shift(),
-                                  {'id': p_id,
-                                   'class': 'character',
-                                   'fill': 'none'});
+            var p = this.svg.path(
+                defs,
+                use_segments.shift(),
+                {
+                    'id': p_id,
+                    'class': 'character',
+                    'fill': 'none'
+                }
+            );
 
             var last_len = 0;
             for(var j=0; j<use_segments.length; j++) {
                 var seg = use_segments[j];
                 var d = $(p).attr('d') || '';
                 this.svg.change(p, {'d': [d, [seg.d[0], seg.d.slice(1).join(',')].join('')].join(' ')});
-                if(seg.type == 'C') {
+                if(seg.type == 'A' || seg.type == 'L') {
                     var p_len = p.getTotalLength();
                     seg.len_range = [last_len, p_len];
                     last_len = p_len;
@@ -2337,98 +2604,54 @@
     };
 
     NChart.SvgDrawer.prototype.point_and_length_at_x = function(seg, x) {
-        var tol = this.nchart.length_tolerance;
-        var mid_x = (seg.x_range[0] + seg.x_range[1]) / 2;
-        var mid_len, left, right;
-
-        // Since we know the curve is symmetrical, we can do one iteration
-        // without going through the expensive math.
-        if(x < mid_x - tol) {
-            left = 0;
-            right = .5;
-        } else if(x > mid_x + tol) {
-            left = .5;
-            right = 1;
-        } else {
-            return {'point': {'x': mid_x, 'y': (seg.y_range[0] + seg.y_range[1]) / 2},
-                    'length': (seg.len_range[0] + seg.len_range[1]) / 2};
-        }
-
-        while(true) {
-            mid_len = (left + right) / 2;
-            var mid_result = seg.bezier.getPoint(mid_len);
-            if(x < mid_result.x - tol) {
-                right = mid_len;
-            } else if(x > mid_result.x + tol) {
-                left = mid_len;
-            } else {
-                return {'point': mid_result,
-                        'length': seg.bezier.lengthAtPoint(mid_len) + seg.len_range[0]};
-            }
+        if(seg.type == 'L') {
+            var rel_x = x - seg.x_range[0];
+            var point_x_pct = rel_x / seg.x_diff;
+            var rel_y = point_x_pct * seg.y_diff;
+            var rel_length = Math.sqrt(Math.pow(rel_x, 2) + Math.pow(rel_y, 2));
+            return {
+                'point': {
+                    'x': x,
+                    'y': seg.y_range[0] + rel_y
+                },
+                'length': rel_length + seg.len_range[0]
+            };
+        } else if(seg.type == 'A') {
+            var proto_theta = Math.acos((x - seg.center.x) / seg.radius);  // π to 0
+            var y_and_len = seg.find_y_and_length(proto_theta);
+            return {
+                'point': {
+                    'x': x,
+                    'y': y_and_len.y
+                },
+                'length': y_and_len.length + seg.len_range[0]
+            };
         }
     };
 
     NChart.SvgDrawer.prototype.point_and_length_at_y = function(seg, y) {
-        var tol = this.nchart.length_tolerance;
-        var mid_y = (seg.y_range[0] + seg.y_range[1]) / 2;
-        var mid_len, left, right;
-
-        // Since we know the curve is symmetrical, we can do one iteration
-        // without going through the expensive math.
-        if(y < mid_y - tol) {
-            left = 0;
-            right = .5;
-        } else if(y > mid_y + tol) {
-            left = .5;
-            right = 1;
-        } else {
-            return {'point': {'x': (seg.x_range[0] + seg.x_range[1]) / 2, 'y': mid_y},
-                    'length': (seg.len_range[0] + seg.len_range[1]) / 2};
-        }
-
-        while(true) {
-            mid_len = (left + right) / 2;
-            var mid_result = seg.bezier.getPoint(mid_len);
-            if(y < mid_result.y - tol) {
-                right = mid_len;
-            } else if(y > mid_result.y + tol) {
-                left = mid_len;
-            } else {
-                return {'point': mid_result,
-                        'length': seg.bezier.lengthAtPoint(mid_len) + seg.len_range[0]};
-            }
-        }
-    };
-
-    NChart.SvgDrawer.prototype.point_and_length_at_y_neg = function(seg, y) {
-        var tol = this.nchart.length_tolerance;
-        var mid_y = (seg.y_range[0] + seg.y_range[1]) / 2;
-        var mid_len, left, right;
-
-        // Since we know the curve is symmetrical, we can do one iteration
-        // without going through the expensive math.
-        if(y > mid_y + tol) {
-            left = 0;
-            right = .5;
-        } else if(y < mid_y - tol) {
-            left = .5;
-            right = 1;
-        } else {
-            return {'point': {'x': (seg.x_range[0] + seg.x_range[1]) / 2, 'y': mid_y},
-                    'length': (seg.len_range[0] + seg.len_range[1]) / 2};
-        }
-
-        while(true) {
-            mid_len = (left + right) / 2;
-            var mid_result = seg.bezier.getPoint(mid_len);
-            if(y > mid_result.y + tol) {
-                right = mid_len;
-            } else if(y < mid_result.y - tol) {
-                left = mid_len;
-            } else {
-                return {'point': mid_result,
-                        'length': seg.bezier.lengthAtPoint(mid_len) + seg.len_range[0]};
-            }
+        if(seg.type == 'L') {
+            var rel_y = y - seg.y_range[0];
+            var point_y_pct = rel_y / seg.y_diff;
+            var rel_x = point_y_pct * seg.x_diff;
+            var rel_length = Math.sqrt(Math.pow(rel_y, 2) + Math.pow(rel_x, 2));
+            return {
+                'point': {
+                    'x': seg.x_range[0] + rel_x,
+                    'y': y
+                },
+                'length': rel_length + seg.len_range[0]
+            };
+        } else if(seg.type == 'A') {
+            var proto_theta = Math.asin((y - seg.center.y) / seg.radius);  // -π/2 to π/2
+            var x_and_len = seg.find_x_and_length(proto_theta);
+            return {
+                'point': {
+                    'x': x_and_len.x,
+                    'y': y
+                },
+                'length': x_and_len.length + seg.len_range[0]
+            };
         }
     };
 
@@ -2542,7 +2765,7 @@
                 crossing_y = seg.y_range[0];
                 p_and_l = {'point': {'x': left_x, 'y': crossing_y},
                            'length': seg.len_range[0] + left_x - seg.x_range[0]};
-            } else if(seg.type == 'C') {
+            } else if(seg.type == 'A' || seg.type == 'L') {
                 p_and_l = self.point_and_length_at_x(seg, left_x);
                 crossing_y = p_and_l.point.y;
             }
@@ -2551,12 +2774,12 @@
                 start_offset = right_of_left ? min_offset : Math.min(p_and_l.length, max_offset);
             } else {
                 while(!start_offset && seg && seg.x_range[0] < right_x) {
-                    if(seg.type == 'C') {
+                    if(seg.type == 'A' || seg.type == 'L') {
                         var y_p_and_l;
                         if(crossing_y < top_y && seg.y_range[1] >= top_y) {
                             y_p_and_l = self.point_and_length_at_y(seg, top_y);
                         } else if(crossing_y > bottom_y && seg.y_range[1] <= bottom_y) {
-                            y_p_and_l = self.point_and_length_at_y_neg(seg, bottom_y);
+                            y_p_and_l = self.point_and_length_at_y(seg, bottom_y);
                         }
                         if(y_p_and_l) {
                             start_offset = Math.min(y_p_and_l.length, max_offset);
@@ -2607,28 +2830,6 @@
     NChart.SvgDrawer.prototype.segment_search = function(a, b) {
         return a > b.x_range[1] ? 1 : a < b.x_range[0] ? -1 : 0;
     };
-
-    // Extend goog's Bezier curve implementation with a few enhancements
-    $(function() {
-        /* Modified from Raphael.js, by Dmitry Baranovskiy */
-        goog.math.Bezier.prototype.length = function() {
-            var old = {'x': 0, 'y': 0},
-            len = 0;
-            for (var i = 0; i < 1.01; i+=.1) {
-                var dot = this.getPoint(i);
-                i && (len += Math.sqrt(Math.pow(old.x - dot.x, 2) + Math.pow(old.y - dot.y, 2)));
-                old = dot;
-            }
-            return len;
-        }
-
-        goog.math.Bezier.prototype.lengthAtPoint = function(t) {
-            var clone = this.clone();
-            clone.subdivideLeft(t);
-            return clone.length();
-        }
-
-    });
 
     // Apparently goog.array doesn't have an intersect?
     function intersect(arr1, arr2) {
