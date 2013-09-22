@@ -65,6 +65,7 @@
             node_spacing: node_spacing,
             subnode_spacing: 15,
             min_layer_spacing: 50,
+            min_arc_radius: 30,
             max_line_slope: 10,
             states: {
                 'default': {
@@ -1684,12 +1685,12 @@
                                     continue;
                                 }
                                 if(v_sub_y > c_sub_y) {
-                                    var fb_radius = rel_v_sub_y + this.nchart.subnode_spacing;
-                                    var sb_radius = (c.subnodes.length - c_sub_order) * this.nchart.subnode_spacing;
+                                    var fb_radius = rel_v_sub_y + this.nchart.min_arc_radius;
+                                    var sb_radius = ((c.subnodes.length - c_sub_order - 1) * this.nchart.subnode_spacing) + this.nchart.min_arc_radius;
                                     var y_distance = c.arc_centers.down - v.arc_centers.up;
                                 } else {
-                                    var fb_radius = (v.subnodes.length - v_sub_order) * this.nchart.subnode_spacing;
-                                    var sb_radius = rel_c_sub_y + this.nchart.subnode_spacing;
+                                    var fb_radius = ((v.subnodes.length - v_sub_order - 1) * this.nchart.subnode_spacing) + this.nchart.min_arc_radius;
+                                    var sb_radius = rel_c_sub_y + this.nchart.min_arc_radius;
                                     var y_distance = c.arc_centers.up - v.arc_centers.down;
                                 }
                                 var total_radius = fb_radius + sb_radius;
@@ -1970,9 +1971,9 @@
                                 var center_distance = Math.sqrt(Math.pow(x_distance, 2) + Math.pow(y_distance, 2));
 
                                 // First bend
-                                var fb_radius = ((last_node.subnode_order[short_name] + 1) * this.nchart.subnode_spacing);
+                                var fb_radius = ((last_node.subnode_order[short_name]) * this.nchart.subnode_spacing) + this.nchart.min_arc_radius;
                                 // Second bend
-                                var sb_radius = (node.subnodes.length - node.subnode_order[short_name]) * this.nchart.subnode_spacing;
+                                var sb_radius = ((node.subnodes.length - node.subnode_order[short_name] - 1) * this.nchart.subnode_spacing) + this.nchart.min_arc_radius;
                                 var total_radius = fb_radius + sb_radius;
 
                                 var tangent_center_angle = Math.asin(total_radius / center_distance);  // theta
@@ -2037,9 +2038,9 @@
                                 var center_distance = Math.sqrt(Math.pow(x_distance, 2) + Math.pow(y_distance, 2));
 
                                 // First bend
-                                var fb_radius = (last_node.subnodes.length - last_node.subnode_order[short_name]) * this.nchart.subnode_spacing;
+                                var fb_radius = ((last_node.subnodes.length - last_node.subnode_order[short_name] - 1) * this.nchart.subnode_spacing) + this.nchart.min_arc_radius;
                                 // Second bend
-                                var sb_radius = ((node.subnode_order[short_name] + 1) * this.nchart.subnode_spacing);
+                                var sb_radius = ((node.subnode_order[short_name]) * this.nchart.subnode_spacing) + this.nchart.min_arc_radius;
                                 var total_radius = fb_radius + sb_radius;
 
                                 var tangent_center_angle = Math.asin(total_radius / center_distance);  // theta
@@ -2369,7 +2370,7 @@
                 this.start_y = (height / 2) - (w_scale * this.nchart.graph.max_y / 2) + this.nchart.initial_padding.top;
             } else {
                 this.start_scale = h_scale;
-                this.start_x = (width / 2) - (h_scale * this.nchart.graph.max_x / 2); + this.nchart.initial_padding.left;
+                this.start_x = (width / 2) - (h_scale * this.nchart.graph.max_x / 2) + this.nchart.initial_padding.left;
                 this.start_y = this.nchart.initial_padding.top;
             }
             this.translate = {'x': this.start_x, 'y': this.start_y};
