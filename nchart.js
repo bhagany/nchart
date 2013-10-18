@@ -65,6 +65,7 @@
             node_spacing: node_spacing,
             subnode_spacing: 15,
             min_layer_spacing: 50,
+            min_arc_radius: 30,
             max_line_slope: 10,
             states: {
                 'default': {
@@ -1628,8 +1629,8 @@
                     v.y = Math.round((v_coords[1] + v_coords[2]) / 2);
                 }
                 v.arc_centers = {
-                    'up': v.y - this.nchart.subnode_spacing,
-                    'down': v.y + (v.subnodes.length * this.nchart.subnode_spacing)
+                    'up': v.y - this.nchart.min_arc_radius,
+                    'down': v.y + ((v.subnodes.length - 1) * this.nchart.subnode_spacing) + this.nchart.min_arc_radius
                 }
                 min_y = Math.min(v.y, min_y);
                 max_y = Math.max(v.y + ((v.size - 1) * this.nchart.subnode_spacing), max_y);
@@ -1645,10 +1646,8 @@
                 for(var j=0; j<L.length; j++) {
                     var v = L[j];
                     v.y += shift;
-                    v.arc_centers = {
-                        'up': v.y - this.nchart.subnode_spacing,
-                        'down': v.y + (v.subnodes.length * this.nchart.subnode_spacing)
-                    }
+                    v.arc_centers.up += shift;
+                    v.arc_centers.down += shift;
                 }
             }
         }
@@ -1684,12 +1683,12 @@
                                     continue;
                                 }
                                 if(v_sub_y > c_sub_y) {
-                                    var fb_radius = rel_v_sub_y + this.nchart.subnode_spacing;
-                                    var sb_radius = (c.subnodes.length - c_sub_order) * this.nchart.subnode_spacing;
+                                    var fb_radius = rel_v_sub_y + this.nchart.min_arc_radius;
+                                    var sb_radius = ((c.subnodes.length - c_sub_order - 1) * this.nchart.subnode_spacing) + this.nchart.min_arc_radius;
                                     var y_distance = c.arc_centers.down - v.arc_centers.up;
                                 } else {
-                                    var fb_radius = (v.subnodes.length - v_sub_order) * this.nchart.subnode_spacing;
-                                    var sb_radius = rel_c_sub_y + this.nchart.subnode_spacing;
+                                    var fb_radius = ((v.subnodes.length - v_sub_order - 1) * this.nchart.subnode_spacing) + this.nchart.min_arc_radius;
+                                    var sb_radius = rel_c_sub_y + this.nchart.min_arc_radius;
                                     var y_distance = c.arc_centers.up - v.arc_centers.down;
                                 }
                                 var total_radius = fb_radius + sb_radius;
@@ -1970,9 +1969,9 @@
                                 var center_distance = Math.sqrt(Math.pow(x_distance, 2) + Math.pow(y_distance, 2));
 
                                 // First bend
-                                var fb_radius = ((last_node.subnode_order[short_name] + 1) * this.nchart.subnode_spacing);
+                                var fb_radius = ((last_node.subnode_order[short_name]) * this.nchart.subnode_spacing) + this.nchart.min_arc_radius;
                                 // Second bend
-                                var sb_radius = (node.subnodes.length - node.subnode_order[short_name]) * this.nchart.subnode_spacing;
+                                var sb_radius = ((node.subnodes.length - node.subnode_order[short_name] - 1) * this.nchart.subnode_spacing) + this.nchart.min_arc_radius;
                                 var total_radius = fb_radius + sb_radius;
 
                                 var tangent_center_angle = Math.asin(total_radius / center_distance);  // theta
@@ -2037,9 +2036,9 @@
                                 var center_distance = Math.sqrt(Math.pow(x_distance, 2) + Math.pow(y_distance, 2));
 
                                 // First bend
-                                var fb_radius = (last_node.subnodes.length - last_node.subnode_order[short_name]) * this.nchart.subnode_spacing;
+                                var fb_radius = ((last_node.subnodes.length - last_node.subnode_order[short_name] - 1) * this.nchart.subnode_spacing) + this.nchart.min_arc_radius;
                                 // Second bend
-                                var sb_radius = ((node.subnode_order[short_name] + 1) * this.nchart.subnode_spacing);
+                                var sb_radius = (node.subnode_order[short_name] * this.nchart.subnode_spacing) + this.nchart.min_arc_radius;
                                 var total_radius = fb_radius + sb_radius;
 
                                 var tangent_center_angle = Math.asin(total_radius / center_distance);  // theta
