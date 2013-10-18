@@ -2368,7 +2368,7 @@
                 this.start_y = (height / 2) - (w_scale * this.nchart.graph.max_y / 2) + this.nchart.initial_padding.top;
             } else {
                 this.start_scale = h_scale;
-                this.start_x = (width / 2) - (h_scale * this.nchart.graph.max_x / 2); + this.nchart.initial_padding.left;
+                this.start_x = (width / 2) - (h_scale * this.nchart.graph.max_x / 2) + this.nchart.initial_padding.left;
                 this.start_y = this.nchart.initial_padding.top;
             }
             this.translate = {'x': this.start_x, 'y': this.start_y};

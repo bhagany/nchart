@@ -9,6 +9,8 @@
         // Oberyn Martell
         // Podrick Payne
         // Mance Rayder
+        // Ramsay Snow
+        // Benerro
 
         'ned': {'name': 'Eddard Stark',
                 'group': 'pov',
