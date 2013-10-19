@@ -4,7 +4,7 @@ body {
     border: 0;
 }
 
-svg {
+#paper {
     width: 99%;
     height: 745px;
     border: 1px solid black;
