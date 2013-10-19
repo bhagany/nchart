@@ -54,7 +54,7 @@
             delete this.debug.direction;
         }
         this.plotter = conf.plotter ? new conf.plotter(this) : new NChart.Plotter(this);
-        this.drawer = conf.drawer ? new conf.drawer(this) : new NChart.SvgDrawer(this);
+        this.drawer = conf.drawer ? new conf.drawer(this) : new NChart.D3Drawer(this);
 
         this.graph = this.parse_layers(layers);
     };
@@ -2828,6 +2828,78 @@
 
     NChart.SvgDrawer.prototype.segment_search = function(a, b) {
         return a > b.x_range[1] ? 1 : a < b.x_range[0] ? -1 : 0;
+    };
+
+    NChart.D3Drawer = function(nchart) {
+        this.nchart = nchart;
+        var self = this;
+        $(function() {
+            self.svg = d3.select('body').append('svg');
+        });
+    };
+
+    NChart.D3Drawer.prototype.draw_graph = function() {
+        this.figure_scale();
+        this.scale = this.start_scale;
+        this.svg.attr('transform', 'translate(' + self.start_x + ',' + self.start_y + ') scale(' + self.start_scale + ')');
+        this.svg.append('defs').attr('id', 'path_defs');
+        var g = this.svg.append('g').attr('id', 'graph');
+        if(this.nchart.debug && this.nchart.debug.wireframe) {
+            this.wireframe();
+        } else {
+            this.draw_curvy();
+        }
+
+        if(this.nchart.debug) {
+            var defs = this.svg.append('defs').attr('id', 'debug_defs');
+            var inner_glow = defs.append('filter')
+                .attr('id', 'inner_glow');
+            inner_glow.append('fegaussianblur')
+                .attr('result', 'blur')
+                .attr('stdDeviation', '6')
+            inner_glow.append('fecomposite')
+                .attr('result', 'composite_blur')
+                .attr('operator', 'arithmetic')
+                .attr('in', 'blur')
+                .attr('in2', 'SourceGraphic')
+                .attr('k1', '0')
+                .attr('k2', '-1')
+                .attr('k3', '1');
+            goog.array.forEach(this.nchart.debug.features, function(feature) {
+                if(this['debug_' + feature]) {
+                    this['debug_' + feature]();
+                } else {
+                    alert('Debug option "' + feature + '" not supported');
+                }
+            });
+        }
+
+        // this.attach_events();
+    };
+
+    NChart.D3Drawer.prototype.figure_scale = function() {
+        if(this.nchart.start_scale) {
+            this.start_scale = this.nchart.start_scale;
+        } else {
+            var width = this.nchart.paper.width() - this.nchart.initial_padding.left - this.nchart.initial_padding.right;
+            var height = this.nchart.paper.height() - this.nchart.initial_padding.top - this.nchart.initial_padding.bottom;
+            var w_scale = width / this.nchart.graph.max_x;
+            var h_scale = height / this.nchart.graph.max_y;
+            if(w_scale < h_scale) {
+                this.start_scale = w_scale;
+                this.start_x = this.nchart.initial_padding.left;
+                this.start_y = (height / 2) - (w_scale * this.nchart.graph.max_y / 2) + this.nchart.initial_padding.top;
+            } else {
+                this.start_scale = h_scale;
+                this.start_x = (width / 2) - (h_scale * this.nchart.graph.max_x / 2) + this.nchart.initial_padding.left;
+                this.start_y = this.nchart.initial_padding.top;
+            }
+            this.translate = {'x': this.start_x, 'y': this.start_y};
+        }
+    };
+
+    NChart.D3Drawer.prototype.draw_curvy = function() {
+
     };
 
     // Apparently goog.array doesn't have an intersect?
