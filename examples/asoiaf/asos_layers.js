@@ -1,3 +1,5 @@
+// 'features': {'davos': [{'marker': null, 'states': [], distance: 2}, {'marker': 'death', 'states': ['dead'], distance: 5}]}
+
 (function(window) {
     var layers = [
         {'duration': 10,
@@ -27,8 +29,9 @@
         // 1. Prologue - Chett
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['jeor', 'sam'],
-              'event': 'Wight attack at the Fist of First Men'
+             {
+                 'subnodes': ['jeor', 'sam'],
+                 'event': 'Wight attack at the Fist of First Men'
              },
              // Establish pre-escape togetherness
              {'subnodes': ['cat', 'brienne', 'jaime']},
@@ -37,8 +40,9 @@
         // 2. Jaime I
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['jaime', 'brienne'],
-              'event': 'Cat frees Jaime from Riverrun'
+             {
+                 'subnodes': ['jaime', 'brienne'],
+                 'event': 'Cat frees Jaime from Riverrun'
              }
          ]
         },
@@ -52,8 +56,10 @@
         // 6. Davos I
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['davos'],
-              'event': 'Davos Rescued from Blackwater Bay'}
+             {
+                 'subnodes': ['davos'],
+                 'event': 'Davos Rescued from Blackwater Bay'
+             }
          ],
         },
         // 7. Sansa I
@@ -79,32 +85,37 @@
         // 19. Samwell I
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['sam', 'jeor'],
-              'event': 'Sam the Slayer'
+             {
+                 'subnodes': ['sam', 'jeor'],
+                 'event': 'Sam the Slayer'
              }
          ],
         },
         // 22. Jaime III
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['jaime', 'brienne'],
-              'event': 'Jaime crippled'
+             {
+                 'subnodes': ['jaime', 'brienne'],
+                 'event': 'Jaime crippled'
              }
          ]
         },
         // 28. Daenerys III
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['daenerys', 'jorah', 'drogon', 'rhaegal', 'viserion', 'barristan'],
-              'event': 'Daenerys conquers Astapor'}
+             {
+                 'subnodes': ['daenerys', 'jorah', 'drogon', 'rhaegal', 'viserion', 'barristan'],
+                 'event': 'Daenerys conquers Astapor'
+             }
          ],
         },
         // 29. Sansa III
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['sansa', 'cersei', 'joffrey', 'ilyn', 'varys', 'pycelle', 'tyrion',
-                           'loras', 'tywin', 'tommen', 'margaery'],
-              'event': 'Tyrion and Sansa married'
+             {
+                 'subnodes': ['sansa', 'cersei', 'joffrey', 'ilyn', 'varys', 'pycelle', 'tyrion',
+                              'loras', 'tywin', 'tommen', 'margaery'],
+                 'event': 'Tyrion and Sansa married'
              }
          ],
         },
@@ -117,17 +128,21 @@
         // 31. Jon IV
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['jon', 'ghost'],
-              'event': 'Over the Wall'
+             {
+                 'subnodes': ['jon', 'ghost'],
+                 'event': 'Over the Wall'
              }
          ],
         },
         // 34. Samwell II
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['sam', 'jeor'],
-              'event': 'Mutiny at Craster\'s Keep',
-              'deaths': ['jeor']
+             {
+                 'subnodes': ['sam', 'jeor'],
+                 'event': 'Mutiny at Craster\'s Keep',
+                 'stateChanges': {
+                     'jeor': ['dead']
+                 }
              }
          ],
         },
@@ -140,8 +155,9 @@
         // 41-42. Bran III, Jon V
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['jon', 'bran', 'summer', 'meera', 'jojen'],
-              'event': 'Jon betrays the wildlings at Queenscrown'
+             {
+                 'subnodes': ['jon', 'bran', 'summer', 'meera', 'jojen'],
+                 'event': 'Jon betrays the wildlings at Queenscrown'
              },
              {'subnodes': ['sandor']}
          ],
@@ -149,8 +165,10 @@
         // 43. Daenerys IV
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['daenerys', 'jorah', 'drogon', 'rhaegal', 'viserion', 'barristan'],
-              'event': 'Daenerys conquers Yunkai'}
+             {
+                 'subnodes': ['daenerys', 'jorah', 'drogon', 'rhaegal', 'viserion', 'barristan'],
+                 'event': 'Daenerys conquers Yunkai'
+             }
          ],
         },
         // 44. Arya VIII
@@ -175,16 +193,24 @@
         // 51-53. Arya X, Catelyn VII, Arya XI
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['arya', 'sandor', 'cat', 'robb', 'grey wind', 'brynden'],
-              'deaths': ['cat', 'robb', 'grey wind'],
-              'event': 'Red Wedding'},
+             {
+                 'subnodes': ['arya', 'sandor', 'cat', 'robb', 'grey wind', 'brynden'],
+                 'stateChanges': {
+                     'cat': ['dead'],
+                     'robb': ['dead'],
+                     'grey wind': ['dead']
+                 },
+                 'event': 'Red Wedding'
+             }
          ],
         },
         // 56. Jon VII
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['jon', 'aemon'],
-              'event': 'Styr the Magnar\'s attack on Castle Black'}
+             {
+                 'subnodes': ['jon', 'aemon'],
+                 'event': 'Styr the Magnar\'s attack on Castle Black'
+             }
          ],
         },
         // 57. Bran IV
@@ -196,10 +222,13 @@
         // 61-62. Tyrion VIII, Sansa V
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['sansa', 'cersei', 'joffrey', 'ilyn', 'varys', 'pycelle', 'tyrion', 'loras', 'tywin',
-                           'tommen', 'margaery', 'petyr'],
-              'event': 'Joffrey and Margaery married, Joffrey poisoned, Sansa escapes',
-              'deaths': ['joffrey']
+             {
+                 'subnodes': ['sansa', 'cersei', 'joffrey', 'ilyn', 'varys', 'pycelle', 'tyrion', 'loras', 'tywin',
+                              'tommen', 'margaery', 'petyr'],
+                 'event': 'Joffrey and Margaery married, Joffrey poisoned, Sansa escapes',
+                 'stateChanges': {
+                     'joffrey': ['dead']
+                 }
              }
          ],
         },
@@ -214,18 +243,24 @@
         // 65. Jon VIII
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['jon', 'aemon'],
-              'event': 'Wildlings attack the Wall, Jon takes command of the Watch'}
+             {
+                 'subnodes': ['jon', 'aemon'],
+                 'event': 'Wildlings attack the Wall, Jon takes command of the Watch'
+             }
          ],
         },
         // 66. Arya XII
         {'duration': 0,
          'nodes': [
              {'subnodes': ['arya', 'sandor']},
-             {'subnodes': ['nymeria', 'cat', 'beric'],
-              'event': 'Nymeria drags dead Catelyn out of the Trident, Beric revives her',
-              'deaths': ['beric'],
-              'undeaths': ['cat']},
+             {
+                 'subnodes': ['nymeria', 'cat', 'beric'],
+                 'event': 'Nymeria drags dead Catelyn out of the Trident, Beric revives her',
+                 'stateChanges': {
+                     'beric': ['dead']
+                     'cat': ['undead']
+                 }
+             },
              // Establish togetherness
              {'subnodes': ['lysa', 'robert_a']}
          ],
@@ -233,40 +268,47 @@
         // 69. Sansa VI
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['sansa', 'petyr', 'lysa'],
-              'event': 'Petyr and Lysa married',
+             {
+                 'subnodes': ['sansa', 'petyr', 'lysa'],
+                 'event': 'Petyr and Lysa married',
              }
          ],
         },
         // 70. Jon IX
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['jon', 'aemon'],
-              'event': 'Jon declared a traitor'}
+             {
+                 'subnodes': ['jon', 'aemon'],
+                 'event': 'Jon declared a traitor'
+             }
          ],
         },
         // 71. Tyrion X
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['cersei', 'ilyn', 'varys', 'pycelle', 'tyrion', 'loras', 'tywin', 'tommen',
-                           'margaery', 'jaime', 'brienne', 'gregor'],
-              'event': 'Gregor kills Oberyn in Tyrion\'s trial by combat',
+             {
+                 'subnodes': ['cersei', 'ilyn', 'varys', 'pycelle', 'tyrion', 'loras', 'tywin', 'tommen',
+                              'margaery', 'jaime', 'brienne', 'gregor'],
+                 'event': 'Gregor kills Oberyn in Tyrion\'s trial by combat'
              }
          ],
         },
         // 72. Daenerys VI
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['daenerys', 'jorah', 'drogon', 'rhaegal', 'viserion', 'barristan'],
-              'event': 'Daenerys conquers Meereen, banishes Jorah'}
+             {
+                 'subnodes': ['daenerys', 'jorah', 'drogon', 'rhaegal', 'viserion', 'barristan'],
+                 'event': 'Daenerys conquers Meereen, banishes Jorah'
+             }
          ],
         },
         // 73. Jaime IX
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['cersei', 'ilyn', 'varys', 'pycelle', 'tyrion', 'loras', 'tywin', 'tommen',
-                           'margaery', 'jaime', 'brienne', 'gregor'],
-              'event': 'Jaime sends Brienne on her mission to find Sansa',
+             {
+                 'subnodes': ['cersei', 'ilyn', 'varys', 'pycelle', 'tyrion', 'loras', 'tywin', 'tommen',
+                              'margaery', 'jaime', 'brienne', 'gregor'],
+                 'event': 'Jaime sends Brienne on her mission to find Sansa'
              },
              // Establish togetherness at Eastwatch
              {'subnodes': ['davos', 'stannis', 'melisandre']}
@@ -275,15 +317,19 @@
         // 74. Jon X
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['jon', 'aemon', 'stannis', 'melisandre'],
-              'event': 'Stannis defeats the wildlings'}
+             {
+                 'subnodes': ['jon', 'aemon', 'stannis', 'melisandre'],
+                 'event': 'Stannis defeats the wildlings'
+             }
          ],
         },
         // 75. Arya XII
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['arya', 'sandor'],
-              'event': 'Arya leaves for Braavos'},
+             {
+                 'subnodes': ['arya', 'sandor'],
+                 'event': 'Arya leaves for Braavos'
+             }
          ],
         },
         // 76. Samwell IV
@@ -295,26 +341,34 @@
         // 78. Tyrion XI
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['cersei', 'ilyn', 'varys', 'pycelle', 'tyrion', 'loras', 'tywin', 'tommen',
-                           'margaery', 'jaime', 'gregor'],
-              'event': 'Jaime breaks Tyrion out of prison; Tyrion kills Tywin and Shae',
-              'deaths': ['tywin']
-             },
+             {
+                 'subnodes': ['cersei', 'ilyn', 'varys', 'pycelle', 'tyrion', 'loras', 'tywin', 'tommen',
+                              'margaery', 'jaime', 'gregor'],
+                 'event': 'Jaime breaks Tyrion out of prison; Tyrion kills Tywin and Shae',
+                 'stateChanges': {
+                     'tywin': ['dead']
+                 }
+             }
          ],
         },
         // 80. Jon XII
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['jon', 'ghost', 'aemon', 'stannis', 'melisandre', 'sam'],
-              'event': 'Jon elected Lord Commander of the Night\'s Watch'}
+             {
+                 'subnodes': ['jon', 'ghost', 'aemon', 'stannis', 'melisandre', 'sam'],
+                 'event': 'Jon elected Lord Commander of the Night\'s Watch'
+             }
          ],
         },
         // 81. Sansa VII
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['sansa', 'petyr', 'lysa', 'robert_a'],
-              'event': 'Petyr throws Lysa out the Moon Door',
-              'deaths': ['lysa']
+             {
+                 'subnodes': ['sansa', 'petyr', 'lysa', 'robert_a'],
+                 'event': 'Petyr throws Lysa out the Moon Door',
+                 'stateChanges': {
+                     'lysa': ['dead']
+                 }
              }
          ],
         },

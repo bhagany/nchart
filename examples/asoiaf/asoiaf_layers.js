@@ -9,10 +9,13 @@
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['will', 'waymar', 'gared'],
-              'event': 'Encounter with Others',
-              'deaths': ['will'],
-              'undeaths': ['waymar']
+             {
+                 'subnodes': ['will', 'waymar', 'gared'],
+                 'event': 'Encounter with Others',
+                 'stateChanges': {
+                     'will': ['dead'],
+                     'waymar': ['undead']
+                 }
              },
              // Characters Intros
              {'subnodes': ['ned', 'robb', 'bran', 'jon', 'theon']},
@@ -22,10 +25,13 @@
         // 2. Bran I
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['ned', 'robb', 'bran', 'jon', 'theon', 'gared',
-                           'grey wind', 'lady', 'nymeria', 'summer', 'shaggydog', 'ghost'],
-              'deaths': ['gared'],
-              'event': 'Execution of Gared, finding of the wolves'
+             {
+                 'subnodes': ['ned', 'robb', 'bran', 'jon', 'theon', 'gared',
+                              'grey wind', 'lady', 'nymeria', 'summer', 'shaggydog', 'ghost'],
+                 'stateChanges': {
+                     'gared': ['dead']
+                 },
+                 'event': 'Execution of Gared, finding of the wolves'
              },
              // Characters Intros
              {'subnodes': ['cat', 'sansa', 'arya', 'rickon']}
@@ -98,10 +104,13 @@
         // 16-17. Sansa I, Eddard III
         {'duration': 20,
          'nodes': [
-             {'subnodes': ['ned', 'sansa', 'arya', 'robert_b', 'cersei', 'jaime', 'joffrey', 'myrcella',
-                           'tommen', 'sandor', 'renly', 'barristan', 'ilyn', 'lady', 'nymeria'],
-              'deaths': ['lady'],
-              'event': 'Children Fight Near the Trident'
+             {
+                 'subnodes': ['ned', 'sansa', 'arya', 'robert_b', 'cersei', 'jaime', 'joffrey', 'myrcella',
+                              'tommen', 'sandor', 'renly', 'barristan', 'ilyn', 'lady', 'nymeria'],
+                 'stateChanges': {
+                     'lady': ['dead']
+                 },
+                 'event': 'Children Fight Near the Trident'
              },
              // Character Intros
              {'subnodes': ['petyr', 'varys', 'pycelle']}
@@ -126,7 +135,13 @@
          'nodes': [
              {'subnodes': ['ned', 'sansa', 'arya', 'robert_b', 'cersei', 'jaime', 'joffrey', 'myrcella',
                            'tommen', 'sandor', 'renly', 'barristan', 'ilyn', 'cat', 'petyr', 'varys',
-                           'pycelle']}
+                           'pycelle']},
+             {
+                 'subnodes': ['benjen'],
+                 'stateChanges': {
+                     'drogo': ['disappeared']
+                 }
+             }
          ]
         },
         // 25. Bran IV
@@ -205,20 +220,26 @@
         // 47. Daenerys V
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['daenerys', 'viserys', 'jorah', 'drogo'],
-              'deaths': ['viserys'],
-              'event': 'Viserys Crowned'
+             {
+                 'subnodes': ['daenerys', 'viserys', 'jorah', 'drogo'],
+                 'stateChanges': {
+                     'viserys': ['dead']
+                 },
+                 'event': 'Viserys Crowned'
              }
          ],
         },
         // 48, 50-52. Eddard XIII, Eddard XIV, Arya IV, Sansa IV
         {'duration': 40,
          'nodes': [
-             {'subnodes': ['ned', 'sansa', 'arya', 'robert_b', 'cersei', 'joffrey', 'myrcella',
-                           'tommen', 'sandor', 'barristan', 'ilyn', 'petyr', 'varys', 'pycelle',
-                           'gendry', 'renly', 'loras'],
-              'deaths': ['robert_b'],
-              'event': 'King Robert gored and killed, Starks betrayed'
+             {
+                 'subnodes': ['ned', 'sansa', 'arya', 'robert_b', 'cersei', 'joffrey', 'myrcella',
+                              'tommen', 'sandor', 'barristan', 'ilyn', 'petyr', 'varys', 'pycelle',
+                              'gendry', 'renly', 'loras'],
+                 'stateChanges': {
+                     'robert_b': ['dead']
+                 },
+                 'event': 'King Robert gored and killed, Starks betrayed'
              }
          ],
         },
@@ -241,8 +262,12 @@
         // Ambush at Mummer's ford, related in ASOS 18 - Arya III
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['beric', 'gregor'],
-              'undeaths': ['beric']}
+             {
+                 'subnodes': ['beric', 'gregor'],
+                 'stateChanges': {
+                     'beric': ['undead']
+                 }
+             }
          ]
         },
         // 56. Catelyn VIII
@@ -305,19 +330,25 @@
         // 66. Arya V
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['ned', 'sansa', 'arya', 'cersei', 'joffrey', 'myrcella',
-                           'tommen', 'sandor', 'barristan', 'ilyn', 'petyr', 'varys', 'pycelle', 'gendry'],
-              'deaths': ['ned'],
-              'event': 'Ned beheaded at the Great Sept of Baelor'
+             {
+                 'subnodes': ['ned', 'sansa', 'arya', 'cersei', 'joffrey', 'myrcella',
+                              'tommen', 'sandor', 'barristan', 'ilyn', 'petyr', 'varys', 'pycelle', 'gendry'],
+                 'stateChanges': {
+                     'ned': ['dead']
+                 },
+                 'event': 'Ned beheaded at the Great Sept of Baelor'
              }
          ],
         },
         // 69. Daenerys IX
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['daenerys', 'jorah', 'drogo', 'mirri'],
-              'deaths': ['drogo'],
-              'event': 'The breaking of Drogo\'s khalasar'
+             {
+                 'subnodes': ['daenerys', 'jorah', 'drogo', 'mirri'],
+                 'stateChanges': {
+                     'drogo': ['dead']
+                 },
+                 'event': 'The breaking of Drogo\'s khalasar'
              }
          ],
         },
@@ -332,9 +363,12 @@
         // 73. Daenerys X
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['daenerys', 'jorah', 'mirri', 'drogon', 'rhaegal', 'viserion'],
-              'deaths': ['mirri'],
-              'event': 'Mother of Dragons'
+             {
+                 'subnodes': ['daenerys', 'jorah', 'mirri', 'drogon', 'rhaegal', 'viserion'],
+                 'stateChanges': {
+                     'mirri': ['dead']
+                 },
+                 'event': 'Mother of Dragons'
              }
          ],
         },
@@ -420,9 +454,12 @@
         // 34. Catelyn IV
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['cat', 'renly', 'loras', 'brienne', 'stannis', 'davos', 'melisandre'],
-              'deaths': ['renly']
-             },
+             {
+                 'subnodes': ['cat', 'renly', 'loras', 'brienne', 'stannis', 'davos', 'melisandre'],
+                 'stateChanges': {
+                     'renly': ['dead']
+                 }
+             }
          ],
         },
         // 37. Tyrion VIII (establish Petyr still in KL)
@@ -642,9 +679,12 @@
         // 34. Samwell II
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['sam', 'jeor'],
-              'event': 'Mutiny at Craster\'s Keep',
-              'deaths': ['jeor']
+             {
+                 'subnodes': ['sam', 'jeor'],
+                 'event': 'Mutiny at Craster\'s Keep',
+                 'stateChanges': {
+                     'jeor': ['dead']
+                 }
              }
          ],
         },
@@ -692,9 +732,15 @@
         // 51-53. Arya X, Catelyn VII, Arya XI
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['arya', 'sandor', 'cat', 'robb', 'grey wind', 'brynden'],
-              'deaths': ['cat', 'robb', 'grey wind'],
-              'event': 'Red Wedding'},
+             {
+                 'subnodes': ['arya', 'sandor', 'cat', 'robb', 'grey wind', 'brynden'],
+                 'stateChanges': {
+                     'cat': ['dead'],
+                     'robb': ['dead'],
+                     'grey wind': ['dead']
+                 },
+                 'event': 'Red Wedding'
+             }
          ],
         },
         // 56. Jon VII
@@ -713,10 +759,13 @@
         // 61-62. Tyrion VIII, Sansa V
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['sansa', 'cersei', 'joffrey', 'ilyn', 'varys', 'pycelle', 'tyrion', 'loras', 'tywin',
-                           'tommen', 'margaery', 'petyr'],
-              'event': 'Joffrey and Margaery married, Joffrey poisoned, Sansa escapes',
-              'deaths': ['joffrey']
+             {
+                 'subnodes': ['sansa', 'cersei', 'joffrey', 'ilyn', 'varys', 'pycelle', 'tyrion', 'loras', 'tywin',
+                              'tommen', 'margaery', 'petyr'],
+                 'event': 'Joffrey and Margaery married, Joffrey poisoned, Sansa escapes',
+                 'stateChanges': {
+                     'joffrey': ['dead']
+                 }
              }
          ],
         },
@@ -739,10 +788,14 @@
         {'duration': 0,
          'nodes': [
              {'subnodes': ['arya', 'sandor']},
-             {'subnodes': ['nymeria', 'cat', 'beric'],
-              'event': 'Nymeria drags dead Catelyn out of the Trident, Beric revives her',
-              'deaths': ['beric'],
-              'undeaths': ['cat']},
+             {
+                 'subnodes': ['nymeria', 'cat', 'beric'],
+                 'event': 'Nymeria drags dead Catelyn out of the Trident, Beric revives her',
+                 'stateChanges': {
+                     'beric': ['dead']
+                     'cat': ['undead']
+                 }
+             },
              // Establish togetherness
              {'subnodes': ['lysa', 'robert_a']}
          ],
@@ -812,11 +865,14 @@
         // 78. Tyrion XI
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['cersei', 'ilyn', 'varys', 'pycelle', 'tyrion', 'loras', 'tywin', 'tommen',
-                           'margaery', 'jaime', 'gregor'],
-              'event': 'Jaime breaks Tyrion out of prison; Tyrion kills Tywin and Shae',
-              'deaths': ['tywin']
-             },
+             {
+                 'subnodes': ['cersei', 'ilyn', 'varys', 'pycelle', 'tyrion', 'loras', 'tywin', 'tommen',
+                              'margaery', 'jaime', 'gregor'],
+                 'event': 'Jaime breaks Tyrion out of prison; Tyrion kills Tywin and Shae',
+                 'stateChanges': {
+                     'tywin': ['dead']
+                 }
+             }
          ],
         },
         // 80. Jon XII
@@ -829,9 +885,12 @@
         // 81. Sansa VII
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['sansa', 'petyr', 'lysa', 'robert_a'],
-              'event': 'Petyr throws Lysa out the Moon Door',
-              'deaths': ['lysa']
+             {
+                 'subnodes': ['sansa', 'petyr', 'lysa', 'robert_a'],
+                 'event': 'Petyr throws Lysa out the Moon Door',
+                 'stateChanges': {
+                     'lysa': ['dead']
+                 }
              }
          ],
         },

@@ -25,8 +25,11 @@
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['pate', 'jaqen'],
-              'deaths': ['pate']
+             {
+                 'subnodes': ['pate', 'jaqen'],
+                 'stateChanges': {
+                     'pate': ['dead']
+                 }
              },
              // Character intros
              {'subnodes': ['areo', 'doran', 'arianne', 'arys']}
@@ -62,8 +65,12 @@
         },
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['arys', 'arianne', 'myrcella', 'areo'],
-              'deaths': ['arys']}
+             {
+                 'subnodes': ['arys', 'arianne', 'myrcella', 'areo'],
+                 'stateChanges': {
+                     'arys': ['dead']
+                 }
+             }
          ],
         },
         // 27. Samwell III
@@ -111,8 +118,12 @@
         // 36. Samwell IV
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['aemon', 'sam'],
-              'deaths': ['aemon']},
+             {
+                 'subnodes': ['aemon', 'sam'],
+                 'stateChanges': {
+                     'aemon': ['dead']
+                 }
+             },
              // Establish togetherness
              {'subnodes': ['cersei', 'pycelle', 'loras', 'tommen', 'margaery', 'gregor']}
          ],

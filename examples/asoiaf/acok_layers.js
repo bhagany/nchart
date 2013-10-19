@@ -89,9 +89,12 @@
         // 34. Catelyn IV
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['cat', 'renly', 'loras', 'brienne', 'stannis', 'davos', 'melisandre'],
-              'deaths': ['renly']
-             },
+             {
+                 'subnodes': ['cat', 'renly', 'loras', 'brienne', 'stannis', 'davos', 'melisandre'],
+                 'stateChanges': {
+                     'renly': ['dead']
+                 }
+             }
          ],
         },
         // 37. Tyrion VIII (establish Petyr still in KL)
@@ -123,9 +126,10 @@
         // 42. Tyrion IX
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['sansa', 'cersei', 'joffrey', 'myrcella', 'tommen', 'sandor', 'ilyn',
-                           'varys', 'pycelle', 'tyrion'],
-              'event': 'King\'s Landing Riot'
+             {
+                 'subnodes': ['sansa', 'cersei', 'joffrey', 'myrcella', 'tommen', 'sandor', 'ilyn',
+                              'varys', 'pycelle', 'tyrion'],
+                 'event': 'King\'s Landing Riot'
              }
          ],
         },
@@ -156,8 +160,9 @@
         // 49. Daenerys IV
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['daenerys', 'jorah', 'drogon', 'rhaegal', 'viserion'],
-              'event': 'House of the Undying Burned'
+             {
+                 'subnodes': ['daenerys', 'jorah', 'drogon', 'rhaegal', 'viserion'],
+                 'event': 'House of the Undying Burned'
              }
          ],
         },
@@ -170,9 +175,10 @@
         // 58-63.  Sansa V, Davos III, Tyrion XIII, Sansa VI, Tyrion XIV, Sansa VII
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['sansa', 'cersei', 'joffrey', 'sandor', 'ilyn', 'varys',
-                           'pycelle', 'tyrion', 'stannis', 'davos', 'loras', 'tywin', 'petyr'],
-              'event': 'Battle of the Blackwater'
+             {
+                 'subnodes': ['sansa', 'cersei', 'joffrey', 'sandor', 'ilyn', 'varys',
+                              'pycelle', 'tyrion', 'stannis', 'davos', 'loras', 'tywin', 'petyr'],
+                 'event': 'Battle of the Blackwater'
              }
          ],
         },
@@ -185,8 +191,9 @@
         // 65. Arya X
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['arya', 'gendry'],
-              'event': 'Escape from Harrenhal'
+             {
+                 'subnodes': ['arya', 'gendry'],
+                 'event': 'Escape from Harrenhal'
              },
              // I think Stannis reunites with Melisandre sometime around here
              {'subnodes': ['stannis', 'melisandre']}
@@ -195,16 +202,18 @@
         // 67. Theon VI
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['theon', 'bran', 'rickon', 'summer', 'shaggydog', 'meera', 'jojen'],
-              'event': 'Winterfell burned'
+             {
+                 'subnodes': ['theon', 'bran', 'rickon', 'summer', 'shaggydog', 'meera', 'jojen'],
+                 'event': 'Winterfell burned'
              },
          ],
         },
         // 69. Jon VIII
         {'duration': 10,
          'nodes': [
-             {'subnodes': ['jon', 'ghost'],
-              'event': 'Jon kills Qhorin Halfhand, goes over to the wildlings'
+             {
+                 'subnodes': ['jon', 'ghost'],
+                 'event': 'Jon kills Qhorin Halfhand, goes over to the wildlings'
              }
          ],
         },
