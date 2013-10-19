@@ -18,12 +18,17 @@
 // What if you disappear while dead?
 // Beginning the story in a non-default state
 // Draw segments between unaligned nodes behind other lines
+// Calc arc radius based on # of nodes going in a direction, not on absolute subnode order
+// CSS instead of JS for most styles
+// Switching allegiances / colors on character paths
+// Allow deaths, undeaths, etc at different times in a layer
+
 
 (function(window) {
 
     goog.require('goog.array');
     goog.require('goog.object');
-    goog.require('goog.math.Bezier');
+    goog.require('goog.math');
 
     var NChart = function(paper_id, characters, layers, conf) {
         this.paper_id = paper_id;
@@ -267,6 +272,9 @@
                         var span = i - last_node.layer.num;
                         var subnodes = intersect(node.subnodes, last_node.subnodes);
 
+                        // Other characters may be present in last_node and node, but
+                        // not be included in this edge, because they were referenced
+                        // by other nodes in the interim. Remove those.
                         for(var l=0; l<subnodes.length; l++) {
                             if(last_nodes[subnodes[l]] != last_node) {
                                 subnodes.splice(l, 1);
@@ -274,29 +282,33 @@
                             }
                         }
                         if(span > 2) {
-                            // Add two new vertices at layers last_node.layer.num + 1 and i - 1
+                            // Add two new nodes at layers last_node.layer.num + 1 and i - 1
                             var p_layer = layers[last_node.layer.num + 1];
                             var q_layer = layers[i - 1];
-                            var p_node = {'id': (last_node.layer.num + 1) + '-' + p_layer.nodes.length,
-                                          'subnodes': subnodes,
-                                          'duration': 0,
-                                          'layer': p_layer,
-                                          'p': true,
-                                          'span': span,
-                                          'draw': last_node.draw,
-                                          'edges': {},
-                                          'parents': [],
-                                          'children': []};
-                            var q_node = {'id': (i - 1) + '-' + q_layer.nodes.length,
-                                          'subnodes': subnodes,
-                                          'duration': 0,
-                                          'layer': q_layer,
-                                          'q': true,
-                                          'span': span,
-                                          'draw': last_node.draw,
-                                          'edges': {},
-                                          'parents': [],
-                                          'children': []};
+                            var p_node = {
+                                'id': (last_node.layer.num + 1) + '-' + p_layer.nodes.length,
+                                'subnodes': subnodes,
+                                'duration': 0,
+                                'layer': p_layer,
+                                'p': true,
+                                'span': span,
+                                'draw': last_node.draw,
+                                'edges': {},
+                                'parents': [],
+                                'children': []
+                            };
+                            var q_node = {
+                                'id': (i - 1) + '-' + q_layer.nodes.length,
+                                'subnodes': subnodes,
+                                'duration': 0,
+                                'layer': q_layer,
+                                'q': true,
+                                'span': span,
+                                'draw': last_node.draw,
+                                'edges': {},
+                                'parents': [],
+                                'children': []
+                            };
                             // We should place these nodes more intelligently, so that all subnodes in last_node.layer
                             // that came before last_node are still before p_node, and all subnodes in last_node.layer
                             // that came after last_node are still after p_node
@@ -322,17 +334,19 @@
                         } else if(span == 2) {
                             // Add one new vertex at layer i - 1
                             var r_layer = layers[i - 1];
-                            var r_node = {'id': (i - 1) + '-' + r_layer.nodes.length,
-                                          'subnodes': subnodes,
-                                          'duration': 0,
-                                          'layer': r_layer,
-                                          'r': true,
-                                          'draw': last_node.draw,
-                                          'edges': {},
-                                          'parents': [],
-                                          'children': []};
+                            var r_node = {
+                                'id': (i - 1) + '-' + r_layer.nodes.length,
+                                'subnodes': subnodes,
+                                'duration': 0,
+                                'layer': r_layer,
+                                'r': true,
+                                'draw': last_node.draw,
+                                'edges': {},
+                                'parents': [],
+                                'children': []
+                            };
                             r_layer.nodes.push(r_node);
-                            // Add two new edges last_node.layer -> r_layer
+                            // Add one new edge last_node.layer -> r_layer
                             // for each name in this node
                             for(var n=0; n<subnodes.length; n++) {
                                 var seg_name = subnodes[n];
