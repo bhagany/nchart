@@ -1909,20 +1909,18 @@
                         'y': c_nodes.nodes[0].y + c_nodes.nodes[0].subnode_order[short_name]
                         * this.nchart.subnode_spacing};
 
-            var states = {};
             var icon_places = {};
             var segments = {};
             goog.object.forEach(this.nchart.states, function(info, state) {
                 icon_places[state] = [];
                 if(info.following_style) {
-                    states[info.following_style] = !!(c_nodes.nodes[0][info.following_style] &&
-                                                      goog.array.contains(c_nodes.nodes[0][info.following_style], short_name));
                     segments[info.following_style] = [];
                 }
             });
 
-            if(!goog.object.contains(states, true)) {
-                states['default'] = true;
+            var active_states;
+            if(c_nodes.nodes[0].startStates && c_nodes.nodes[0].startStates[short_name]) {
+                active_states = c_nodes.nodes[0].startStates[short_name];
             }
 
             var use_segments = ['M' + last.x + ',' + last.y];
@@ -1934,11 +1932,6 @@
                 var end_x = node.x + node.duration;
                 var this_segs = [];
                 var this_seg = [];
-
-                var active_states = goog.object.getKeys(goog.object.filter(states,
-                                                                           function(state) { return state; }));
-                var non_default_states = goog.object.clone(states);
-                delete non_default_states['default'];
 
                 var draw = !!goog.array.filter(active_states, function(state) { return !!self.nchart.path_styles[state]; }).length;
 
