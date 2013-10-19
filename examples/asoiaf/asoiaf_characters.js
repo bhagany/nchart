@@ -10,7 +10,9 @@
         // Podrick Payne
         // Mance Rayder
         // Ramsay Snow
-        // Benerro
+        // Moqorro
+        // Tormund
+        // Kevan Lannister
 
         'ned': {'name': 'Eddard Stark',
                 'group': 'pov',
