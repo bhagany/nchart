@@ -22,8 +22,8 @@
 
 
 (defrecord Node [id layer-id characters])
-
 (defrecord Edge [nodes characters])
+(defrecord Layer [id duration nodes edges])
 
 
 (defn- add-edge [graph last-node node edge-characters]
@@ -139,10 +139,10 @@
   [graph input-layer]
   (let [layers (:layers graph)
         layer-id (count layers)
-        layer {:id layer-id
-               :duration (input-layer :duration)
-               :nodes []
-               :edges []}]
+        layer (->Layer layer-id
+                       (input-layer :duration)
+                       []
+                       [])]
     (loop [g (update-in graph [:layers] conj layer)
            input-groups (input-layer :groups)]
       (if (empty? input-groups)
