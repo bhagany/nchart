@@ -101,7 +101,3 @@ foreman start
 
 Now your app is running at
 [http://localhost:5000](http://localhost:5000) in production mode.
-
-## License
-
-Copyright © 2014 Brent Hagany
