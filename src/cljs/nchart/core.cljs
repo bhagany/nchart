@@ -39,7 +39,7 @@
   "Utility function that was abstracted to avoid mutually recursing back to add-node
   when creating helper (p, q, and r) nodes. In particular, helper nodes don't require
   character group processing or bookkeeping metadata"
-  (let [node-num (count (:nodes ((-> graph :layers) layer-id)))
+  (let [node-num (count (-> graph :layers (nth layer-id) :nodes))
         node-id (keyword (s/join "-" [layer-id node-num]))]
     (map->Node (assoc input :id node-id :layer-id layer-id))))
 
