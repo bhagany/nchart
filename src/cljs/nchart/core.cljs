@@ -88,7 +88,7 @@
 (defn- process-characters
   "Process each set of characters, where a set is defined as those characters
   present in the current node that also share their last node (ie. they define
-  and edge in the graph)"
+  an edge in the graph)"
   [graph node]
   (loop [graph graph
          characters (:characters node)]
