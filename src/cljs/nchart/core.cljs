@@ -123,13 +123,12 @@
         (let [character (first characters)
               last-node (-> new-g :last-nodes-by-character character)
               disappeared (contains? (-> node :path-mods character) :disappeared)
-              g (-> new-g
-                    (cond->
-                     disappeared (update-in [:last-nodes-by-character] dissoc character)
-                     (not disappeared) (->
-                                        (assoc-in [:last-nodes-by-character character] node)
-                                        (update-in [:last-nodes-by-node (:id node)] (fnil conj #{}) character))
-                     last-node (update-in [:last-nodes-by-node (:id last-node)] disj character)))]
+              g (cond-> new-g
+                        disappeared (update-in [:last-nodes-by-character] dissoc character)
+                        (not disappeared) (->
+                                           (assoc-in [:last-nodes-by-character character] node)
+                                           (update-in [:last-nodes-by-node (:id node)] (fnil conj #{}) character))
+                        last-node (update-in [:last-nodes-by-node (:id last-node)] disj character))]
           (recur g (rest characters)))))))
 
 
