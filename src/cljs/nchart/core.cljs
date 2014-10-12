@@ -22,17 +22,17 @@
 
 
 (defrecord Node [id layer-id characters])
-(defrecord Edge [nodes characters])
-(defrecord Layer [id duration nodes edges])
+(defrecord Edge [dest characters])
+(defrecord Layer [id duration nodes])
+(defrecord SegmentContainer [segments])
+(defrecord Segment [edge])
 
 
-(defn- add-edge [graph last-node node edge-characters]
+(defn- add-edge [graph last-node node characters]
   "Creates an edge and adds it to the graph as a whole and to each participating node"
-  (let [edge (->Edge [(:id last-node) (:id node)] edge-characters)]
-    (-> graph
-        (update-in [:edges] conj edge)
-        (update-in [:layers (:layer-id last-node) :edges] conj edge)
-        (update-in [:layers (:layer-id node) :edges] conj edge))))
+  (-> graph
+      (update-in [:succs last-node] (fnil conj #{}) (Edge. node characters))
+      (update-in [:preds node] (fnil conj #{}) (Edge. last-node characters))))
 
 
 (defn- make-node [graph layer-id input]
@@ -138,10 +138,9 @@
   [graph input-layer]
   (let [layers (:layers graph)
         layer-id (count layers)
-        layer (->Layer layer-id
-                       (input-layer :duration)
-                       []
-                       [])]
+        layer (Layer. layer-id
+                      (input-layer :duration)
+                      [])]
     (loop [g (update-in graph [:layers] conj layer)
            input-groups (input-layer :groups)]
       (if (empty? input-groups)
