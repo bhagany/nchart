@@ -39,7 +39,7 @@
   "Utility function that was abstracted to avoid mutually recursing back to add-node
   when creating helper (p, q, and r) nodes. In particular, helper nodes don't require
   character group processing or bookkeeping metadata"
-  (let [node-num (count (-> graph :layers (nth layer-id) :nodes))
+  (let [node-num (count (-> graph :layers (get layer-id) :nodes))
         node-id (keyword (s/join "-" [layer-id node-num]))]
     (map->Node (assoc input :id node-id :layer-id layer-id))))
 
@@ -50,13 +50,15 @@
   layer preceding node's layer. Edges are then drawn from last-node -> p node and from
   p node to q node, regardless of the span between the p node and the q node"
   (let [proto-node {:characters edge-characters}
-        p-layer-id (+ (:layer-id last-node) 1)
-        q-layer-id (- (:layer-id node) 1)
-        p-node (make-node graph p-layer-id (assoc proto-node :p true))
-        q-node (make-node graph q-layer-id (assoc proto-node :q true))
+        p-layer-id (inc (:layer-id last-node))
+        q-layer-id (dec (:layer-id node))
+        p-node (make-node graph p-layer-id proto-node)
+        q-node (make-node graph q-layer-id proto-node)
         g (-> graph
               (update-in [:layers p-layer-id :nodes] conj p-node)
               (update-in [:layers q-layer-id :nodes] conj q-node)
+              (update-in [:p] conj p-node)
+              (update-in [:q] conj q-node)
               (add-edge last-node p-node edge-characters)
               (add-edge p-node q-node edge-characters))]
     [g q-node]))
@@ -66,10 +68,11 @@
   "R nodes are created to assist in drawing the graph, when an edge skips over a layer.
   In that case, the r node is placed in the intervening layer, and an edge is created
   from last-node to r node"
-  (let [r-layer-id (+ (:layer-id last-node ) 1)
-        r-node (make-node graph r-layer-id {:characters edge-characters :r true})
+  (let [r-layer-id (inc (:layer-id last-node ))
+        r-node (make-node graph r-layer-id {:characters edge-characters})
         g (-> graph
               (update-in [:layers r-layer-id :nodes] conj r-node)
+              (update-in [:r] conj r-node)
               (add-edge last-node r-node edge-characters))]
     [g r-node]))
 
