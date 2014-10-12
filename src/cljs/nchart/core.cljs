@@ -152,14 +152,18 @@
                (rest input-groups))))))
 
 
-(defn make-graph
-  "Main entry point, kicks off processing of input groupings"
+(defn make-sparse-graph
+  "Creates a sparse graph, as defined in ESK"
   ([input]
-     (make-graph input
-                 {:layers []
-                  :edges []
-                  :last-nodes-by-character {}
-                  :last-nodes-by-node {}}))
+     (make-sparse-graph input
+                        {:layers []
+                         :succs {}
+                         :preds {}
+                         :p #{}
+                         :q #{}
+                         :r #{}
+                         :last-nodes-by-character {}
+                         :last-nodes-by-node {}}))
   ([input graph]
      (if (empty? input)
        graph
