@@ -508,4 +508,5 @@
                                (reverse-graph %)
                                %))
                            (update-in [:layers 0] assoc :alternating last-alternating))]
+          (println counter (:crossings ordered-graph))
           (recur sd-graph (inc counter)))))))
