@@ -224,4 +224,4 @@
 ;;*** Guess at all of Beric's deaths?
 
 
-(def graph (nchart/make-graph input))
+(def graph (nchart/make-sparse-graph input))
