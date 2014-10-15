@@ -10,3 +10,6 @@ pom.xml.asc
 /resources/public
 /out
 /.repl
+.DS_Store
+.\#*
+\#*\#
