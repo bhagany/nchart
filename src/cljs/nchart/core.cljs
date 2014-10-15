@@ -23,7 +23,7 @@
 
 (defrecord Node [id layer-id characters])
 (defrecord Edge [dest characters])
-(defrecord Layer [id duration nodes])
+(defrecord Layer [id duration nodes marked])
 (defrecord SegmentContainer [segments])
 (defrecord Segment [edge])
 
@@ -143,7 +143,8 @@
         layer-id (count layers)
         layer (Layer. layer-id
                       (input-layer :duration)
-                      [])]
+                      []
+                      #{})]
     (loop [g (update-in graph [:layers] conj layer)
            input-groups (input-layer :groups)]
       (if (empty? input-groups)
