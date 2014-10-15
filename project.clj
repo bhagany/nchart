@@ -6,15 +6,16 @@
 
   :source-paths ["src/clj" "src/cljs"]
 
-  :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.clojure/clojurescript "0.0-2342"]
-                 [ring "1.3.1"]
+  :dependencies [[com.cemerick/piggieback "0.1.3"]
                  [compojure "1.1.9"]
                  [enlive "1.1.5"]
-                 [om "0.7.1"]
-                 [figwheel "0.1.4-SNAPSHOT"]
                  [environ "1.0.0"]
-                 [com.cemerick/piggieback "0.1.3"]
+                 [figwheel "0.1.4-SNAPSHOT"]
+                 [om "0.7.1"]
+                 [org.clojure/clojure "1.6.0"]
+                 [org.clojure/clojurescript "0.0-2342"]
+                 [org.clojure/core.rrb-vector "0.0.11"]
+                 [ring "1.3.1"]
                  [weasel "0.4.0-SNAPSHOT"]]
 
   :plugins [[com.cemerick/austin "0.1.5"]

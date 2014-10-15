@@ -1,10 +1,11 @@
 (ns nchart.core
-  (:require [clojure.string :as s]
+  (:require [clojure.browser.repl]
+            [clojure.core.rrb-vector :as rrb]
             [clojure.set :as set]
-            [clojure.browser.repl]
+            [clojure.string :as s]
+            [figwheel.client :as fw :include-macros true]
             [om.core :as om :include-macros true]
-            [om.dom :as dom :include-macros true]
-            [figwheel.client :as fw :include-macros true]))
+            [om.dom :as dom :include-macros true]))
 
 (def localhost? (-> js/window
                     (.-location)
