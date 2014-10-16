@@ -23,7 +23,7 @@
 
 
 (defrecord Node [id layer-id characters])
-(defrecord Edge [dest characters])
+(defrecord Edge [src dest characters])
 (defrecord Layer [id duration nodes marked])
 (defrecord SegmentContainer [segments])
 (defrecord Segment [edge])
@@ -32,9 +32,20 @@
 
 (defn- add-edge [graph last-node node characters]
   "Creates an edge and adds it to the graph as a whole and to each participating node"
-  (-> graph
-      (update-in [:succs last-node] (fnil conj #{}) (Edge. node characters))
-      (update-in [:preds node] (fnil conj #{}) (Edge. last-node characters))))
+  (let [forward-edge (Edge. last-node node characters)
+        ;; We record the "true" forward edge here, for marking edges that
+        ;; cross segment containers. The ordering algorithm works through
+        ;; the graph backwards on every second pass, and the cross counting
+        ;; algorithm switches the order of the layers depending on which
+        ;; is smaller, but we always layout and draw the graph forward, so the
+        ;; marked edges need to be the forward ones.
+        edge-1 (-> forward-edge
+                   (assoc :forward-edge forward-edge))
+        edge-2 (-> (Edge. node last-node characters)
+                   (assoc :forward-edge forward-edge))]
+    (-> graph
+        (update-in [:succs last-node] (fnil conj #{}) edge-1)
+        (update-in [:preds node] (fnil conj #{}) edge-2))))
 
 
 (defn- make-node [graph layer-id input]
@@ -348,18 +359,19 @@
 
 
 
-(defn- sorted-next-edge-order
+(defn- sorted-edge-order
   "Sorts edges between two ordered layers first by their index in the source
   layer, and then by their index in the destination layer. Then, returns seq
   of [order edge] pairs of the edge targets in the destination layer, using
   this edge ordering"
-  [graph ordered next-ordered]
+  [ordered next-ordered graph-edges]
   (let [next-order-map (->> next-ordered
                             (map-indexed #(-> [%2 %1]))
                             (into {}))
         ;; Edges between segment containers need to be counted as well
         ;; but they change with each new ordering, so we just temporarily
-        ;; merge the current segment edges with the immutable node -> node edges
+        ;; merge the current segment edges with the never-changing
+        ;; node -> node edges
         edges (->> next-ordered
                    (filter #(instance? SegmentContainer %))
                    (map (juxt identity
@@ -367,9 +379,9 @@
                                 (mapcat #(-> % :edge :characters)
                                         (:segments seg-c)))))
                    (map (fn [[seg-c characters]]
-                          [seg-c (Edge. seg-c characters)]))
+                          [seg-c (Edge. seg-c seg-c characters)]))
                    (into {})
-                   (merge (:succs graph)))]
+                   graph-edges)]
     (->> ordered
          (mapcat (fn [item]
                    (sort-by #(get next-order-map (:dest %))
@@ -402,7 +414,7 @@
   adding right siblings, for a total count of edges that cross this one"
   [layer tree orig-index edge]
   (let [weight (count (:characters edge))
-        is-seg-c (instance? SegmentContainer edge)]
+        is-seg-c (instance? SegmentContainer (:dest edge))]
     (loop [layer layer
            tree tree
            index orig-index
@@ -418,7 +430,7 @@
                   marked (if is-seg-c
                            (:node-edges right-sib)
                            (if (:is-seg-c right-sib)
-                             #{edge}
+                             #{(:forward-edge edge)}
                              #{}))
                   l (update-in layer [:marked] set/union marked)]
               (recur l tree parent-index c))
@@ -426,7 +438,7 @@
                         (update-in [index :weight] + weight)
                         (cond->
                          is-seg-c (assoc-in [index :is-seg-c] true)
-                         (not is-seg-c) (update-in [index :node-edges] conj edge)))]
+                         (not is-seg-c) (update-in [index :node-edges] conj (:forward-edge edge))))]
               (recur layer t parent-index crossings))))))))
 
 
@@ -435,15 +447,18 @@
   bi-layer ordering. Implements the algorithm found in Bilayer Cross Counting,
   by Wilhelm Barth, Petra Mutzel and Michael Jünger"
   [graph layer next-layer]
-  (let [next-edge-order (sorted-next-edge-order graph
-                                                (:minus-ps layer)
-                                                (:without-qs next-layer))
-        tree-size (next-power-of-2-minus-1 (count (:without-qs next-layer)))
+  (let [minus-p (:minus-ps layer)
+        without-qs (:without-qs next-layer)
+        [layer-1 layer-2 edges] (if (< minus-p without-qs)
+                                  [without-qs minus-p (:preds graph)]
+                                  [minus-p without-qs (:succs graph)])
+        edge-order (sorted-edge-order layer-1 layer-2 edges)
+        tree-size (next-power-of-2-minus-1 (count layer-2))
         first-leaf (/ (dec tree-size) 2)]
     (loop [layer layer
            tree (vec (repeat tree-size (AccumulatorNode. 0 #{} false)))
            crossings 0
-           order next-edge-order]
+           order edge-order]
       (if (empty? order)
         [layer crossings]
         (let [[ord edge] (first order)
