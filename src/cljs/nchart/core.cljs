@@ -514,7 +514,7 @@
                           (interleave nodes segment-containers))]
     (loop [seeded-graph (update-in sparse-graph [:layers 0] assoc :alternating alternating)
            counter 0]
-      (if (= counter 30)
+      (if (= counter 20)
         seeded-graph
         (let [ordered-graph (order-graph-once seeded-graph)
               last-alternating (-> ordered-graph :layers peek :alternating)
